@@ -74,25 +74,7 @@ router.use('/news',newsRoute)
 router.use('/ussd',ussdRoute)
 router.use('/P2A',p2aRoute)
 
-//router.use('/users', users);
 
 module.exports = router;
 
-//  checking the log function for
-// async function makerequest () {
-//     const httpRequestMaker = require('../common/httpRequestMaker.common')
-//     var data = {
-//         userid : 1, 
-//         username : 'mona',
-//         usertype : 'admin',
-//         old_password : 'checking request',
-//         old_encryption_key : 'trying to make request',
-//         new_password : 'change pass function',
-//         new_encryption_key : 'password key',
-//         created_by : 1
-//     }
-//     let result = await httpRequestMaker.httpPost('/api/v1/log/admin/password',data)
-//     console.log(result)
-// }
 
-// makerequest()
