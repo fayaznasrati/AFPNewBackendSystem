@@ -501,9 +501,7 @@ class rechargeController {
         return [finalPermission[channelType]]
     }
 
-    processRecharge =
-
-        async (data) => {
+    processRecharge = async (data) => {
             try {
 
                 // check operator details
