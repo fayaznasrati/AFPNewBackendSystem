@@ -12,7 +12,7 @@ class httpRequestMaker {
     httpPost = async (urlPath,bodyData) => {
         return new Promise((resolve, reject) => {
             var host = process.env.LOG_URL 
-            var url = host + '/api/v1/log/' + urlPath
+            var url = host + '/api/v1/log/' + urlPath  //"http://localhost:5000/api/v1/log/activity-log"
             // console.log(url)
             axios({
                 method: 'post',
