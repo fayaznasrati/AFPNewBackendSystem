@@ -39,7 +39,7 @@ let failedRechargeCount = {
 
 class rechargeController {
 
-    tableName1 = 'er_recharge'
+    tableName1 = 'er_bundle_recharge'
     tableName2 = 'er_login'
     tableName3 = 'er_agent_operator_access'
     tableName4 = 'er_wallet'
@@ -54,16 +54,17 @@ class rechargeController {
     tableName13 = 'er_prepaid_commission'
     tableName14 = 'er_agent_stock_transfer_channel'
     tableName15 = 'er_salaam_topup'
-    tableName16 = 'er_awcc_topup'
-    tableName17 = 'er_mtn_topup'
-    tableName18 = 'er_etisalat_topup'
-    tableName19 = 'er_roshan_topup'
+    tableName16 = 'er_awcc_bundle_topup'
+    tableName17 = 'er_mtn_bundle_topup'
+    tableName18 = 'er_etisalat_bundle_topup'
+    tableName19 = 'er_roshan_bundle_topup'
     tableName20 = 'er_mno_details'
     tableName21 = 'er_emoney'
     tableName22 = 'er_monthly_recharge'
     tableName23 = 'er_admin_notification_numbers'
     tableName24 = 'er_access_status'
     tableName25 = `er_daily_topup_summery`
+    tableName26 = `er_ebundles`
 
     constructor() {
         start().then((msg) => {
@@ -86,7 +87,7 @@ class rechargeController {
     fun = async (data) => {
         console.log('data', data)
 
-        // // redisMaster.post(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`,0)
+        // // redisMaster.post(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`,0)
         // let response = await redisMaster.asyncGet(`PENDING_RECHARGE_2`)
         // console.log(response)
         // response = await redisMaster.decr(`PENDING_RECHARGE_2`)
@@ -209,121 +210,6 @@ class rechargeController {
         }
     }
 
-    groupRecharge = async (req, res) => {
-        try {
-            // check body and query
-            const errors = validationResult(req);
-            if (!errors.isEmpty()) {
-                return res.status(400).json({ errors: errors.array() });
-            }
-            // console.log('recharge/groupRecharge',JSON.stringify(req.body), JSON.stringify(req.query))
-            // check operator details
-            // const lisResponce1 = await commonQueryCommon.getOperatorById(req.body.operator_uuid);
-            // if (lisResponce1 == 0) return res.status(400).json({ errors: [ {msg : 'operator id not found'}] });
-
-            // get the contact list 
-            const lisResponce4 = await sqlQueryReplica.searchQueryNoLimit(this.tableName7, { group_uuid: req.body.group_uuid, active: 1 }, ["mobile", "group_id"], 'name', "ASC")
-            // console.log(lisResponce4)
-            if (lisResponce4.length == 0) {
-                // var lisresponce = await sqlQuery.specialCMD('rollback')
-                // var searchKeyValue = {
-                //     user_uuid: req.body.user_detials.user_uuid, //str user_uuid
-                //     canTransfer: 0
-                // }
-                // // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
-                // var objResponce = await sqlQuery.updateQuery(this.tableName4, {canTransfer: 1}, searchKeyValue);
-                return res.status(400).json({ errors: [{ msg: 'Group list dont have any contact number' }] });
-            }
-
-            // for loop to create list for recharge table and for transaction table lisResponce4[i].group_id lisResponce4[i].mobile
-            var status = [], message = []
-            let i = 0, responce, data
-            for (i = 0; i < lisResponce4.length; i++) {
-
-                let operator_uuid = '', operatorName = ''
-
-                switch (lisResponce4[i].mobile.slice(0, 3)) {
-                    case "078":
-                    case "073":
-                        // Etisalat
-                        operator_uuid = "70b9906d-c2ba-11"
-                        operatorName = "Etisalat"
-                        break;
-                    case "079":
-                    case "072":
-                        // Roshan
-                        operator_uuid = "9edb602c-c2ba-11"
-                        operatorName = "Roshan"
-                        break;
-                    case "077":
-                    case "076":
-                        // MTN
-                        operator_uuid = "456a6b47-c2ba-11",
-                            operatorName = "MTN"
-                        break;
-                    case "074":
-                        // Salaam
-                        operator_uuid = "1e0e1eeb-c2a6-11"
-                        operatorName = "Salaam"
-                        break;
-                    case "070":
-                    case "071":
-                        // AWCC
-                        operator_uuid = "6a904d84-c2a6-11"
-                        operatorName = "AWCC"
-                        break;
-                }
-
-                if (!operator_uuid || !operatorName) {
-                    status.push(400)
-                    message.push('Mobile number operator error')
-                    continue;
-                }
-                // console.log(Number(lisResponce4[i].mobile),String(Number(lisResponce4[i].mobile)).length)
-                if (String(Number(lisResponce4[i].mobile)).length != 9) {
-                    status.push(400)
-                    message.push('Mobile number error')
-                    continue;
-                }
-
-                data = {
-                    operatorName: operatorName,
-                    operator_uuid: operator_uuid,
-                    amount: req.body.amount,
-                    mobile: lisResponce4[i].mobile,
-                    userid: req.body.user_detials.userid,
-                    user_uuid: req.body.user_detials.user_uuid,
-                    user_mobile: req.body.user_detials.mobile,
-                    channelType: ['Mobile', 'SMS', 'USSD', 'Web'].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
-                    userType: req.body.user_detials.type,
-                    group_topup_id: lisResponce4[i].group_id,
-                    full_name: req.body.user_detials.name,
-                    username: req.body.user_detials.username,
-                    region_id: req.body.user_detials.region_id,
-                    userIpAddress: req.body.userIpAddress ? req.body.userIpAddress : 0,
-                    userMacAddress: req.body.userMacAddress ? req.body.userMacAddress : 0, //str
-                    userOsDetails: req.body.userOsDetails ? req.body.userOsDetails : 0, //str
-                    userImeiNumber: req.body.userImeiNumber ? req.body.userImeiNumber : 0, //str
-                    userGcmId: req.body.userGcmId ? req.body.userGcmId : 0, //str
-                    userAppVersion: req.body.userAppVersion ? req.body.userAppVersion : null, //str
-                    userApplicationType: req.body.userApplicationType == "Web" ? 1 : req.body.userApplicationType == 'Mobile' ? 2 : 0,
-                }
-                responce = await this.processBundleRecharge(data)
-                status.push(responce.status)
-                message.push(responce.message)
-            }
-            if (status.includes(200)) {
-                if (status.includes(400)) return res.status(responce.status).send({ message: "Some recharge request added successfully" })
-                else return res.status(responce.status).send({ message: "All recharge request added successfully" })
-            }
-            res.status(400).json({ errors: [{ msg: message[status.indexOf(400)] }] });
-
-        } catch (error) {
-            console.log(error);
-            res.status(400).json({ errors: [{ msg: error.message }] });
-        }
-    }
-
     #checkStockTransferStatus = async () => {
         let strStockTransferStatus = await redisMaster.asyncGet('STOCK_TRANSFER_STATUS')
         if (strStockTransferStatus) {
@@ -334,6 +220,41 @@ class rechargeController {
             return (stockTransferStatus)
         }
     }
+
+    checkBundleExist = async (data) => {
+        try {
+            const searchCriteria = {
+                techName: data.bundle_name,
+                ebundleType: data.bundle_type,
+                operatorType: data.operatorName,
+            };
+    
+            const selectedColumns = ["techName", "ebundleType", "operatorType"]; // Ensure these match your database column names
+    
+            const bundleInfo = await sqlQuery.searchQuery(
+                this.tableName26, 
+                searchCriteria, 
+                selectedColumns, 
+                "techName", 
+                "ASC", 
+                1, 
+                0
+            );
+    
+            if (bundleInfo && bundleInfo.length > 0) {
+                return bundleInfo;
+            } else {
+                return {
+                    status: 404,
+                    message: "No bundle found!",
+                };
+            }
+        } catch (error) {
+            console.error("Error checking bundle existence:", error);
+            throw new Error("Failed to check bundle existence.");
+        }
+    };
+    
 
     bundlesinglerecharge = async (req, res) => {
         try {
@@ -384,6 +305,8 @@ class rechargeController {
             let data = {
                 operatorName: req.body.operatorName,
                 operator_uuid: req.body.operator_uuid,
+                bundle_type: req.body.bundle_type,
+                bundle_name: req.body.bundle_name,
                 amount: req.body.amount,
                 mobile: req.body.mobile,
                 userid: req.body.user_detials.userid,
@@ -404,11 +327,18 @@ class rechargeController {
                 userApplicationType: req.body.userApplicationType == "Web" ? 1 : req.body.userApplicationType == 'Mobile' ? 2 : 0,
             }
 
+            try {
+                const bundleInfo = await this.checkBundleExist(data);
+                console.log("Bundle Info:", bundleInfo);
+            } catch (error) {
+                console.error("Error fetching bundle info:", error.message);
+                return res.status(500).json({ errors: [{ msg: "Internal server error" }] });
+            }
+            
             let responce
-
             let stockTransferStatus = await this.#checkStockTransferStatus()
             if (stockTransferStatus.length == 0 || stockTransferStatus[0].stock_transfer == 0) {
-                responce = { status: 400, message: 'Recharge is not allowed for a while.' }
+                responce = { status: 400, message: 'Bundle Activation is not allowed for a while.' }
             } else {
                 responce = await this.processBundleRecharge(data)
             }
@@ -435,7 +365,7 @@ class rechargeController {
     }
 
     #getOperatorSystemList = async (operator_id) => {
-        let operatorName = 'RECHARGE_OPERATOR_' + operator_id
+        let operatorName = 'BUNDLE_RECHARGE_OPERATOR_' + operator_id
         let strOperatorSystemList = await redisMaster.asyncGet(operatorName)
         if (strOperatorSystemList) {
             return (JSON.parse(strOperatorSystemList))
@@ -518,9 +448,7 @@ class rechargeController {
                 let mno_id, queue_name, minRechargeLimit, maxRechargeList, status = 0
                 for (let i = 0; i < systemDetails.length; i++) {
                     mno_id = systemDetails[i].mno_id
-                    // operator_access_uuid = systemDetails[i].operator_access_uuid
-                    // display_name = systemDetails[i].display_name
-                    queue_name = systemDetails[i].queue_name
+                    queue_name = `Bundle_${systemDetails[i].queue_name}`;
                     status = systemDetails[i].status
                     minRechargeLimit = systemDetails[i].min_amount
                     maxRechargeList = systemDetails[i].max_amount
@@ -530,15 +458,15 @@ class rechargeController {
 
                 if (status != 1) return ({ status: 400, message: 'Operator in active' })
                 // console.log(Number(minRechargeLimit),Number(data.amount))
-                if (Number(minRechargeLimit) > Number(data.amount)) return ({ status: 400, message: `Please enter amount more then or equal to ${minRechargeLimit}` })
+              //fayaz uncomment this  if (Number(minRechargeLimit) > Number(data.amount)) return ({ status: 400, message: `Please enter amount more then or equal to ${minRechargeLimit}` })
                 if (Number(maxRechargeList) > 0 && Number(maxRechargeList) < Number(data.amount)) return ({ status: 400, message: `Please enter amount less then or equal to ${maxRechargeList}` })
 
                 // get recharge count
-                let pendingCount = await redisMaster.incr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                let allowedPendingCount = await redisMaster.asyncGet(`PENDING_ALLOWED_${lisResponce1[0].operator_id}`)
+                let pendingCount = await redisMaster.incr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                let allowedPendingCount = await redisMaster.asyncGet(`BUNDLE_PENDING_ALLOWED_${lisResponce1[0].operator_id}`)
                 if (pendingCount && allowedPendingCount) {
                     if (Number(pendingCount) > Number(allowedPendingCount)) {
-                        redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                        redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
                         return ({ status: 400, message: 'Request Failed, Please try again..!' })
                     }
                 }
@@ -546,14 +474,14 @@ class rechargeController {
                 // get system balance
                 let balanceDe = await sqlQuery.searchQuery(this.tableName20, { id: mno_id, status: 1 }, ['current_balance', 'CAST(mno_uuid AS CHAR(16)) AS mno_uuid', 'mno_name'], 'id', 'desc', 1, 0)
                 if (balanceDe.length == 0) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
                     return ({ status: 400, message: 'System balance not found' })
                 }
-                // check system balance
-                if (Number(data.amount) > Number(balanceDe[0].current_balance)) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'We have encountered an issue on wallet, Please contact our Customer Service' })
-                }
+                // check system balance fayaz uncomment this 
+                // if (Number(data.amount) > Number(balanceDe[0].current_balance)) {
+                //     redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                //     return ({ status: 400, message: 'We have encountered an issue on wallet, Please contact our Customer Service' })
+                // }
                 //transation variables
                 const dtCurrentDate = date // dt current date time
                 const strDate = date.toISOString().slice(0, 19).replace('T', ' ') //dt current date time
@@ -563,15 +491,15 @@ class rechargeController {
                 // const lisResponce2 = await sqlQuery.searchQuery(this.tableName2,{user_uuid : data.user_uuid},["oper"+lisResponce1[0].operator_id+"_status AS status","comm_type"],"userid","ASC",1,0)    
                 const lisResponce2 = await this.#getOperatorAccess(data.user_uuid, lisResponce1[0].operator_id)
                 if (lisResponce2.length == 0) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
                     return ({ status: 400, message: 'operator permission not found' })
                 }
                 if (lisResponce2[0].status == 0) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
                     return ({ status: 400, message: 'operator permission is not given' })
                 }
                 if (lisResponce2[0].comm_type == 0) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
                     return ({ status: 400, message: 'Commission not set feature not active' })
                 }
 
@@ -580,6 +508,7 @@ class rechargeController {
                     operator_id: lisResponce1[0].operator_id,
                     amount: Number(data.amount),
                     mobile_number: data.mobile,
+                    bundle_name: data.bundle_name,
                     userid: data.userid,
                     'NOT status': 3,
                     timeDifferent: {
@@ -590,28 +519,28 @@ class rechargeController {
                 }, ['COUNT(1)'], 'userid', 'ASC', 1, 0)
                 // console.log(lastRechangeCount[0])
                 if (lastRechangeCount[0]["COUNT(1)"] != 0) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: `Same recharge is already done within ${process.env.RECHARGE_TIME_LIMIT} min` })
+                    redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    return ({ status: 400, message: `Same bundle activation is already done within ${process.env.RECHARGE_TIME_LIMIT} min` })
                 }
                 // update agent account so it cant do any transactions
                 var searchKeyValue = {
                     user_uuid: data.user_uuid, //str user_uuid
                     canTransfer: 1
                 }
-                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1 
                 var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 0 }, searchKeyValue);
                 var { affectedRows, changedRows, info } = objResponce;
 
                 // fayaz
                 // // generating proper message
-                if (!affectedRows) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'earlier transation under process' })
-                }
-                if (!(affectedRows && changedRows)) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'Earlier transation under process' })
-                }
+                // if (!affectedRows) {
+                //     redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                //     return ({ status: 400, message: 'earlier transation under process' })
+                // }
+                // if (!(affectedRows && changedRows)) {
+                //     redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                //     return ({ status: 400, message: 'Earlier transation under process' })
+                // }
 
                 // start transaction
                 var lisresponce = await sqlQuery.specialCMD('transaction')
@@ -630,8 +559,8 @@ class rechargeController {
                     }
                     // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
                     var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'user dont have enough balance to do recharge' })
+                    redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    return ({ status: 400, message: 'user dont have enough balance to activate bundle' })
                 }
                 if (lisResponce3[0].ex_wallet - Number(data.amount) < 0) {
                     var lisresponce = await sqlQuery.specialCMD('rollback')
@@ -639,10 +568,10 @@ class rechargeController {
                         user_uuid: data.user_uuid, //str user_uuid
                         canTransfer: 0
                     }
-                    // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                    // fire sql update query to change the can transfer status to 1 only when the can transfer is 0
                     var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'user dont have enough balance to do recharge' })
+                    redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    return ({ status: 400, message: 'user dont have enough balance to activate bundle' })
                 }
 
                 // get the channel access details
@@ -651,7 +580,7 @@ class rechargeController {
                 // let channelLimit = await sqlQuery.searchQuery(this.tableName14,{userid : data.userid, channel : channelType},['threshold','status'],'userid','ASC',1,0) 
                 let channelLimit = await this.#getUserChannel(data.user_uuid, channelType)
                 if (channelLimit.length == 0) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
                     return ({ status: 400, message: 'Channel limit not found' })
                 }
                 // console.log(channelLimit)
@@ -663,7 +592,7 @@ class rechargeController {
                     }
                     // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
                     var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
                     return ({ status: 400, message: `Your ${data.channelType} channel is In-Active.` })
                 }
 
@@ -675,15 +604,15 @@ class rechargeController {
                     }
                     // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
                     var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
                     return ({ status: 400, message: `Your ${data.channelType} channel Threshold limit reached.` })
                 }
 
                 if (lisResponce2[0].comm_type == '1') {
                     let limitStatus = await sqlQuery.searchQueryTran(this.tableName13, { userid: data.userid }, ['op' + lisResponce1[0].operator_id + '_wallet_active AS limit_state', 'op' + lisResponce1[0].operator_id + '_wallet_limit as limit_value'], 'userid', 'ASC', 1, 0)
                     if (limitStatus.length == 0) {
-                        redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                        return ({ status: 400, message: 'Recharge limit not found' })
+                        redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                        return ({ status: 400, message: 'bundle activation limit not found' })
                     }
                     if (limitStatus[0].limit_state == 1) {
                         // check limit and update its
@@ -692,7 +621,7 @@ class rechargeController {
                             let updateLimit = await sqlQuery.updateQuery(this.tableName13, {
                                 deductBalance: {
                                     key: 'op' + lisResponce1[0].operator_id + '_wallet_limit',
-                                    value: Number(data.amount)
+                                    value:  Number(data.amount) 
                                 }
                             }, { userid: data.userid })
                         } else {
@@ -703,23 +632,25 @@ class rechargeController {
                             }
                             // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
                             var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                            redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                            return ({ status: 400, message: 'Recharge amount is more then Operator limit' })
+                            redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                            return ({ status: 400, message: 'Bundle activation amount is more then Operator limit' })
                         }
                     }
                 }
 
-                // add data in er recharge table
+                // add data in er bundle recharge table
                 param = {
                     userid: data.userid,
                     trans_number: strUniqueNumber,
                     Operater_table_id: lisResponce1[0].operator_id,
                     type_id: 1, // top up
-                    type_name: 'Top Up',
+                    type_name: 'Bundle Top Up',
                     operator_id: lisResponce1[0].operator_id,
                     api_type: mno_id,
                     operator_name: data.operatorName,
                     mobile_number: data.mobile,
+                    bundle_name: data.bundle_name,
+                    bundle_type: data.bundle_type,
                     amount: data.amount,
                     deduct_amt: data.amount,
                     source: channelType,
@@ -758,18 +689,18 @@ class rechargeController {
                 var keyValue = {
                     deductBalance: {
                         key: "current_balance",
-                        value: Number(data.amount)
+                        value: Number(data.amount) 
                     }
                 }
                 var objResponce = await sqlQuery.updateQuery(this.tableName20, keyValue, { id: mno_id })
 
                 // rabbit mq message list
-                let reqLis = [strUniqueNumber, data.operatorName, data.mobile, data.amount]
-
-                // console.log(queue_name, reqLis)
+                let reqLis = [strUniqueNumber, data.operatorName, data.mobile, data.amount, data.bundle_name]
+// fayaz 2
+                console.log(queue_name, reqLis)
                 sendMessage(queue_name, reqLis.join('|'), (err, result) => {
                     if (err) console.error(err)
-                    // console.log(result)
+                    console.log("RabitMQ Result:",result)
                 })
 
                 // add record to mno details
@@ -802,9 +733,9 @@ class rechargeController {
                     trans_date_time: strDate, // str date
                     amount: Number(data.amount), // db amount
                     trans_type: 2, // type debit
-                    narration: `Top-Up to ${data.mobile}`,
+                    narration: `Bundle Activation to ${data.mobile}`,
                     balance_amount: Number(lisResponce3[0].ex_wallet) - Number(data.amount), //db balance amount
-                    trans_for: "Top-Up"
+                    trans_for: "Bundle Activation"
                 }
                 //fire sql query
                 var objResponce = await sqlQuery.createQuery(this.tableName5, param)
@@ -812,20 +743,25 @@ class rechargeController {
                 let messageQueue = {
                     userId: data.userid,
                     amount: Number(data.amount),
+                    bundle_name: data.bundle_name,
                     dateTime: strDate
                 }
+                // fayaz 3
                 sendMessage('processedStockSend', JSON.stringify(messageQueue), (err, msg) => {
                     if (err) console.log(err)
+                        console.log("RabitMQ Msg:", msg)
                 })
 
                 // add entry to log tables  
                 let tableName, insertData
-                // redisMaster.incr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                // redisMaster.incr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
                 switch (lisResponce1[0].operator_id) {
                     case 3:
                         tableName = this.tableName17
                         insertData = {
                             userid: data.userid,
+                            mobile: data.user_mobile,
+                            amount:  Number(data.amount),
                             recharge_id: strUniqueNumber,
                             created_on: strDate,
                             status: 0,
@@ -838,6 +774,8 @@ class rechargeController {
                         tableName = this.tableName16
                         insertData = {
                             userid: data.userid,
+                            mobile: data.user_mobile,
+                            amount:  Number(data.amount),
                             recharge_id: strUniqueNumber,
                             created_on: strDate,
                             status: 0,
@@ -850,6 +788,8 @@ class rechargeController {
                         tableName = this.tableName18
                         insertData = {
                             userid: data.userid,
+                            topup_mobile: data.user_mobile,
+                            amount:  Number(data.amount),
                             recharge_id: strUniqueNumber,
                             created_on: strDate,
                             status: 0,
@@ -861,22 +801,13 @@ class rechargeController {
                         tableName = this.tableName19
                         insertData = {
                             userid: data.userid,
+                            msisdn: data.user_mobile,
+                            amount:  Number(data.amount),
                             recharge_id: strUniqueNumber,
                             created_on: strDate,
                             status: 0,
                             top_up_request: " ",
                             top_up_response: " "
-                        }
-                        break;
-                    case 1:
-                        tableName = this.tableName15
-                        insertData = {
-                            userid: data.userid,
-                            recharge_id: strUniqueNumber,
-                            created_on: strDate,
-                            status: 0,
-                            request: " ",
-                            response: " "
                         }
                         break;
                 }
@@ -889,8 +820,8 @@ class rechargeController {
                     }
                     // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
                     var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'Recharge log error' })
+                    redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    return ({ status: 400, message: 'bundle Activation log error' })
                 }
 
                 objResponce = await sqlQuery.createQuery(tableName, insertData)
@@ -910,17 +841,17 @@ class rechargeController {
                     userGcmId: data.userGcmId, //str
                     userAppVersion: data.userAppVersion, //str
                     userApplicationType: data.userApplicationType,
-                    description: `Dear ${data.full_name}, Your Recharge to ${data.mobile} Amount: ${parseFloat(String(data.amount)).toFixed(2)} AFN is Accepted, Bal:${Number(lisResponce3[0].ex_wallet) - Number(data.amount)} AFN TX:${strUniqueNumber} Thank You for being Afghan Pay agent!`,
+                    description: `Dear ${data.full_name}, Your Bundle Activation ${data.bundle_name} ${data.bundle_type} to ${data.mobile} and Amount: ${parseFloat(String(data.amount)).toFixed(2)} AFN is Accepted, Bal:${Number(lisResponce3[0].ex_wallet) - Number(data.amount)} AFN TX:${strUniqueNumber} Thank You for being Afghan Pay agent!`,
                     userActivityType: 25,
                     oldValue: Number(lisResponce3[0].ex_wallet),
                     newValue: Number(lisResponce3[0].ex_wallet) - Number(data.amount),
                     regionId: data.region_id
                 }
-
+                console.log("activity-log:", logData);
                 // make api call
                 let intResult = await httpRequestMakerCommon.httpPost("activity-log", logData)
-                var strLog = intResult == 1 ? 'Admin change password log added successfully' : intResult == 2 ? 'Admin chain password log error' : 'end point not found'
-                // console.log('Server Log : '+strLog)
+                var strLog = intResult == 1 ? 'log added successfully' : intResult == 2 ? 'log error' : 'end point not found'
+                console.log('Server Log : '+strLog)
 
                 if (intResult != 1) {
                     var lisresponce = await sqlQuery.specialCMD('rollback')
@@ -930,8 +861,8 @@ class rechargeController {
                     }
                     // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
                     var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'log error' })
+                    redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    return ({ status: 400, message: 'bundle log error' })
                 }
 
                 // update transactions status
@@ -945,7 +876,7 @@ class rechargeController {
                 // no error commit the transactions
                 var lisresponce = await sqlQuery.specialCMD('commit')
                 // console.log("data",data);
-                let responceMessage = `Dear ${data.full_name}, Your Recharge to ${data.mobile} Amount: ${parseFloat(String(data.amount)).toFixed(2)} AFN is Accepted, Bal:${Number(lisResponce3[0].ex_wallet) - Number(data.amount)} AFN TX:${strUniqueNumber} Thank You for being Afghan Pay agent!`
+                let responceMessage = `Dear ${data.full_name}, Your Bundle Activation ${data.bundle_name} ${data.bundle_type} to ${data.mobile} and Amount: ${parseFloat(String(data.amount)).toFixed(2)} AFN is Accepted, Bal:${Number(lisResponce3[0].ex_wallet) - Number(data.amount)} AFN TX:${strUniqueNumber} Thank You for being Afghan Pay agent!`
 
                 return ({
                     status: 200,
@@ -967,14 +898,14 @@ class rechargeController {
                 var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
 
                 const lisResponce1 = await this.#getOperatorList(data.operator_uuid);
-                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
 
                 if (errMessage.includes("Duplicate entry")) {
-                    return ({ status: 400, message: 'Recharge request Failed with Error' })
+                    return ({ status: 400, message: 'Bundle Activation request Failed with Error' })
                 }
                 return ({ status: 400, message: error.message })
             }
-        }
+    }
 
     // pending recharge list
     getPendingBundleRechargeList = async (req, res) => {
@@ -1056,11 +987,11 @@ class rechargeController {
             let updateResponce
             // console.log(lisResponce1[0].operator_id)
             // update responce in respective table
-            redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+            redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
             switch (lisResponce1[0].operator_id) {
-                case '1':
-                    updateResponce = await this.updateSalamResponce(req.body.transNumber, req.body.rechargeRequest, req.body.rechargeResponce, 1)
-                    break;
+                // case '1':
+                //     updateResponce = await this.updateSalamResponce(req.body.transNumber, req.body.rechargeRequest, req.body.rechargeResponce, 1)
+                //     break;
                 case '2':
                     updateResponce = await this.updateAwccResponce(req.body.transNumber, req.body.rechargeRequest, req.body.rechargeResponce, 1)
                     break;
@@ -1104,21 +1035,24 @@ class rechargeController {
                 operatorId: lisResponce1[0].operator_id,
                 dateTime: lisResponce1[0].created_on
             }
-            sendMessage('rechargeSuccessAddUserSummery', JSON.stringify(messageQueue), (err, msg) => {
+            sendMessage('bundleRechargeSuccessAddUserSummery', JSON.stringify(messageQueue), (err, msg) => {
                 if (err) console.log(err)
+                    console.log("RabitMQ Msg:",msg)
             })
             messageQueue = {
                 amount: lisResponce1[0].amount,
                 operatorId: lisResponce1[0].operator_id,
                 dateTime: lisResponce1[0].created_on
             }
-            sendMessage('rechargeSuccessAddSystemSummery', JSON.stringify(messageQueue), (err, msg) => {
+            sendMessage('bundleRechargeSuccessAddSystemSummery', JSON.stringify(messageQueue), (err, msg) => {
                 if (err) console.log(err)
+                    console.log("RabitMQ Msg:",msg)
+
             })
 
             if (lisResponce2[0].comm_type == 2) {
                 distributeCommissionResponce = await this.distributeCommission(lisResponce1, req.body.transNumber, lisResponce2[0].region_id)
-                // console.log('distributeCommissionResponce',distributeCommissionResponce)
+                console.log('distributeCommissionResponce',distributeCommissionResponce)
                 if (distributeCommissionResponce.error) {
                     // rollback
                     let rollback = await sqlQuery.specialCMD('rollback')
@@ -1158,7 +1092,7 @@ class rechargeController {
             // send sms to agent
             let smsDetails = {
                 agentId: lisResponce1[0].userid,
-                recieverMessage: `Dear ${agentDetails[0].full_name} ${agentDetails[0].username}, Your Recharge to ${lisResponce1[0].mobile_number} Amount: ${parseFloat(String(lisResponce1[0].amount)).toFixed(2)} AFN is Success, Bal: ${parseFloat(String(lisResponce1[0].closing_balance)).toFixed(2)} AFN TX:${req.body.transNumber} Thank You for being Afghan Pay agent!`
+                recieverMessage: `Dear ${agentDetails[0].full_name} ${agentDetails[0].username}, Your Bundle Activation to ${lisResponce1[0].mobile_number} Amount: ${parseFloat(String(lisResponce1[0].amount)).toFixed(2)} AFN is Success, Bal: ${parseFloat(String(lisResponce1[0].closing_balance)).toFixed(2)} AFN TX:${req.body.transNumber} Thank You for being Afghan Pay agent!`
             }
 
             switch (String(lisResponce2[0].prefer_lang)) {
@@ -1170,14 +1104,14 @@ class rechargeController {
                     break;
                 case '1': // english
                 default:
-                    smsDetails.recieverMessage = `Dear ${agentDetails[0].full_name} ${agentDetails[0].username}, Your Recharge to ${lisResponce1[0].mobile_number} Amount: ${parseFloat(String(lisResponce1[0].amount)).toFixed(2)} AFN is Success, Bal: ${parseFloat(String(lisResponce1[0].closing_balance)).toFixed(2)} AFN TX:${req.body.transNumber} Thank You for being Afghan Pay agent!`
+                    smsDetails.recieverMessage = `Dear ${agentDetails[0].full_name} ${agentDetails[0].username}, Your Bundle Activation to ${lisResponce1[0].mobile_number} Amount: ${parseFloat(String(lisResponce1[0].amount)).toFixed(2)} AFN is Success, Bal: ${parseFloat(String(lisResponce1[0].closing_balance)).toFixed(2)} AFN TX:${req.body.transNumber} Thank You for being Afghan Pay agent!`
                     break;
             }
             smsFunction.agentSms(smsDetails, lisResponce1[0].request_mobile_no).then((smsFunResponce) => {
                 if (smsFunResponce.error) {
-                    // console.log('send sms error for agent : ',agentDetails[0].username)
+                    console.log('send sms error for agent : ',agentDetails[0].username)
                 } else {
-                    // console.log('sms added')
+                    console.log('sms added')
                 }
             })
 
@@ -1186,7 +1120,7 @@ class rechargeController {
                 userId: lisResponce1[0].userid,
                 username: agentDetails[0].username,
                 mobile: lisResponce1[0].mobile_number,
-                recieverMessage: `Your Mobile has been successfully Recharged with ${parseFloat(String(lisResponce1[0].amount)).toFixed(2)} AFN by ${agentDetails[0].full_name}, TXN:${req.body.transNumber} Thank You (Afghan Pay)!`
+                recieverMessage: `Rquested Bundle activated successfully with ${parseFloat(String(lisResponce1[0].amount)).toFixed(2)} AFN by ${agentDetails[0].full_name}, TXN:${req.body.transNumber} Thank You (Afghan Pay)!`
             }
             switch (String(lisResponce2[0].prefer_lang)) {
                 case '2': // Pashto
@@ -1197,7 +1131,7 @@ class rechargeController {
                     break;
                 case '1': // english
                 default:
-                    smsDetails.recieverMessage = `Your Mobile has been successfully Recharged with ${parseFloat(String(lisResponce1[0].amount)).toFixed(2)} AFN by ${agentDetails[0].full_name}, TXN:${req.body.transNumber} Thank You (Afghan Pay)!`
+                    smsDetails.recieverMessage = `Rquested Bundle activated successfully with ${parseFloat(String(lisResponce1[0].amount)).toFixed(2)} AFN by ${agentDetails[0].full_name}, TXN:${req.body.transNumber} Thank You (Afghan Pay)!`
                     break;
             }
 
@@ -1224,13 +1158,13 @@ class rechargeController {
                 userGcmId: 'NA', //str
                 userAppVersion: 'NA', //str
                 userApplicationType: lisResponce1[0].source == 'Web' ? 1 : (lisResponce1[0].source == 'Mobile' ? 2 : (lisResponce1[0].source == 'USSD' ? 3 : 4)),
-                description: `Dear ${agentDetails[0].full_name} ${agentDetails[0].username}, Your Recharge to ${lisResponce1[0].mobile_number} Amount: ${parseFloat(String(lisResponce1[0].amount)).toFixed(2)} AFN is Success, Bal: ${parseFloat(String(lisResponce1[0].closing_balance)).toFixed(2)} AFN TX:${req.body.transNumber} Thank You for being Afghan Pay agent!`,
+                description: `Dear ${agentDetails[0].full_name} ${agentDetails[0].username}, Your Bundle activation to ${lisResponce1[0].mobile_number} Amount: ${parseFloat(String(lisResponce1[0].amount)).toFixed(2)} AFN is Success, Bal: ${parseFloat(String(lisResponce1[0].closing_balance)).toFixed(2)} AFN TX:${req.body.transNumber} Thank You for being Afghan Pay agent!`,
                 userActivityType: 25,
                 oldValue: `Recharge Accepted ${parseFloat(String(lisResponce1[0].amount)).toFixed(2)}`,
                 newValue: `Closing Balance ${parseFloat(String(lisResponce1[0].closing_balance)).toFixed(2)}`,
                 regionId: agentDetails[0].region_id
             }
-
+            console.log("activity-log", logData);
             // make api call
             let intResult = await httpRequestMakerCommon.httpPost("activity-log", logData)
 
@@ -1645,43 +1579,43 @@ class rechargeController {
         }
     }
 
-    updateSalamResponce = async (id, request, responce, status) => {
-        try {
-            let keyValue = {
-                concat: {
-                    key: 'request',
-                    value: " " + request,
-                },
-                concat1: {
-                    key: 'response',
-                    value: " " + responce,
-                },
-                status: status
-            }
+    // updateSalamResponce = async (id, request, responce, status) => {
+    //     try {
+    //         let keyValue = {
+    //             concat: {
+    //                 key: 'request',
+    //                 value: " " + request,
+    //             },
+    //             concat1: {
+    //                 key: 'response',
+    //                 value: " " + responce,
+    //             },
+    //             status: status
+    //         }
 
-            let updateResponce = await sqlQuery.updateQuery(this.tableName15, keyValue, { recharge_id: id })
+    //         let updateResponce = await sqlQuery.updateQuery(this.tableName15, keyValue, { recharge_id: id })
 
-            var { affectedRows, changedRows, info } = updateResponce;
-            const message = !affectedRows ? 'Update Successfull' :
-                affectedRows && changedRows ? 'Update Successfull' : 'Recharge Id not found';
+    //         var { affectedRows, changedRows, info } = updateResponce;
+    //         const message = !affectedRows ? 'Update Successfull' :
+    //             affectedRows && changedRows ? 'Update Successfull' : 'Recharge Id not found';
 
-            return ({ message: message })
+    //         return ({ message: message })
 
-        } catch (error) {
-            console.log(error);
-            return { error: error.message }
-        }
-    }
+    //     } catch (error) {
+    //         console.log(error);
+    //         return { error: error.message }
+    //     }
+    // }
 
     updateAwccResponce = async (id, request, responce, status) => {
         try {
             let keyValue = {
                 concat: {
-                    key: 'topupRequest',
+                    key: 'bundletopupRequest',
                     value: " " + request,
                 },
                 concat1: {
-                    key: 'topupResponse',
+                    key: 'bundletopupResponse',
                     value: " " + responce,
                 },
                 status: status
@@ -1691,7 +1625,7 @@ class rechargeController {
 
             var { affectedRows, changedRows, info } = updateResponce;
             const message = !affectedRows ? 'Update Successfull' :
-                affectedRows && changedRows ? 'Update Successfull' : 'Recharge Id not found';
+                affectedRows && changedRows ? 'Update Successfull' : 'Bundle Recharge Id not found';
 
             return ({ message: message })
 
@@ -1811,11 +1745,11 @@ class rechargeController {
 
             let updateResponce
             // update responce in respective table
-            redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+            redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
             switch (lisResponce1[0].operator_id) {
-                case '1':
-                    updateResponce = await this.updateSalamResponce(req.body.transNumber, req.body.rechargeRequest, req.body.rechargeResponce, 2)
-                    break;
+                // case '1':
+                //     updateResponce = await this.updateSalamResponce(req.body.transNumber, req.body.rechargeRequest, req.body.rechargeResponce, 2)
+                //     break;
                 case '2':
                     updateResponce = await this.updateAwccResponce(req.body.transNumber, req.body.rechargeRequest, req.body.rechargeResponce, 2)
                     break;
@@ -2632,9 +2566,9 @@ class rechargeController {
             let updateResponce
             // update responce in respective table
             switch (lisResponce1[0].operator_id) {
-                case "1":
-                    updateResponce = await this.updateSalamResponce(req.body.transNumber, req.body.rechargeRequest, req.body.rechargeResponce, 3)
-                    break;
+                // case "1":
+                //     updateResponce = await this.updateSalamResponce(req.body.transNumber, req.body.rechargeRequest, req.body.rechargeResponce, 3)
+                //     break;
                 case '2':
                     updateResponce = await this.updateAwccResponce(req.body.transNumber, req.body.rechargeRequest, req.body.rechargeResponce, 3)
                     break;
@@ -2880,106 +2814,106 @@ class rechargeController {
     }
 
     // group topup report
-    groupTopUpReport = async (req, res) => {
-        try {
-            // body and query validators
-            const errors = validationResult(req);
-            if (!errors.isEmpty()) {
-                return res.status(400).json({ errors: errors.array() });
-            }
-            // console.log('recharge/groupTopupReport',JSON.stringify(req.body), JSON.stringify(req.query))
-            if (!req.query.pageNumber) req.query.pageNumber = 0
+    // groupTopUpReport = async (req, res) => {
+    //     try {
+    //         // body and query validators
+    //         const errors = validationResult(req);
+    //         if (!errors.isEmpty()) {
+    //             return res.status(400).json({ errors: errors.array() });
+    //         }
+    //         // console.log('recharge/groupTopupReport',JSON.stringify(req.body), JSON.stringify(req.query))
+    //         if (!req.query.pageNumber) req.query.pageNumber = 0
 
-            // limit offset
-            // var offset = req.query.start
-            // var limit = req.query.end - offset
+    //         // limit offset
+    //         // var offset = req.query.start
+    //         // var limit = req.query.end - offset
 
-            // required search param
-            var searchKeyValue = {
-                userid: req.body.user_detials.userid,
-                "NOT group_topup_id": 0
-            }
-            if (req.query.group_uuid) {
-                // get the group id from group uuid
-                const lisResponce1 = await sqlQueryReplica.searchQuery(this.tableName10, { userid: req.body.user_detials.userid, group_uuid: req.query.group_uuid, active: 1 }, ['group_id'], 'group_id', 'ASc', 1, 0)
-                if (lisResponce1.length == 0) return res.status(400).json({ errors: [{ msg: "group id not found" }] });
-                searchKeyValue.group_topup_id = lisResponce1[0].group_id
-            }
-            if (req.query.mobile) searchKeyValue.mobile_number = req.query.mobile
-            if (req.query.operator_uuid) {
-                const lisResponce3 = await commonQueryCommon.getOperatorById(req.query.operator_uuid)
-                if (lisResponce3 == 0) return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
-                searchKeyValue.operator_id = lisResponce3[0].operator_id
-            }
-            if (req.query.status) searchKeyValue.status = req.query.status
+    //         // required search param
+    //         var searchKeyValue = {
+    //             userid: req.body.user_detials.userid,
+    //             "NOT group_topup_id": 0
+    //         }
+    //         if (req.query.group_uuid) {
+    //             // get the group id from group uuid
+    //             const lisResponce1 = await sqlQueryReplica.searchQuery(this.tableName10, { userid: req.body.user_detials.userid, group_uuid: req.query.group_uuid, active: 1 }, ['group_id'], 'group_id', 'ASc', 1, 0)
+    //             if (lisResponce1.length == 0) return res.status(400).json({ errors: [{ msg: "group id not found" }] });
+    //             searchKeyValue.group_topup_id = lisResponce1[0].group_id
+    //         }
+    //         if (req.query.mobile) searchKeyValue.mobile_number = req.query.mobile
+    //         if (req.query.operator_uuid) {
+    //             const lisResponce3 = await commonQueryCommon.getOperatorById(req.query.operator_uuid)
+    //             if (lisResponce3 == 0) return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
+    //             searchKeyValue.operator_id = lisResponce3[0].operator_id
+    //         }
+    //         if (req.query.status) searchKeyValue.status = req.query.status
 
-            // check date for start and end 
-            if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+    //         // check date for start and end 
+    //         if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
 
-            if (req.query.startDate) {
-                searchKeyValue.between = {
-                    key: 'created_on',
-                    value: [req.query.startDate, req.query.startDate]
-                } //dt start date
-            }
-            if (req.query.endDate) {
-                searchKeyValue.between.value[1] = req.query.endDate //dt end date
-            }
+    //         if (req.query.startDate) {
+    //             searchKeyValue.between = {
+    //                 key: 'created_on',
+    //                 value: [req.query.startDate, req.query.startDate]
+    //             } //dt start date
+    //         }
+    //         if (req.query.endDate) {
+    //             searchKeyValue.between.value[1] = req.query.endDate //dt end date
+    //         }
 
-            // check search parameters 
-            if (Object.keys(searchKeyValue).length == 0) return res.status(400).json({ errors: [{ msg: "Im proper search paremeters" }] });
+    //         // check search parameters 
+    //         if (Object.keys(searchKeyValue).length == 0) return res.status(400).json({ errors: [{ msg: "Im proper search paremeters" }] });
 
-            var key = ['trans_number AS transactionId', "operator_name AS operatorName", "mobile_number as mobile", "amount", "comm_amt AS commissionAmount", "IF(status = 1,'Pending',IF(status = 2,'Success',IF(status = 3,'Failed','NA'))) as status", "CAST(created_on AS CHAR(20)) AS rechargeDate"]
+    //         var key = ['trans_number AS transactionId', "operator_name AS operatorName", "mobile_number as mobile", "amount", "comm_amt AS commissionAmount", "IF(status = 1,'Pending',IF(status = 2,'Success',IF(status = 3,'Failed','NA'))) as status", "CAST(created_on AS CHAR(20)) AS rechargeDate"]
 
-            const lisTotalRecords = await sqlQueryReplica.searchQueryNoLimitTimeout(this.tableName1, searchKeyValue, ["COUNT(1) AS count", "SUM(amount) AS totalAmount", "SUM(comm_amt) AS totalCommissionAmount"], "id", "DESC")
+    //         const lisTotalRecords = await sqlQueryReplica.searchQueryNoLimitTimeout(this.tableName1, searchKeyValue, ["COUNT(1) AS count", "SUM(amount) AS totalAmount", "SUM(comm_amt) AS totalCommissionAmount"], "id", "DESC")
 
-            let intTotlaRecords = Number(lisTotalRecords[0].count)
-            let intPageCount = (intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
+    //         let intTotlaRecords = Number(lisTotalRecords[0].count)
+    //         let intPageCount = (intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
 
-            let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
-            let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
+    //         let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
+    //         let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
 
-            const lisResponce2 = await sqlQueryReplica.searchQueryTimeout(this.tableName1, searchKeyValue, key, "id", "DESC", limit, offset)
-            if (lisResponce2.length == 0) return res.status(204).send({ message: 'no recharge found' })
+    //         const lisResponce2 = await sqlQueryReplica.searchQueryTimeout(this.tableName1, searchKeyValue, key, "id", "DESC", limit, offset)
+    //         if (lisResponce2.length == 0) return res.status(204).send({ message: 'no recharge found' })
 
-            // var finalResult = lisResponce2.map((result)=>{
-            //     var {status,...other} = result
-            //     other.status = status == 1 ? "Pending" : status == 2 ? "Success" : "Failed"
-            //     return other
-            // })
+    //         // var finalResult = lisResponce2.map((result)=>{
+    //         //     var {status,...other} = result
+    //         //     other.status = status == 1 ? "Pending" : status == 2 ? "Success" : "Failed"
+    //         //     return other
+    //         // })
 
-            // res.status(200).send(finalResult)
-            if (req.query.pageNumber == 0) {
-                res.status(200).send(lisResponce2)
-            } else {
-                res.status(200).send({
-                    reportList: lisResponce2,
-                    totalRepords: intTotlaRecords,
-                    pageCount: intPageCount,
-                    currentPage: Number(req.query.pageNumber),
-                    pageLimit: Number(process.env.PER_PAGE_COUNT),
-                    totalAmount: lisTotalRecords[0].totalAmount || 0,
-                    totalCommissionAmount: lisTotalRecords[0].totalCommissionAmount || 0
-                })
-            }
-        } catch (error) {
-            console.error('groupTopUpReport', error);
-            if (req.query.pageNumber == 0) {
-                res.status(200).send([{}])
-            } else {
-                res.status(200).send({
-                    reportList: [{}],
-                    totalRepords: 0,
-                    pageCount: 0,
-                    currentPage: Number(req.query.pageNumber),
-                    pageLimit: Number(process.env.PER_PAGE_COUNT),
-                    totalAmount: 0,
-                    totalCommissionAmount: 0
-                })
-            }
-            // return res.status(400).json({ errors: [ {msg : error.message}] });
-        }
-    }
+    //         // res.status(200).send(finalResult)
+    //         if (req.query.pageNumber == 0) {
+    //             res.status(200).send(lisResponce2)
+    //         } else {
+    //             res.status(200).send({
+    //                 reportList: lisResponce2,
+    //                 totalRepords: intTotlaRecords,
+    //                 pageCount: intPageCount,
+    //                 currentPage: Number(req.query.pageNumber),
+    //                 pageLimit: Number(process.env.PER_PAGE_COUNT),
+    //                 totalAmount: lisTotalRecords[0].totalAmount || 0,
+    //                 totalCommissionAmount: lisTotalRecords[0].totalCommissionAmount || 0
+    //             })
+    //         }
+    //     } catch (error) {
+    //         console.error('groupTopUpReport', error);
+    //         if (req.query.pageNumber == 0) {
+    //             res.status(200).send([{}])
+    //         } else {
+    //             res.status(200).send({
+    //                 reportList: [{}],
+    //                 totalRepords: 0,
+    //                 pageCount: 0,
+    //                 currentPage: Number(req.query.pageNumber),
+    //                 pageLimit: Number(process.env.PER_PAGE_COUNT),
+    //                 totalAmount: 0,
+    //                 totalCommissionAmount: 0
+    //             })
+    //         }
+    //         // return res.status(400).json({ errors: [ {msg : error.message}] });
+    //     }
+    // }
 
     telcoWiseTopUpReport = async (req, res) => {
         try {
@@ -4030,183 +3964,6 @@ class rechargeController {
         } catch (error) {
             console.log(error);
             return res.status(400).json({ errors: [{ msg: error.message }] });
-        }
-    }
-
-    // agent top ranking report 
-    topRankingReport = async (req, res) => {
-        try {
-            // body and query validators
-            const errors = validationResult(req);
-            if (!errors.isEmpty()) {
-                return res.status(400).json({ errors: errors.array() });
-            }
-            // console.log('recharge/topRankingReport',JSON.stringify(req.body), JSON.stringify(req.query))
-            if (!req.query.pageNumber) req.query.pageNumber = 0
-
-            let searchKeyValue = {
-                status: 2,
-                isIn: {
-                    key: 'operator_id',
-                    value: [1, 2, 3, 4, 5]
-                }
-            }
-            let operatorName = 'All operator'
-            // get all operator ids
-            if (req.query.operator_uuid) {
-                const lisResponce1 = await commonQueryCommon.getOperatorById(req.query.operator_uuid)
-                if (lisResponce1 == 0) return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
-                // operatorList = [{
-                //     operator_id : lisResponce1[0].operator_id,
-                //     operator_name : lisResponce1[0].operator_name
-                // }]
-                // if(operatorList.includes(lisResponce1[0].operator_id)){
-                //     operatorList = string(lisResponce1[0].operator_id)
-                // }
-                operatorName = lisResponce1[0].operator_name
-                searchKeyValue.isIn.value = [lisResponce1[0].operator_id]
-            }
-            if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
-
-            if (req.query.startDate) {
-                searchKeyValue.start_date = req.query.startDate //dt start date
-            }
-            if (req.query.endDate) {
-                searchKeyValue.end_date = req.query.endDate //dt end date
-            }
-
-            if (req.body.user_detials.type == roles.Admin || req.body.user_detials.type == roles.SubAdmin) {
-                // searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
-                if (req.body.user_detials.region_list.length != 7) {
-                    searchKeyValue.region_ids = req.body.user_detials.region_list.join(',')
-                }
-            } else {
-                searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
-            }
-
-            let lisTotalRecords = await rechargeModel.topRankingReportCount(searchKeyValue)
-
-            let intTotlaRecords = Number(lisTotalRecords.length)
-            let intPageCount = (intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
-
-            let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
-            let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
-
-            let finalResult = await rechargeModel.topRankingReport(searchKeyValue, limit, offset)
-
-            finalResult = finalResult.map((details) => {
-                details.operatorName = operatorName
-                return details
-            })
-
-            if (req.query.pageNumber == 0) {
-                res.status(200).send(finalResult)
-            } else {
-                res.status(200).send({
-                    reportList: finalResult,
-                    totalRepords: intTotlaRecords,
-                    pageCount: intPageCount,
-                    currentPage: Number(req.query.pageNumber),
-                    pageLimit: Number(process.env.PER_PAGE_COUNT)
-                })
-            }
-
-
-            // res.status(200).send(finalList)
-
-        } catch (error) {
-            console.error('topRankingReport', error);
-            if (req.query.pageNumber == 0) {
-                res.status(200).send([{}])
-            } else {
-                res.status(200).send({
-                    reportList: [{}],
-                    totalRepords: 0,
-                    pageCount: 0,
-                    currentPage: Number(req.query.pageNumber),
-                    pageLimit: Number(process.env.PER_PAGE_COUNT)
-                })
-            }
-            // return res.status(400).json({ errors: [ {msg : error.message}] });
-        }
-    }
-
-    // group top up report
-    groupTopUpReportByGroupId = async (req, res) => {
-        try {
-            // body and query validators
-            const errors = validationResult(req);
-            if (!errors.isEmpty()) {
-                return res.status(400).json({ errors: errors.array() });
-            }
-            // console.log('recharge/groupTopUpReportByGroupId',JSON.stringify(req.body), JSON.stringify(req.query))
-            if (!req.query.pageNumber) req.query.pageNumber = 0
-
-            // limit and offset
-            // var offset = req.query.start
-            // var limit = req.query.end - offset
-
-            // search goup id
-            const groupId = await sqlQueryReplica.searchQueryTimeout(this.tableName10, { group_uuid: req.query.group_uuid, active: 1 }, ['group_id'], 'group_id', 'ASC', 1, 0)
-            if (groupId.length == 0) return res.status(400).json({ errors: [{ msg: 'group not found' }] });
-
-            // search recharge list
-            var searchKeyValue = {
-                group_topup_id: groupId[0].group_id
-            }
-            var key = ['trans_number AS txnId', 'operator_name AS operatorName', 'mobile_number AS mobileNumber', 'amount AS rechargeAmount', 'deduct_amt AS deductedAmount', 'operator_balance AS apiBalance', 'CAST(created_on AS CHAR(20)) AS txnDate', 'ap_transid AS operTxnId', 'status AS txnStatus', 'rollback_status AS rollbackStatus', 'gcm_id AS txnMode', 'api_type AS apiType']
-
-            const lisTotalRecords = await sqlQueryReplica.searchQueryNoLimitTimeout(this.tableName1, searchKeyValue, ['COUNT(1) AS count', 'SUM(amount) AS totalRechargeAmount', 'SUM(deduct_amt) AS totalDeductedAmount'], 'id', 'DESC')
-
-            let intTotlaRecords = Number(lisTotalRecords[0].count)
-            let intPageCount = (intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
-
-            let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
-            let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
-
-
-            const rechargeList = await sqlQueryReplica.searchQueryTimeout(this.tableName1, searchKeyValue, key, 'id', 'DESC', limit, offset)
-            if (rechargeList.length == 0) return res.status(204).send({ message: 'no data to show' })
-
-            var finalResult = rechargeList.map((recharge) => {
-                var { apiBalance, txnStatus, rollbackStatus, ...other } = recharge;
-                other.txnStatus = txnStatus == 1 ? "Pending" : txnStatus == 2 ? "Success" : (rollbackStatus == 3 ? "Complete" : "Failed")
-                other.apiBalance = apiBalance == "NA" ? null : apiBalance
-                return other
-            })
-
-            if (req.query.pageNumber == 0) {
-                res.status(200).send(finalResult)
-            } else {
-                res.status(200).send({
-                    reportList: finalResult,
-                    totalRepords: intTotlaRecords,
-                    pageCount: intPageCount,
-                    currentPage: Number(req.query.pageNumber),
-                    pageLimit: Number(process.env.PER_PAGE_COUNT),
-                    totalRechargeAmount: lisTotalRecords[0].totalRechargeAmount || 0,
-                    totalDeductedAmount: lisTotalRecords[0].totalDeductedAmount || 0
-                })
-            }
-
-            // res.status(200).send(finalResult)
-
-        } catch (error) {
-            console.error('groupTopUpReportByGroupId', error);
-            if (req.query.pageNumber == 0) {
-                res.status(200).send([{}])
-            } else {
-                res.status(200).send({
-                    reportList: [{}],
-                    totalRepords: 0,
-                    pageCount: 0,
-                    currentPage: Number(req.query.pageNumber),
-                    pageLimit: Number(process.env.PER_PAGE_COUNT),
-                    totalRechargeAmount: 0,
-                    totalDeductedAmount: 0
-                })
-            }
-            // return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
 

@@ -91,7 +91,7 @@ class departmentController{
                     if (lisresults.length === 0) {
                         return res.status(204).send({ message: 'Department not found' })
                     }
-
+                    // comment
                    // send responce ti front end
                    return  res.status(200).send({
                     reportList: lisresults,
