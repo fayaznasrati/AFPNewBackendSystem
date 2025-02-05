@@ -8,15 +8,25 @@ dotenv.config()
 class DBConnection {
     constructor() {
         this.db = mysql2.createPool({
-            host: process.env.DB_HOST,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASS,
-            database: process.env.DB_DATABASE,
+            //   host: process.env.DB_HOST,
+            //   user: process.env.DB_USER,
+            //   password: process.env.DB_PASS,
+            //   database: process.env.DB_DATABASE,
+            //   waitForConnections: true,
+            //   connectionLimit: 500,
+            //   queueLimit: 1000,
+            //   multipleStatements: true,
+            // =============================================
+            host: "maindatabase.cgrxb7qxgahh.me-south-1.rds.amazonaws.com",
+            user: "admin",
+            password: "Ne*Y#kjroie7knslke>???WFJ", // Ensure the password matches
+            database: "afghanpaydb",
             waitForConnections: true,
             connectionLimit: 500,
             queueLimit: 1000,
-            multipleStatements: true
-        });
+            connectTimeout: 60000, // 60 seconds
+            multipleStatements: true,
+          });
 
         // console.log(this.pool)
         // this.db = this.pool.promise();

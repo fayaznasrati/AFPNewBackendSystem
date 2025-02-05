@@ -42,11 +42,13 @@ class sqlQueryCommon {
     //sql search query with where paramneter
     searchQuery = async(tableName, searchKeyValue, key, orderby, ordertype, limit, offset) => {
         try {
-            const { seColumnSet, sevalues } = multipleAndColumnSet(searchKeyValue)
+            const { seColumnSet, sevalues } = multipleORColumnSet(searchKeyValue)
             // console.log(boolConsole)
             const sql = `SELECT ${key.join(",")} FROM ${tableName} WHERE ${seColumnSet} ORDER BY ${orderby} ${ordertype} LIMIT ${limit} OFFSET ${offset} `;
             if (boolConsole) console.log(sql, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [...sevalues]);
+            console.log(`SQL Query: ${sql}, Values: ${JSON.stringify(sevalues)}`);
+            console.log(`Values:`, sevalues);
             return result
         } catch (error) {
             console.log(error);
@@ -54,6 +56,25 @@ class sqlQueryCommon {
         }
 
     }
+getAllDepartements = async(tableName, searchKeyValue,key,orderby, ordertype, limit, offset)=>{
+    try {
+        console.log("searchKeyValue",searchKeyValue)
+        const { seColumnSet, sevalues } = multipleORColumnSet(searchKeyValue)
+        // console.log(boolConsole)
+        const sql = `SELECT ${key.join(",")} FROM ${tableName} WHERE active = 1  ORDER BY ${orderby} ${ordertype} LIMIT ${limit} OFFSET ${offset} `;
+        if (boolConsole) console.log(sql, seColumnSet, sevalues)
+        const result = await dbConnection.query(sql, [...sevalues]);
+        console.log(`SQL Query: ${sql}, Values: ${JSON.stringify(sevalues)}`);
+        console.log(`Values:`, sevalues);
+        return result
+    } catch (error) {
+        console.log(error);
+        throw new HttpException(error.status, error.message);
+    }
+
+}
+
+
 
     searchQueryTimeout = async(tableName, searchKeyValue, key, orderby, ordertype, limit, offset) => {
         try {

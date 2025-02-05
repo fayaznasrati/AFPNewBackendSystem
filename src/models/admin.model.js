@@ -21,18 +21,18 @@ class AdminModel {
         const resultEK = await dbConnection.query(sqlEK, [params.username]);
 
         //console.log(resultEK[0]["encryption_key"]);
-        //console.log(resultEK[0]["password"]);
+        console.log(resultEK[0]["password"]);
 
         // console.log(resultEK);
         //console.log(resultEK[1]);
         if (resultEK.length) {
             const key = resultEK[0]["encryption_key"];
             const storedpassword = resultEK[0]["password"];
-
+            // console.log("storedpassword",storedpassword)
             //const getHashPassword = this.getHashPassword('ae4510d45fcd9c850349fd1f9a6dba3d544ab52344d6e1b9eff8f336e7194098','cRzMjXdiDL4RqrSjvPYw0HGG2JHcBg==');
 
             const getHashPassword = this.getHashPassword(key, storedpassword);
-             console.log(getHashPassword)
+             console.log("getHashPassword",getHashPassword)
             if(resultEK[0].status != 1) return 3
             
             if (params.password == getHashPassword) {

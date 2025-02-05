@@ -127,6 +127,41 @@ exports.acceptRecharge = [
     .withMessage('wrong request')
 ]
 
+exports.createEbundle = [
+    body('techName')
+    .exists().withMessage('Technical name is required')
+    .isLength({min:1,max:20}).withMessage('it is of 14 character long'),
+    body('amount')
+    .exists().withMessage('amount is required'),
+    body('packageName')
+    .exists().withMessage('packge is required'),
+    body('price')
+    .isLength({ min: 1, max: 10 }).withMessage('Please Enter price')
+    .isNumeric().withMessage('should be numeric')
+    .custom(value => {
+        const numValue = Number(value);
+        if (!isNaN(numValue) && numValue >= 1 && numValue <= 4000) {
+            return true;
+        }
+        return false;
+    })
+    .withMessage('Enter proper price grater then 1 and less then 4000'),
+    body('operatorType')
+    .exists().withMessage('operator Type is required'),
+    body('operator_uuid')
+    .exists().withMessage('operator uuid required'),
+    body('ebundleType')
+    .exists().withMessage('ebundle Type is required'),
+    body('user_detials')
+    .custom(value => {
+        if (value === undefined) {
+            return true
+        }
+        return false
+    })
+    .withMessage('wrong request')
+]
+
 exports.resendConformationSms = [
     body('transNumber')
     .exists().withMessage('transNumber is required')

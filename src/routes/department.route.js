@@ -12,6 +12,7 @@ const awaitHandlerFactory = require('../middleware/awaitHandlerFactory.middlewar
 const {allDepartment,createDepartment,updateDepartment,deleteDepartment} = require('../middleware/validators/departmentValidators.middleware')
 
 //department apis
+router.get('/id', allDepartment, awaitHandlerFactory(departmentController.departmentById));
 router.get('/', allDepartment, awaitHandlerFactory(departmentController.allDepartment));
 router.post('/', createDepartment, auth(role.Admin), awaitHandlerFactory(departmentController.createDepartment));
 router.put('/', updateDepartment, auth(role.Admin), awaitHandlerFactory(departmentController.updateDepartment));

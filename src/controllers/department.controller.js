@@ -52,62 +52,93 @@ class departmentController{
         }
     }
 
-//function to get department name
+
     allDepartment = async (req,res) => {
         try{
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('department/allDepartment',JSON.stringify(req.body), JSON.stringify(req.query))
-            // call radis to get the department names
-            redisMaster.get('department', async(err, reply) => {
 
-                // var offset = req.query.start
-                // var limit = req.query.end - offset
-
-                // check if redis reply contain the data or not
-                if (err) {
-                    throw new HttpException(500, 'Something went wrong');
-                }
-                if (reply === null || reply === undefined) {
-
-                    // call sql for department data as radis dont have it 
                     // variables for sql query
                     var searchKeyValue = {
                         active: 1,
                     }
+
                     var key = ["CAST(department_uuid AS CHAR(16)) AS department_uuid", "department_name AS name"]
                     var orderby = "department_name"
                     var ordertype = "ASC"
 
-                    // fire sql query to get str department_uuid, str department_name
-                    const lisresults = await sqlQueryReplica.searchQueryNoLimit(this.tableName1, searchKeyValue, key, orderby, ordertype)
+                    const lisTotalRecords = await sqlQueryReplica.searchQueryNoLimit(this.tableName1, searchKeyValue, key, orderby, ordertype);
+
+                    if (lisTotalRecords.length === 0) {
+                        return res.status(400).send({ message: "Calculation error" });
+                    }
+                    
+
+
+                    let intTotlaRecords = Number(lisTotalRecords.length)
+                   let intPageCount = (intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
+                    // check the searchKeyValue parem
+                    if (Object.keys(searchKeyValue).length == 0) return res.status(400).json({ errors: [{ msg: "Improper search paremeters" }] });
+                    let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
+                    let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
+                    
+                    // fire sql query to get str department
+                    const lisresults = await sqlQueryReplica.getAllDepartements(this.tableName1,searchKeyValue, key, orderby, ordertype, limit, offset)
 
                     // check if the result is there and responce accordingly
                     if (lisresults.length === 0) {
                         return res.status(204).send({ message: 'Department not found' })
                     }
 
-                    //convert data to string and send to the radis server
-                    const strResponse = JSON.stringify(lisresults)
-                    redisMaster.post('department', strResponse)
+                   // send responce ti front end
+                   return  res.status(200).send({
+                    reportList: lisresults,
+                    totalRepords: intTotlaRecords,
+                    pageCount: intPageCount,
+                    currentPage: Number(req.query.pageNumber),
+                    pageLimit: Number(process.env.PER_PAGE_COUNT)
+                });
 
-                    // var offset = req.query.start
-                    // var limit = req.query.end > lisresults.length ? lisresults.length : req.query.end - offset + 1
+
+        }
+        catch(error){
+            console.log(error);
+            res.status(400).json({ errors: [ {msg : error.message}] });
+        }
+    }
+
+    departmentById = async (req,res) => {
+        try{
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+            // console.log(req.params)
+            // console.log(req.query)
+                    // variables for sql query
+                    var searchKeyValue = {
+                        active: 1,
+                        department_uuid: req.query.department_uuid
+                    }
+                    console.log(searchKeyValue);
+                    var key = ["CAST(department_uuid AS CHAR(16)) AS department_uuid", "department_name AS name"]
+                    var orderby = "department_name"
+                    var ordertype = "ASC"
+
+                    const lisTotalRecords = await sqlQueryReplica.searchQueryNoLimit(this.tableName1, searchKeyValue, key, orderby, ordertype);
+                    console.log(lisTotalRecords);
+                    if (lisTotalRecords.length === 0) {
+                        return res.status(400).send({ message: "Calculation error" });
+                    }
+
 
                    // send responce ti front end
-                   return res.status(200).send(lisresults)
-                }
+                   return  res.status(200).send({
+                    reportList: lisTotalRecords,
+                });
 
-                var lisRegion = JSON.parse(reply)
-
-                // var offset = req.query.start
-                // var limit = req.query.end > lisRegion.length ? lisRegion.length : req.query.end - offset + 1
-
-                // redis have the data, convet string to json and send to the fronte nd
-                res.status(200).send(lisRegion)
-            })
 
         }
         catch(error){
@@ -135,7 +166,7 @@ class departmentController{
                 last_modified_by: req.body.user_detials.id, //str user id
             }
             var searchKeyValue = {
-                department_uuid: req.body.department_uuid, //str department uuid
+                department_uuid: req.query.department_uuid, //str department uuid
                 active: 1
             }
 
