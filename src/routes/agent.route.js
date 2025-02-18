@@ -6,7 +6,7 @@ const forceLogOutCheck = require('../middleware/forceLogoutCheck.middleware')
 
 const agentController = require('../controllers/agent.controller')
 const agentLoginFun = require('../controllers/agentLoginFun.controller')
-
+const EbundleController = require('../controllers/ebundle.controller')
 const apiMethod = require('../utils/apiMethod.utils');
 const role = require('../utils/userRoles.utils');
 
@@ -82,5 +82,11 @@ router.post('/forgot-password',forgetSendPassword,awaitHandlerFactory(agentLogin
 // API related to profile Image 
 // router.post('/profile_image/', upload.single("recfile"), updateImage, auth(), awaitHandlerFactory(agentLoginFun.updateImage))
 router.get('/profile_image/', getDetails, auth(), awaitHandlerFactory(agentLoginFun.getImage))
+
+
+// router.get('/ebundle-topup/bundles-package/id',getDetails, auth(1,2,3,4,5,6), awaitHandlerFactory(EbundleController.getMNOsBundles))
+router.get('/bundles',EbundleController.getEbundle);
+router.get('/ebundle-topup/bundles-package/id',EbundleController.getMNOsBundles);
+
 
 module.exports = router;

@@ -38,7 +38,10 @@ const newsRoute = require('./news.route')
 const ussdRoute = require('./ussd.routes')
 const p2aRoute = require('./P2A.route')
 const ebundleTopup = require('./ebundleTopup.routes')
- 
+const bundleManagementRoute = require('./bundleManagment.route')
+const bundleRechargeRoutes = require('./bundleRecharge.routes')
+
+
 router.use('/admin', adminRouter);
 router.use('/smsRoute', smsRoute)
 router.use('/region', regionRoutes)
@@ -74,7 +77,10 @@ router.use('/loginReason',loginReason)
 router.use('/news',newsRoute)
 router.use('/ussd',ussdRoute)
 router.use('/P2A',p2aRoute)
-router.use('/ebundle-topup',ebundleTopup)
+// router.use('/ebundle-topup',ebundleTopup)
+router.use('/bundle-recharge',bundleRechargeRoutes)
+router.use('/ebundle-topup',agentRoute)
+router.use('/bundle-management', bundleManagementRoute)
 
 //router.use('/users', users);
 
