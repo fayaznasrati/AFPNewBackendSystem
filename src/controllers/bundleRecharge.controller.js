@@ -224,8 +224,8 @@ class rechargeController {
     checkBundleExist = async (data) => {
         try {
             const searchCriteria = {
-                techName: data.bundle_name,
-                ebundleType: data.bundle_type,
+                techName: data.techName ,
+                ebundleType: data.bundle_type ,
                 operatorType: data.operatorName,
             };
     
@@ -306,9 +306,10 @@ class rechargeController {
             let data = {
                 operatorName: req.body.operatorName,
                 operator_uuid: req.body.operator_uuid,
-                bundle_type: req.body.bundle_type,
-                bundle_name: req.body.bundle_name,
-                amount: req.body.amount,
+                bundle_type: req.body.ebundle_Type ,
+                bundle_name: req.body.bundle_Name ,
+                techName: req.body.techName ,
+                amount: req.body.price,
                 mobile: req.body.mobile,
                 userid: req.body.user_detials.userid,
                 user_uuid: req.body.user_detials.user_uuid,
@@ -331,6 +332,9 @@ class rechargeController {
             try {
                 const bundleInfo = await this.checkBundleExist(data);
                 console.log("Bundle Info:", bundleInfo);
+                if(bundleInfo.status == 404){
+                    return res.status(404).json({ errors: [{ msg: "Selected bundle not found! " }] });
+                }
             } catch (error) {
                 console.error("Error fetching bundle info:", error.message);
                 return res.status(500).json({ errors: [{ msg: "Internal server error" }] });
@@ -584,7 +588,7 @@ class rechargeController {
                     redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
                     return ({ status: 400, message: 'Channel limit not found' })
                 }
-                // console.log(channelLimit)
+                console.log(channelLimit)
                 if (channelLimit[0].status != 1) {
                     var lisresponce = await sqlQuery.specialCMD('rollback')
                     var searchKeyValue = {
@@ -696,8 +700,8 @@ class rechargeController {
                 var objResponce = await sqlQuery.updateQuery(this.tableName20, keyValue, { id: mno_id })
 
                 // rabbit mq message list
-                let reqLis = [strUniqueNumber, data.operatorName, data.mobile, data.amount, data.bundle_name]
-// fayaz 2
+                let reqLis = [strUniqueNumber, data.operatorName, data.mobile, data.amount, data.bundle_name, data.techName]
+               // fayaz 2
                 console.log(queue_name, reqLis)
                 sendMessage(queue_name, reqLis.join('|'), (err, result) => {
                     if (err) console.error(err)

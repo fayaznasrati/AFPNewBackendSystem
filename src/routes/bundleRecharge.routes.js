@@ -17,8 +17,7 @@ const {
 } = require('../middleware/validators/bundlerechargeValidator.middleware');
 
 // recharge oprions
-// router.post('/activation',bundlesinglerecharge,auth(1,2,3,4,5,6), accessManager({agent : { module: [2,1], permission: apiMethod.add }}), awaitHandlerFactory(bundlebundlebundleRechargeController.bundlesinglerecharge));
-router.post('/activation',auth(1,2,3,4,5,6), accessManager({agent : { module: [2,1], permission: apiMethod.add }}), awaitHandlerFactory(bundlebundlebundleRechargeController.bundlesinglerecharge));
+router.post('/activation',bundlesinglerecharge,auth(1,2,3,4,5,6), accessManager({agent : { module: [2,1], permission: apiMethod.add }}), awaitHandlerFactory(bundlebundlebundleRechargeController.bundlesinglerecharge));
 
 // // api for recharge 
 // router.get('/pending',getPendingRechargeList,awaitHandlerFactory(bundlebundleRechargeController.getPendingRechargeList));

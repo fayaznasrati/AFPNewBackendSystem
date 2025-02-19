@@ -12,9 +12,9 @@ exports.bundlesinglerecharge = [
     .exists().withMessage("mobile number is required")
     .isLength({ min: 10, max: 10 }).withMessage('Please Enter Complete 10 Numbers!')
     .isNumeric().withMessage('should be numeric'),
-    body('bundle_name')
+    body('bundle_Name')
     .isLength({ min: 1, max: 50 }).withMessage('Please select bundle'),
-    body('bundle_type')
+    body('ebundle_Type')
     .isLength({ min: 1, max: 50 }).withMessage('Please select bundle Type'),
     body('operator_uuid')
     .exists().withMessage('operator_uuid is required')
