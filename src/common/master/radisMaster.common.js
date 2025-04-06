@@ -44,7 +44,9 @@ class redisMaster {
     decr(key){
         return new Promise((resolve, reject) => {
             try{
-                client.decr(key, function(err, reply) {
+                // client.decr(key, function(err, reply) {
+                client.send_command('DECR', [key], function(err, reply) {
+
                     if(err) reject (err)
                     else resolve (reply)
                 });

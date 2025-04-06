@@ -77,24 +77,25 @@ class EbundleController {
 
   //function to get a ebundle by id
   getMNOsBundles = async (req, res, next) => {
-
-    console.log("package:", req.query)
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
+    // const eBundleTypesId = req.query.eBundleTypes; // Extract ID from query parameters
+    // const operatorID = req.query.operator_uuid; // Extract ID from query parameters
+    // if (!eBundleTypesId) {
+    //   return res.status(400).json({ error: "Bundle Type is required" });
+    // }
+    // if (!operatorID) {
+    //   return res.status(400).json({ error: "MNO type is required" });
+    // }
 
-    const eBundleTypesId = req.query.eBundleTypes; // Extract ID from query parameters
-    const operatorID = req.query.operator_uuid; // Extract ID from query parameters
-    if (!eBundleTypesId) {
-      return res.status(400).json({ error: "Bundle Type is required" });
-    }
-    if (!operatorID) {
-      return res.status(400).json({ error: "MNO type is required" });
-    }
+    // const searchKeyValue = { ebundleType: eBundleTypesId,operator_uuid:operatorID }; // Search criteria
 
-    const searchKeyValue = { ebundleType: eBundleTypesId,operator_uuid:operatorID }; // Search criteria
+   
+    const operatorID = req.query.operator_uuid;
+    const searchKeyValue = { operator_uuid:operatorID };
 
     const key = ["*"]; // Fetches all columns
     const orderby = "created_on"; // Assuming 'id' is a column in your table
@@ -122,6 +123,8 @@ class EbundleController {
 
   filterEbundle = async (req, res, next) => {
     try {
+      console.log("req.body:",req.body)
+      console.log("req.query:",req.query)
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });

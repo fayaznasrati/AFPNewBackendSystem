@@ -2614,89 +2614,88 @@ class rechargeController {
         }
     }
 
-    // agent panel #########################################
-    // reports
-    topUpreports = async (req, res) => {
-        try {
-
-            // body and query validators
-            const errors = validationResult(req);
-            if (!errors.isEmpty()) {
-                return res.status(400).json({ errors: errors.array() });
+    bundleTopUpreports = async (req, res) => {
+            try {
+                console.log(req.query);
+                // body and query validators
+                const errors = validationResult(req);
+                if (!errors.isEmpty()) {
+                    return res.status(400).json({ errors: errors.array() });
+                }
+                // console.log('recharge/toupUpReport',JSON.stringify(req.body), JSON.stringify(req.query))
+                if (!req.query.pageNumber) req.query.pageNumber = 0
+    
+                // // limit offset
+                //     var offset = req.query.start
+                //     var limit = req.query.end - offset
+                let childList = req.body.user_detials.child_list.join(',');
+                // sql search param
+                var searchKeyValue = {
+                    // child_ids : childList == '' ? req.body.user_detials.userid : childList + "," + req.body.user_detials.userid 
+                    userid: req.body.user_detials.userid
+                }
+                if (req.query.bundle_name) searchKeyValue.bundle_name = req.query.bundle_name
+                if (req.query.mobile) searchKeyValue.mobile_number = req.query.mobile
+                if (req.query.operator_uuid) {
+                    const lisResponce1 = await commonQueryCommon.getOperatorById(req.query.operator_uuid)
+                    if (lisResponce1 == 0) return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
+                    searchKeyValue.operator_id = lisResponce1[0].operator_id
+                }
+                if (req.query.status) searchKeyValue.status = req.query.status
+    
+                // check date for start and end 
+                if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+    
+                if (req.query.startDate) {
+                    searchKeyValue.start_date = req.query.startDate //dt start date
+                }
+                if (req.query.endDate) {
+                    searchKeyValue.end_date = req.query.endDate //dt end date
+                }
+    
+                // check search parameters 
+                if (Object.keys(searchKeyValue).length == 0) return res.status(400).json({ errors: [{ msg: "Im proper search paremeters" }] });
+    
+                const totalTopUpAmount = await sqlQueryReplica.searchQueryNoLimitTimeout(this.tableName1, searchKeyValue, ['SUM(amount) AS totalAmount', 'count(1) AS count'], "id", "DESC")
+    
+                let intTotlaRecords = Number(totalTopUpAmount[0].count)
+                let intPageCount = (intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
+    
+                let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
+                let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
+    
+                var key = ['trans_number AS transactionId', "operator_name AS operatorName",'bundle_name as bundleName','bundle_type as bundleType', "mobile_number as mobile", "amount", "comm_amt AS commissionAmount", "IF(status = 1,'Pending',IF(status = 2,'Success',IF(status = 3,'Failed','NA'))) as status", "CAST(created_on AS CHAR(20)) AS rechargeDate"]
+    
+                const lisResponce2 = await sqlQueryReplica.searchQueryTimeout(this.tableName1, searchKeyValue, key, "id", "DESC", limit, offset)
+                // if(lisResponce2.length == 0) return res.status(204).send({message : 'no recharge found'})
+    
+                // var finalResult = lisResponce2.map((result)=>{
+                //     var {status,...other} = result
+                //     other.status = status == 1 ? "Pending" : status == 2 ? "Success" : "Failed"
+                //     return other
+                // })
+    
+                res.status(200).send({
+                    totalTopUpAmount: totalTopUpAmount[0].totalAmount || 0,
+                    finalResult: lisResponce2,
+                    totalRepords: intTotlaRecords,
+                    pageCount: intPageCount,
+                    currentPage: Number(req.query.pageNumber),
+                    pageLimit: Number(process.env.PER_PAGE_COUNT)
+                })
+    
+            } catch (error) {
+                console.error('topUpreports', error);
+                res.status(200).send({
+                    totalTopUpAmount: 0,
+                    finalResult: [{}],
+                    totalRepords: 0,
+                    pageCount: 0,
+                    currentPage: Number(req.query.pageNumber),
+                    pageLimit: Number(process.env.PER_PAGE_COUNT)
+                })
             }
-            // console.log('recharge/toupUpReport',JSON.stringify(req.body), JSON.stringify(req.query))
-            if (!req.query.pageNumber) req.query.pageNumber = 0
-
-            // // limit offset
-            //     var offset = req.query.start
-            //     var limit = req.query.end - offset
-            let childList = req.body.user_detials.child_list.join(',');
-            // sql search param
-            var searchKeyValue = {
-                // child_ids : childList == '' ? req.body.user_detials.userid : childList + "," + req.body.user_detials.userid 
-                userid: req.body.user_detials.userid
-            }
-            if (req.query.mobile) searchKeyValue.mobile_number = req.query.mobile
-            if (req.query.operator_uuid) {
-                const lisResponce1 = await commonQueryCommon.getOperatorById(req.query.operator_uuid)
-                if (lisResponce1 == 0) return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
-                searchKeyValue.operator_id = lisResponce1[0].operator_id
-            }
-            if (req.query.status) searchKeyValue.status = req.query.status
-
-            // check date for start and end 
-            if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
-
-            if (req.query.startDate) {
-                searchKeyValue.start_date = req.query.startDate //dt start date
-            }
-            if (req.query.endDate) {
-                searchKeyValue.end_date = req.query.endDate //dt end date
-            }
-
-            // check search parameters 
-            if (Object.keys(searchKeyValue).length == 0) return res.status(400).json({ errors: [{ msg: "Im proper search paremeters" }] });
-
-            const totalTopUpAmount = await sqlQueryReplica.searchQueryNoLimitTimeout(this.tableName1, searchKeyValue, ['SUM(amount) AS totalAmount', 'count(1) AS count'], "id", "DESC")
-
-            let intTotlaRecords = Number(totalTopUpAmount[0].count)
-            let intPageCount = (intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
-
-            let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
-            let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
-
-            var key = ['trans_number AS transactionId', "operator_name AS operatorName", "mobile_number as mobile", "amount", "comm_amt AS commissionAmount", "IF(status = 1,'Pending',IF(status = 2,'Success',IF(status = 3,'Failed','NA'))) as status", "CAST(created_on AS CHAR(20)) AS rechargeDate"]
-
-            const lisResponce2 = await sqlQueryReplica.searchQueryTimeout(this.tableName1, searchKeyValue, key, "id", "DESC", limit, offset)
-            // if(lisResponce2.length == 0) return res.status(204).send({message : 'no recharge found'})
-
-            // var finalResult = lisResponce2.map((result)=>{
-            //     var {status,...other} = result
-            //     other.status = status == 1 ? "Pending" : status == 2 ? "Success" : "Failed"
-            //     return other
-            // })
-
-            res.status(200).send({
-                totalTopUpAmount: totalTopUpAmount[0].totalAmount || 0,
-                finalResult: lisResponce2,
-                totalRepords: intTotlaRecords,
-                pageCount: intPageCount,
-                currentPage: Number(req.query.pageNumber),
-                pageLimit: Number(process.env.PER_PAGE_COUNT)
-            })
-
-        } catch (error) {
-            console.error('topUpreports', error);
-            res.status(200).send({
-                totalTopUpAmount: 0,
-                finalResult: [{}],
-                totalRepords: 0,
-                pageCount: 0,
-                currentPage: Number(req.query.pageNumber),
-                pageLimit: Number(process.env.PER_PAGE_COUNT)
-            })
         }
-    }
 
     // downlaine top-up report
     downlineTopUpReport = async (req, res) => {
