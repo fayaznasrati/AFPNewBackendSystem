@@ -605,14 +605,14 @@ class rechargeController {
                 var { affectedRows, changedRows, info } = objResponce;
                 // fayaz uncomment this section 
                 // generating proper message
-                // if (!affectedRows) {
-                //     redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                //     return ({ status: 400, message: 'earlier transation under process' })
-                // }
-                // if (!(affectedRows && changedRows)) {
-                //     redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                //     return ({ status: 400, message: 'Earlier transation under process' })
-                // }
+                if (!affectedRows) {
+                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    return ({ status: 400, message: 'earlier transation under process' })
+                }
+                if (!(affectedRows && changedRows)) {
+                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    return ({ status: 400, message: 'Earlier transation under process' })
+                }
 
                 // start transaction
                 var lisresponce = await sqlQuery.specialCMD('transaction')

@@ -77,7 +77,7 @@ class emoneyController {
             
             // get api balance
                 let api_balance = Number(process.env.MNO_TEST_BALANCE) == 0 ? await apiCall(mnoDetails[0].balance_url) : Number(process.env.MNO_TEST_BALANCE)
-                // if(api_balance.error) return res.status(400).json({ errors: [ {msg : ' api balance url issue '}] });
+                if(api_balance.error) return res.status(400).json({ errors: [ {msg : ' api balance url issue '}] });
                 // console.log(api_balance, operatorUrlDetails[0].balance_url, intOperatorId[0].operator_id)
 
                 api_balance = Number(process.env.MNO_TEST_BALANCE) == 0 ? (Number(api_balance.balance) ? Number(api_balance.balance) : 0) : Number(process.env.MNO_TEST_BALANCE)
@@ -401,7 +401,7 @@ class emoneyController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('emoney/getOperatorBalance',JSON.stringify(req.body), JSON.stringify(req.query))
+                console.log('emoney/getOperatorBalance',JSON.stringify(req.body), JSON.stringify(req.query))
             // search param
                 let keyValue = ['CAST(mno_uuid AS CHAR(16)) AS mno_uuid', "mno_name as operatorName","balance_url as url","current_balance AS balance"]
                 let mnoDetails = await sqlQueryReplica.searchQueryNoLimit(this.tableName8, { status : 1 }, keyValue, "id", "DESC")
@@ -502,6 +502,7 @@ class emoneyController {
                     //conver the json to string to send to redis server
                     const strResponse = JSON.stringify(lisResult)
                     redisMaster.post('mno', strResponse)
+                    
 
                     // send responce to frontend
                     return res.status(200).send(lisResult)

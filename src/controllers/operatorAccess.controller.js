@@ -100,29 +100,45 @@ class operatorAccessController {
             }
         }
     
-    // Operator wise Topup
-        // get all operators access
-        getAllOperatorTopupList = async (req,res) => {
-            try{
-                // check body and query
-                    const errors = validationResult(req);
-                    if (!errors.isEmpty()) {
-                        return res.status(400).json({ errors: errors.array() });
-                    }
-                    // console.log('operatorAccess/getAllOperatorTopupList',JSON.stringify(req.body), JSON.stringify(req.query))
-                // get operater access details form table
-                    let searchKeyValue = {
-                        active : 1
-                    };
+        getAllOperatorTopupList = async(req,res,next) => {
+            try {
+                const errors = validationResult(req);
+                if (!errors.isEmpty()) {
+                    return res.status(400).json({ errors: errors.array() });
+                }
+                console.log('[getAllOperatorTopupList]', JSON.stringify(req.body), JSON.stringify(req.query));
+                if ( ! req.query.pageNumber ) req.query.pageNumber = 0
+    
+                var searchKeyValue = {
+                    active : 1
+                }
+                var orderby = "operator_access_id"
+                var ordertype = "desc"
+                        let key = [ "cast( operator_access_uuid AS CHAR(16) ) AS operator_uuid", "display_name AS operatorName", "status AS topupStatus"]
 
-                    let keyValue = [ "cast( operator_access_uuid AS CHAR(16) ) AS operator_uuid", "display_name AS operatorName", "status AS topupStatus"]
-
-                    let responce = await sqlQueryReplica.searchQueryNoLimit(this.tableName2, searchKeyValue, keyValue, "operator_access_id", "desc")
-                    if (responce.length == 0) return res.status(204).send({ message : "no operator access list found"})
-
-                    return res.status(200).send(responce)
-
-            }catch(error){
+                 let lisTotalRecords = await sqlQueryReplica.searchQueryNoLimit(this.tableName2, searchKeyValue, ['COUNT(1) AS count'], orderby, ordertype)
+                // const lisTotalRecords = await sqlQueryReplica.searchQueryNoLimit(this.tableName1,searchKeyValue, ['COUNT(1) AS count'], orderby, ordertype)
+    
+                let intTotlaRecords = Number(lisTotalRecords[0].count)
+                let intPageCount = ( intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0 ) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
+    
+                let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
+                let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
+    
+    
+                const lisResult = await sqlQueryReplica.searchQuery(this.tableName2,searchKeyValue, key, orderby, ordertype, limit, offset)
+                if(lisResult.length === 0) return res.status(204).send({ message:'Sub admin not found'});
+                // console.log(lisResult)
+                res.status(200).send({
+                    reportList : lisResult,
+                    totalRepords : intTotlaRecords,
+                    pageCount : intPageCount,
+                    currentPage : Number(req.query.pageNumber),
+                    pageLimit : Number(process.env.PER_PAGE_COUNT)
+                })
+                // res.status(200).send(finalResult)
+    
+            }catch (error) {
                 console.log(error);
                 return res.status(400).json({ errors: [ {msg : error.message}] });
             }
