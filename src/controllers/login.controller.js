@@ -852,7 +852,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('login/getParentName',JSON.stringify(req.body), JSON.stringify(req.query))
+            console.log('login/getParentName',JSON.stringify(req.body), JSON.stringify(req.query))
             // var offset = req.query.start
             // var limit = req.query.end - offset
 
@@ -1018,8 +1018,9 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('login/getAllAgent',JSON.stringify(req.body), JSON.stringify(req.query))
+            console.log('login/getAllAgent',JSON.stringify(req.body), JSON.stringify(req.query))
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
+            console.log("req.Query", req.query);
 
             // variable for sql query
             // var offset = req.query.start
@@ -1040,16 +1041,21 @@ class loginController {
                 searchKeyValue.child_ids =  req.body.user_detials.child_list.join(',');
             }
             //different serach option
-            if (req.query.userId) searchKeyValue.username = req.query.userId //str username
+            // if (req.query.userId) searchKeyValue.username = req.query.userId //str username
+            if (req.query.userId) {
+                const userId = req.query.userId;
+                searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
+              }
             if (req.query.name) searchKeyValue.full_name = req.query.name //str full name
-            if (req.query.mobileNumber) searchKeyValue.mobile = req.query.mobileNumber //int mobile number
+            if (req.query.mobileNumber) searchKeyValue.mobile = req.query.mobileNumber //int mobile number              
             if (req.query.userType_uuid) {
                 const lisResponce = await this.checkAgentType(req.query.userType_uuid)
                 if (lisResponce.length === 0) return res.status(400).json({ errors: [ {msg : 'User type not found'}] });
                 searchKeyValue.usertype_id = lisResponce[0].agent_type_id //int user typeId
             }
             if (req.query.region_uuid) searchKeyValue.region_uuid = req.query.region_uuid // str region_uuid
-            if (req.query.status) searchKeyValue.Active = req.query.status // tinyint 1,2
+            if (req.query.province_uuid) searchKeyValue.province_uuid = req.query.province_uuid // str region_uuid
+            if (req.query.status) searchKeyValue.user_status = Number(req.query.status) // tinyint 1,2
 
             if (Object.keys(searchKeyValue).length == 2) {
                 if((req.query.start_date && !req.query.end_date )||(req.query.end_date && !req.query.start_date )) return res.status(400).json({ errors: [ {msg : 'Date range is not proper'}] });
@@ -1065,14 +1071,15 @@ class loginController {
             let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
             let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
 
+            // console.log("searchKeyValue",searchKeyValue)
             const lisResults = await agentModule.searchAgent(searchKeyValue, limit, offset)
-            // console.log(lisResults)
+            // console.log("lisResults",lisResults)
             // check sql rsponce
             // if (!lisResults) {
             //     throw new HttpException(500, 'Something went wrong');
             // }
             // if (lisResults.length === 0) {
-            //     return res.status(204).send({ message: 'User not found' })
+            //     return res.status(404).send({ message: 'User not found' })
             // }
 
             // //send responce to front end
@@ -1080,6 +1087,8 @@ class loginController {
 
             if( req.query.pageNumber == 0 ) {
                 res.status(200).send(lisResults)
+            console.log("lisResults pageNumber == 0 ",lisResults)
+
             }else{
                 res.status(200).send({
                     reportList : lisResults,

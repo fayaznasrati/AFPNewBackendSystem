@@ -27,6 +27,22 @@ class departmentController{
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
 
+
+            var searchKeyValue = {
+                active: 1,
+                department_name: req.body.name, //str department name
+            }
+            var key = ["CAST(department_uuid AS CHAR(16)) AS department_uuid", "department_name AS name"]
+            var orderby = "department_name"
+            var ordertype = "ASC"
+
+            // fire sql query to get str department_uuid, str department_name
+            const lisresults = await sqlQueryReplica.searchQueryNoLimit(this.tableName1, searchKeyValue, key, orderby, ordertype)
+
+            // check if the result is there and responce accordingly
+            if (lisresults.length) {
+                return res.status(409).send({ message: 'Department name already exsit!' })
+            }
             // variable for sql query
             var param = {
                 department_uuid: "uuid()",
@@ -91,6 +107,7 @@ class departmentController{
 
                     //convert data to string and send to the radis server
                     const strResponse = JSON.stringify(lisresults)
+                    console.log('department/allDepartment',strResponse);
                     redisMaster.post('department', strResponse)
 
                     // var offset = req.query.start
