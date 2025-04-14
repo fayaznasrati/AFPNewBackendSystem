@@ -603,7 +603,7 @@ class rechargeController {
                 // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
                 var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 0 }, searchKeyValue);
                 var { affectedRows, changedRows, info } = objResponce;
-
+                // fayaz uncomment this section 
                 // generating proper message
                 if (!affectedRows) {
                     redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
