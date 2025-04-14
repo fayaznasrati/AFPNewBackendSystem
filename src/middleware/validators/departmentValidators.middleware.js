@@ -59,14 +59,7 @@ exports.allDepartment=[
 ]
 
 exports.updateDepartment =[
-    query('username')
-    .exists()
-    .withMessage('username is required')
-    .isString()
-    .withMessage('should be a string')
-    .trim().isLength({ min: 1, max: 50 })
-    .withMessage('username minimum limit is 5 and maximum limit is 50 words'),
-    body('department_uuid')
+    query('department_uuid')
     .exists()
     .withMessage('department_uuid is required')
     .isString()

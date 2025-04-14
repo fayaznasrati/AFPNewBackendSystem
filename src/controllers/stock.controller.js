@@ -20,7 +20,7 @@ const { start,sendMessage,createWorker } = require('../common/rabbitmq.common')
 
 const dotenv = require('dotenv');
 const path = require('path');
-
+const multer = require('multer');
 // configer env
 dotenv.config()
 

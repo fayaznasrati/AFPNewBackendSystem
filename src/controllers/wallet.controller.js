@@ -955,7 +955,7 @@ class walletController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('wallet/getAgentAccountBalanceForRollback',JSON.stringify(req.body), JSON.stringify(req.query))
+                console.log('wallet/getAgentAccountBalanceForRollback',JSON.stringify(req.body), JSON.stringify(req.query))
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             // search param limit and offset
