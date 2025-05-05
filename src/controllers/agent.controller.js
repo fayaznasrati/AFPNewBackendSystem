@@ -360,7 +360,7 @@ class agentController {
             var orderby = "operator_name"
             var ordertype = "ASC"
 
-            // fire sql query to get operator name
+            // fire sql query to get operator name x
             const lisResponse2 = await sqlQueryReplica.searchQuery(this.tableName3, searchKeyValue, key, orderby, ordertype, 1, 0)
 
             // check if the result is there and responce accordingly

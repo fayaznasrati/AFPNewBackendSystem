@@ -486,10 +486,10 @@ class AdminController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('[Admin/requestforotp]', JSON.stringify(req.body), JSON.stringify(req.query));
+          //  console.log('[Admin/requestforotp]', JSON.stringify(req.body), JSON.stringify(req.query));
             let operator_uuid = '', operatorName = ''
 
-            // console.log(req.body.mobileNumber.slice(0,3))
+           // console.log(req.body.mobileNumber.slice(0,3))
 
             switch(String(req.body.mobileNumber.slice(0,3))){
                 case "078":
@@ -586,7 +586,7 @@ class AdminController {
 
             // random 6 digit number
             var intOTP = varRandomString.generateRandomNumber(6)
-
+            console.log(intOTP,"OTP Sent to ", req.body.mobileNumber)
             // otp validation time
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);

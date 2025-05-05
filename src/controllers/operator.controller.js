@@ -5,11 +5,13 @@ const redisMaster = require('../common/master/radisMaster.common')
 const sqlQuery = require('../common/sqlQuery.common')
 const sqlQueryReplica = require('../common/sqlQueryReplica.common')
 
-const { toIsoString } = require('../common/timeFunction.common')
+const { toIsoString } = require('../common/timeFunction.common');
+const { status } = require('express/lib/response');
 
 class operatorController {
     //table name
     tableName1 = "er_master_operator"
+    tableName2 = "er_mno_details"
         //function to create operator 
     createoperator = async(req, res, next) => {
         try {
@@ -51,7 +53,7 @@ class operatorController {
     }
 
     //function to get all operators
-    allOperator = async(req, res) => {
+    allMasterOperator = async(req, res) => {
         try {
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
@@ -98,6 +100,60 @@ class operatorController {
                 // redis have the data, convert it back to json and send to front end
                 res.status(200).send(JSON.parse(reply))
             })
+
+        } catch (error) {
+            console.log(error);
+            return res.status(400).json({ errors: [ {msg : error.message}] });
+        }
+    }
+
+    allOperator = async(req, res) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+            // console.log('operator/allOperator',JSON.stringify(req.body), JSON.stringify(req.query))
+            // call redis to get operator list
+            // redisMaster.get('operator', async(err, reply) => {
+
+                // if (err) {
+                //     throw new HttpException(500, 'Something went wrong');
+                // }
+                // if (reply === null || reply === undefined) {
+                    // operator not in redis get from sql and into redis server
+                    // variables for sql query to serarch operator
+                    // var offset = req.query.start
+                    // var limit = req.query.end - offset
+                    var searchKeyValue = {
+                        status: 1,
+                    }
+                    var key = ["CAST(mno_uuid AS CHAR(16)) AS operator_uuid", "mno_name AS name"]
+                    var orderby = "mno_name"
+                    var ordertype = "ASC"
+
+                    // fire sql query to get str operator_uuid, str name
+                    const lisResult = await sqlQueryReplica.searchQueryNoLimit(this.tableName2, searchKeyValue, key, orderby, ordertype)
+
+                    // check if the result is there and responce accordingly
+                    if (!lisResult) {
+                        throw new HttpException(500, 'Something went wrong');
+                    }
+                    if (lisResult.length === 0) {
+                        return res.status(204).send({ message: 'Operator not found' })
+                    }
+
+                    //conver the json to string to send to redis server
+                    // const strResponse = JSON.stringify(lisResult)
+                    // redisMaster.post('operator', strResponse)
+
+                    // send responce to frontend
+                    return res.status(200).send(lisResult)
+
+                // }
+                // redis have the data, convert it back to json and send to front end
+                // res.status(200).send(JSON.parse(reply))
+            // })
 
         } catch (error) {
             console.log(error);

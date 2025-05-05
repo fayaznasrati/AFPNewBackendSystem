@@ -147,6 +147,7 @@ class sqlQueryCommon {
         try {
             const { seColumnSet, sevalues } = multipleAndColumnSet(searchKeyValue)
             const sql = `SELECT ${key.join(",")} FROM ${tableName} WHERE ${seColumnSet} ORDER BY ${orderby} ${ordertype}`;
+            console.log("SQL:",sql);
             if (boolConsole) console.log(sql, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [...sevalues]);
             return result

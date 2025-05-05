@@ -20,7 +20,7 @@ const { start,sendMessage,createWorker } = require('../common/rabbitmq.common')
 
 const dotenv = require('dotenv');
 const path = require('path');
-
+const multer = require('multer');
 // configer env
 dotenv.config()
 
@@ -1470,7 +1470,7 @@ class stockController {
             if (req.query.endDate) {
                 searchKeyValue.end_date = req.query.endDate //dt end date
             }
-            // console.log(req.query.stocktransferStatus)
+            console.log("Status",req.query.stocktransferStatus)
 
         //other optional parameter
             if(req.query.name) searchKeyValue.full_name = req.query.name //str
@@ -1479,13 +1479,13 @@ class stockController {
             if(req.query.stocktransferStatus != null && req.query.stocktransferStatus != undefined && req.query.stocktransferStatus != "" ) searchKeyValue.status = req.query.stocktransferStatus
             if(req.query.user_type_uuid){
                 var responce = await commonQueryCommon.getAgentTypeId(req.query.user_type_uuid)
-                // console.log(responce)
+                console.log(responce)
                 if(!responce) return res.status(400).json({ errors: [ {msg : "Agent Type not found"}] });
                 searchKeyValue.usertype_id = responce[0].agent_type_id
             }
 
             if(Object.keys(searchKeyValue).length === 0) return res.status(404).json({errors: [ {msg : "Search Parameter are not proper"}]})
-            // console.log(typeof(searchKeyValue))
+            console.log(typeof(searchKeyValue))
 
             const lisTotalRecords = await stockModule.stockTransferReportCount(searchKeyValue)
 
@@ -1496,8 +1496,9 @@ class stockController {
             let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
 
             const lisResult = await stockModule.stockTransferReport(searchKeyValue, limit, offset)
+            console.log("lisResult",lisResult);
             
-            if(lisResult.length === 0) return res.status(204).send({message:"no Stock report found"})
+            if(lisResult.length === 0) return res.status(200).send([])
 
             const agentTypeLis = await commonQueryCommon.getAllAgentType()
 

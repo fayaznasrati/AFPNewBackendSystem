@@ -117,7 +117,7 @@ class walletModel {
 
     getAgentAcountBalanceForRollbackCount = async(param) => {
         const {sevalues,seColumnSet} = await this.queryGen(param);
-        // console.log(sevalues,seColumnSet);
+        console.log(sevalues,seColumnSet);
 
         const sql = `SELECT /*+ MAX_EXECUTION_TIME(${process.env.SQL_QUERY_TIME_OUT}) */ COUNT(1) AS count, SUM(${this.tablename3}.ex_wallet) AS totalBalance
                     FROM ${this.tablename1} LEFT JOIN ${this.tablename3}

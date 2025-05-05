@@ -14,6 +14,7 @@ const { createOperatorSchema, allOperatorsSchema, updateOperatorSchema, deleteOp
 
 // Region APIs
 router.get('/', allOperatorsSchema, awaitHandlerFactory(operatorController.allOperator));
+router.get('/master-operator/', allOperatorsSchema, awaitHandlerFactory(operatorController.allMasterOperator));
 router.post('/', createOperatorSchema, auth(role.Admin), awaitHandlerFactory(operatorController.createoperator));
 router.put('/', updateOperatorSchema, auth(role.Admin), awaitHandlerFactory(operatorController.updateOperator));
 router.delete('/', deleteOperatorSchema, auth(role.Admin), awaitHandlerFactory(operatorController.deleteOperator));

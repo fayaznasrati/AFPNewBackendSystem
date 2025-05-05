@@ -603,7 +603,7 @@ class rechargeController {
                 // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
                 var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 0 }, searchKeyValue);
                 var { affectedRows, changedRows, info } = objResponce;
-
+                // fayaz uncomment this section 
                 // generating proper message
                 if (!affectedRows) {
                     redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
@@ -767,7 +767,7 @@ class rechargeController {
                 // rabbit mq message list
                 let reqLis = [strUniqueNumber, data.operatorName, data.mobile, data.amount]
 
-                // console.log(queue_name, reqLis)
+                console.log(queue_name, reqLis)
                 sendMessage(queue_name, reqLis.join('|'), (err, result) => {
                     if (err) console.error(err)
                     // console.log(result)
