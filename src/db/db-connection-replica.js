@@ -13,7 +13,7 @@ class DBConnection {
       password: process.env.DB_PASS ,
       database: process.env.DB_DATABASE  ,
       waitForConnections: true,
-      connectionLimit: 500,
+      connectionLimit: 10000,
       queueLimit: 1000,
       multipleStatements: true
 

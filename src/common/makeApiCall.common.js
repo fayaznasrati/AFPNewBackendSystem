@@ -1,6 +1,6 @@
 const { body } = require('express-validator');
 const request = require('request');
-
+const axios = require('axios');
 exports.apiCall = async (url) =>{
     try{
         return new Promise((resolve, reject) =>{
@@ -62,7 +62,7 @@ exports.apiCallData = async (url,data) =>{
 exports.apiCallEtisalatBalanceCheck = async (url,mobile) =>{
     try{
         return new Promise((resolve, reject) =>{
-            request.post(url, {
+            axios.post(url, {
                 form : {
                     "key" : "kydscAPI@Key",
                     "mobile" : '93' + mobile.slice(1,mobile.length)

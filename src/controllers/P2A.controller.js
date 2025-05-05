@@ -83,11 +83,11 @@ class p2aController {
 
                     if( inputCode[0] == '515'){
                         switch(String(menuInput)){
-                            // case '0': 
-                            // case '00':    
-                            //     // send menue
-                            //     p2aResponce = this.menu(String(menuInput))
-                            //     break;
+                            case '0': 
+                            case '00':    
+                                // send menue
+                                p2aResponce = this.menu(String(menuInput))
+                                break;
                             case '1':
                                 //balacne enquary
                                 p2aResponce = await this.checkBalance(inputCode,userNumber)
