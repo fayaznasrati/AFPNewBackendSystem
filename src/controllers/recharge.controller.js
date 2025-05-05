@@ -767,7 +767,7 @@ class rechargeController {
                 // rabbit mq message list
                 let reqLis = [strUniqueNumber, data.operatorName, data.mobile, data.amount]
 
-                // console.log(queue_name, reqLis)
+                console.log(queue_name, reqLis)
                 sendMessage(queue_name, reqLis.join('|'), (err, result) => {
                     if (err) console.error(err)
                     // console.log(result)
