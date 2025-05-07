@@ -920,9 +920,14 @@ class loginController {
             if (lisResults.length === 0) {
                 return res.status(204).send({message : 'no user found'})
             }
-
+            const onlyTen =  lisResults; // First 10 records
+            
             //send responce to front end
-            res.status(200).send(lisResults)
+            // res.status(200).send(lisResults)
+            res.status(200).send({
+                reportList : onlyTen,
+            })
+            
 
         } catch (error) {
             console.log(error);

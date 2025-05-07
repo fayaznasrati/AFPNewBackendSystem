@@ -525,107 +525,158 @@ class walletController {
         }
     }
 
-    getAgentBalanceReport = async (req, res) => {
-        try{
-            // verify the body and query
-                const errors = validationResult(req);
-                if (!errors.isEmpty()) {
-                    return res.status(400).json({ errors: errors.array() });
-                }
 
-                if ( ! req.query.pageNumber ) req.query.pageNumber = 0
-                // console.log('wallet/getAgentBalanceReport',JSON.stringify(req.body), JSON.stringify(req.query))
-            // search param limit and offset
-                // var offset = req.query.start
-                // var limit = req.query.end - offset    
+   getAgentBalanceReport = async (req, res) => {
+    try {
+        let child_ids = [];
 
-            // sql search paremeter
-                var param = {
-                    Active: 1,
-                    // region_ids : req.body.user_detials.region_list.join(',')
-                }
-
-                if(req.body.user_detials.region_list.length != 7){
-                    param.region_ids = req.body.user_detials.region_list.join(',')
-                }
-
-                if(req.query.userid) param.userid = req.query.userid
-                if(req.query.name) param.userName = req.query.name
-                if(req.query.mobile) param.number = req.query.mobile
-
-        
-                // verify parent uuid and get parent id
-                if( req.query.parent_uuid ){
-                    const lisResponse1 = await sqlQueryReplica.searchQuery(this.tableName2,{user_uuid : req.query.parent_uuid,Active : 1},["userid",'child_id'],'userid','asc',1,0)
-                    // console.log(lisResponse1)
-                    if(lisResponse1.length == 0) return res.status(404).json({ errors: [ {msg : "parent not found"}] });
-                    child_ids = lisResponse1[0].child_id
-                }
-
-                if(Object.keys(param).length == 0) return res.status(204).json({ errors: [ {msg : "Improper search parem"}] });
-
-                // console.log(param)
-
-                // check date range
-                // if (req.query.start_date) param.start_date = req.query.start_date //dt date
-                // if (req.query.end_date) param.end_date = req.query.end_date //dt date
-                // if((req.query.start_date && !req.query.end_date )||(req.query.end_date && !req.query.start_date )) return res.status(400).json({ errors: [ {msg : 'Date range is not proper'}] });
-
-                const lisTotalRecords = await walletModel.getAgentBalanceReportCount(param)
-
-                let intTotlaRecords = Number(lisTotalRecords[0].count)
-                let intPageCount = ( intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0 ) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
-
-                let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
-                let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
-
-                const lisResponce2 = await walletModel.getAgentBalanceReport(param, limit, offset)
-
-                // console.log(lisResponce2)
-                // if(lisResponce2.length == 0) return res.status(204).json({ errors: [ {msg : "no Agent Report not found"}] });
-
-                var results = await lisResponce2.map((result) => {
-                    var {balance,commission_value,...other} = result
-                    other.balance = balance ? balance : 0
-                    other.commissionType  = commission_value ? "Pre-Paid" : "Post-Paid"
-                    other.commissionPercent = commission_value ? commission_value : 0
-                    return other
-                })
-
-                if( req.query.pageNumber == 0 ) {
-                    res.status(200).send(results)
-                }else{
-                    res.status(200).send({
-                        reportList : results,
-                        totalRepords : intTotlaRecords,
-                        pageCount : intPageCount,
-                        currentPage : Number(req.query.pageNumber),
-                        pageLimit : Number(process.env.PER_PAGE_COUNT),
-                        totalBalance : lisTotalRecords[0].totalBalance || 0
-                    })
-                }
-
-                // res.status(200).send(results)
-
-        }catch(error){
-            console.error('getAgentBalanceReport',error);
-            if( req.query.pageNumber == 0 ) {
-                res.status(200).send([{}])
-            }else{
-                res.status(200).send({
-                    reportList : [{}],
-                    totalRepords : 0,
-                    pageCount : 0,
-                    currentPage : Number(req.query.pageNumber),
-                    pageLimit : Number(process.env.PER_PAGE_COUNT),
-                    totalBalance : 0
-                })
-            }
-            // return res.status(400).json({ errors: [ {msg : error.message}] }); 
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
         }
-    }
 
-    // transaction report
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        // SQL search parameter
+        let param = { Active: 1 };
+
+        if (req.body.user_detials.region_list.length !== 7) {
+            param.region_ids = req.body.user_detials.region_list.join(',');
+        }
+
+        if (req.query.userid) param.userid = req.query.userid;
+        if (req.query.name) param.userName = req.query.name;
+        if (req.query.mobile) param.number = req.query.mobile;
+
+        // Get child_ids from parent_uuid
+        if (req.query.parent_uuid) {
+            const lisResponse1 = await sqlQueryReplica.searchQuery(
+                this.tableName2,
+                { user_uuid: req.query.parent_uuid, Active: 1 },
+                ['userid', 'child_id'],
+                'userid',
+                'asc',
+                1,
+                0
+            );
+
+            if (lisResponse1.length === 0) {
+                return res.status(404).json({ errors: [{ msg: 'parent not found' }] });
+            }
+
+            const rawChildIds = lisResponse1[0].child_id;
+            child_ids = rawChildIds.split(',').map(id => parseInt(id.trim())).filter(Boolean);
+            // child_ids = lisResponse1[0].child_id.split(',').map(c => c.trim());
+        }
+
+        if (Object.keys(param).length === 0) {
+            return res.status(204).json({ errors: [{ msg: 'Improper search parem' }] });
+        }
+
+        // Date validation
+        if (req.query.start_date) param.start_date = req.query.start_date;
+        if (req.query.end_date) param.end_date = req.query.end_date;
+        if ((req.query.start_date && !req.query.end_date) || (req.query.end_date && !req.query.start_date)) {
+            return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+        }
+
+        const lisTotalRecordsBlance = await walletModel.getAgentBalanceReportCount(param);
+        console.log('lisTotalRecordsBlance:', lisTotalRecordsBlance[0].totalBalance );
+        // let intTotlaRecords = Number(lisTotalRecords[0].count);
+        // let intPageCount =  intTotlaRecords % Number(process.env.PER_PAGE_COUNT) === 0
+        //         ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT)
+        //         : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1;
+        // totalBalance: 43917420.53}
+      
+        // let limit = intTotlaRecords;
+
+        // Final param with child_id list
+        if (child_ids.length > 0) {
+            param.child_ids = child_ids;
+        }
+        
+        let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+        let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
+
+        const lisTotalRecords = await walletModel.getAgentBalanceTotalReport(param);
+        // const totalBalance = lisTotalRecords.reduce((sum, agent) => sum + Number(agent.balance || 0), 0);
+        // console.log('Total balance:', totalBalance);
+        const uniqueBalances = new Map();
+
+        lisTotalRecords.forEach(agent => {
+        if (!uniqueBalances.has(agent.userid)) {
+            uniqueBalances.set(agent.userid, Number(agent.balance || 0));
+        }
+        });
+       
+        const totalBalance = Array.from(uniqueBalances.values()).reduce((sum, val) => sum + val, 0);
+        console.log('Total balance:', totalBalance);
+
+        console.log('lisTotalRecordsx:', lisTotalRecords.length, lisTotalRecords);
+        let intTotlaRecords = Number(lisTotalRecords.length);
+        let intPageCount =  intTotlaRecords % Number(process.env.PER_PAGE_COUNT) === 0
+        ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT)
+        : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1;
+
+        const lisResponce2 = await walletModel.getAgentBalanceReport(param, limit, offset);
+        console.log('lisResponce2', lisResponce2.length, lisResponce2);
+       
+        if (lisResponce2.length === 0) {
+          return  res.status(200).send({
+            reportList: [{}],
+            totalRepords: 0,
+            pageCount: 0,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit: Number(process.env.PER_PAGE_COUNT),
+            totalBalance: 0,
+        });
+            // return res.status(204).json({ errors: [{ msg: 'no Agent Report not found' }] });
+        }
+        // intTotlaRecords = Number(lisResponce2.length);
+        intPageCount = intTotlaRecords % Number(process.env.PER_PAGE_COUNT) === 0
+            ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT)
+            : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1;
+            
+        const results = lisResponce2.map(result => {
+            const { balance, commission_value, ...other } = result;
+            return {
+                ...other,
+                balance: balance || 0,
+                commissionType: commission_value ? 'Pre-Paid' : 'Post-Paid',
+                commissionPercent: commission_value || 0,
+            };
+        });
+
+        if (req.query.pageNumber == 0) {
+            res.status(200).send(results);
+        } else {
+            res.status(200).send({
+                reportList: results,
+                totalRepords: intTotlaRecords,
+                pageCount: intPageCount,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: Number(process.env.PER_PAGE_COUNT),
+                totalBalance: totalBalance || 0,
+                lisTotalRecordsBlance: lisTotalRecordsBlance[0].totalBalance || 0,
+            });
+        }
+    } catch (error) {
+        console.error('getAgentBalanceReport', error);
+        if (req.query.pageNumber == 0) {
+            res.status(200).send([{}]);
+        } else {
+            res.status(200).send({
+                reportList: [{}],
+                totalRepords: 0,
+                pageCount: 0,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: Number(process.env.PER_PAGE_COUNT),
+                totalBalance: 0,
+            });
+        }
+        }
+    };
+    
     transactionReport = async(req, res, next) => {
         try{
             // verify the body and query
