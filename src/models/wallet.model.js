@@ -67,7 +67,7 @@ class walletModel {
     getAgentBalanceReport = async (param, limit, offset) => {
 
         const {sevalues,seColumnSet} = await this.queryGen(param);
-        // console.log(sevalues,seColumnSet);
+        console.log(sevalues,seColumnSet);
 
         const sql = `SELECT /*+ MAX_EXECUTION_TIME(${process.env.SQL_QUERY_TIME_OUT}) */ ${this.tablename1}.username AS userid, ${this.tablename1}.full_name AS name, CAST(${this.tablename1}.user_uuid AS CHAR(16)) AS user_uuid, ${this.tablename1}.mobile,
                             ${this.tablename3}.ex_wallet AS balance,
@@ -79,7 +79,26 @@ class walletModel {
                     WHERE ${seColumnSet} AND not ${this.tablename1}.userid = 1 ORDER BY ${this.tablename1}.full_name LIMIT ${limit} OFFSET ${offset}`
 
         const result = await dbConnectionReplica.query(sql,[...sevalues]);
-        // console.log(result);
+        console.log(result);
+        return result
+    }
+
+    getAgentBalanceTotalReport = async (param, limit, offset) => {
+
+        const {sevalues,seColumnSet} = await this.queryGen(param);
+        console.log(sevalues,seColumnSet);
+
+        const sql = `SELECT /*+ MAX_EXECUTION_TIME(${process.env.SQL_QUERY_TIME_OUT}) */ ${this.tablename1}.username AS userid, ${this.tablename1}.full_name AS name, CAST(${this.tablename1}.user_uuid AS CHAR(16)) AS user_uuid, ${this.tablename1}.mobile,
+                            ${this.tablename3}.ex_wallet AS balance,
+                            ${this.tablename6}.commission_value
+                    FROM ${this.tablename1} LEFT JOIN ${this.tablename3}
+                    ON ${this.tablename1}.userid = ${this.tablename3}.userid
+                    LEFT JOIN ${this.tablename6} 
+                    ON ${this.tablename1}.userid = ${this.tablename6}.userid
+                    WHERE ${seColumnSet} AND not ${this.tablename1}.userid = 1 ORDER BY ${this.tablename1}.full_name`
+
+        const result = await dbConnectionReplica.query(sql,[...sevalues]);
+        console.log(result);
         return result
     }
 
@@ -268,10 +287,11 @@ class walletModel {
     }
 
     queryGen = async (object) =>{
-        // console.log(param)
+        console.log(object)
 
         let { region_ids, child_ids, between, timeDifferent, ...other } = object
-
+       
+        
         const keys = Object.keys(other);
         const sevalues = Object.values(other)
 
@@ -300,13 +320,31 @@ class walletModel {
         })
         
         if( region_ids )  seColumnSet.push( `${this.tablename1}.region_id IN ( ${region_ids} ) ` )
-        if( child_ids ) seColumnSet.push( `${this.tablename1}.userid IN ( ${child_ids} ) ` )
+
+        // if( child_ids ) seColumnSet.push( `${this.tablename1}.userid IN ( ${child_ids} ) ` )
+        if (child_ids) {
+            let childArray = [];
+        
+            if (typeof child_ids === 'string') {
+                childArray = child_ids.split(',').map(c => c.trim());
+            } else if (Array.isArray(child_ids)) {
+                childArray = child_ids;
+            }
+        
+            if (childArray.length > 0) {
+                const placeholders = childArray.map(() => '?').join(', ');
+                seColumnSet.push(`${this.tablename1}.userid IN (${placeholders})`);
+                sevalues.push(...childArray);
+            }
+        }
+
         if( timeDifferent ) {
             seColumnSet.push(`TIMESTAMPDIFF(MINUTE, '${timeDifferent.key}', '${timeDifferent.value}' ) <= ${timeDifferent.diff}`)
         }
         if( between ) seColumnSet.push(` date( ${between.key}) BETWEEN '${between.value[0]}' AND '${between.value[1]}' `)
             
-        seColumnSet = seColumnSet.join(' AND ');
+        // seColumnSet = seColumnSet.join(' AND ');
+        seColumnSet = seColumnSet.length > 0 ? seColumnSet.join(' AND ') : '1=1';
 
         return {sevalues,seColumnSet}
     }
