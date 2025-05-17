@@ -284,13 +284,19 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('ticket/allTicket',JSON.stringify(req.body), JSON.stringify(req.query))
+            console.log('ticket/allTicket',JSON.stringify(req.body), JSON.stringify(req.query))
             //variable for sql query to update tickit
             // var offset = req.query.start
             // var limit = req.query.end - offset
             var searchKeyValue = {
                 active: 1,
             }
+            if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+            if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+            if (req.query.ticketId) searchKeyValue.ticket_disp_id = req.query.ticketId;
+            if (req.query.status) searchKeyValue.ticket_status_name = req.query.status;
+            if(req.query.category) searchKeyValue.ticket_category_name = req.query.category;
+
             var key = ["ticket_disp_id", "ticket_category_name AS name", "ticket_subject AS subject", "ticket_status_name AS status", "CAST(created_on AS CHAR(20)) AS created", "last_modified_on AS modified"]
             var orderby = "created_on"
             var ordertype = "DESC"
@@ -783,7 +789,7 @@ class ticketController {
             // find user using full name or by phone number
                 var searchKeyValue = {
                     created_by_type: 2,
-                    child_ids :  req.body.user_detials.child_list.join(',')
+                    child_ids :  req.body.user_detials.child_list.join(',') || '0',
                 }
                 if (req.query.name) searchKeyValue.full_name = req.query.name //str user full name
                 if (req.query.mobile) searchKeyValue.mobile = req.query.mobile // str user primary number

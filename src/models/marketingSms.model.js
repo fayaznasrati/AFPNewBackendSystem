@@ -50,10 +50,13 @@ class marketingSmsModel {
     }
 
     allSmsGroupDateRangeCount = async(start, end) => {
-        const sql = `SELECT COUNT(1) AS count
-                    FROM ${this.tableName3} LEFT JOIN ${this.tableName2}
-                    ON ${this.tableName3}.sms_template_id = ${this.tableName2}.sms_template_id
-                    WHERE ${this.tableName3}.active = 1 AND ${start} <= date(${this.tableName3}.created_on) AND date(${this.tableName3}.created_on) <= '${end}' ORDER BY ${this.tableName3}.created_on DESC`;
+        const sql = ` SELECT COUNT(1) AS count
+        FROM ${this.tableName3} 
+        LEFT JOIN ${this.tableName2}
+        ON ${this.tableName3}.sms_template_id = ${this.tableName2}.sms_template_id
+        WHERE ${this.tableName3}.active = 1 
+        AND date(${this.tableName3}.created_on) BETWEEN '${start}' AND '${end}' `;
+
         const result = await dbConnectionReplica.query(sql);
         return result
     }

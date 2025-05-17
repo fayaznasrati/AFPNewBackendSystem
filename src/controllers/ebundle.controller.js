@@ -51,18 +51,26 @@ class EbundleController {
   tableName25 = `er_daily_topup_summery`
 
   //function to get all ebundle
-  getEbundle = async (req, res, next) => {
+  getEbundle = async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      const searchKeyValue = {};
+       const searchKeyValue = {
+        status: 1,
+       }; // Search criteria
+          if(req.query.operator_uuid) searchKeyValue.operator_uuid = req.query.operator_uuid //str user id
+          if(req.query.status) searchKeyValue.status = req.query.status //str user name
+          if(req.query.ebundleType) searchKeyValue.ebundleType = req.query.eBundleTypes
+
+       
       const key = ["*"]; // Fetches all columns
       const orderby = "operatorType"; // Assuming 'id' is a column in your table
       const ordertype = "ASC";
-      const result = await sqlQuery.searchQueryNoConNolimit(
+      const result = await sqlQuery.searchQueryNoLimit(
         this.tableName1,
+        searchKeyValue,
         key,
         orderby,
         ordertype
