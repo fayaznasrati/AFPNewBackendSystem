@@ -81,5 +81,11 @@ app.all('*', (req, res, next) => {
     // next(err);
 });
 
-app.listen(port, () =>
-    console.log(`🚀 Server running on port ${port}!`));
+app.listen(port, () =>{
+    console.log(`🚀 Server running on port ${port}!`)
+   const used = process.memoryUsage();
+    console.log(`Heap Total: ${(used.heapTotal / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`Heap Used: ${(used.heapUsed / 1024 / 1024).toFixed(2)} MB`);
+
+}
+);
