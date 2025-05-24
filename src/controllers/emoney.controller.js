@@ -78,12 +78,12 @@ class emoneyController {
             // get api balance
                 let api_balance = Number(process.env.MNO_TEST_BALANCE) == 0 ? await apiCall(mnoDetails[0].balance_url) : Number(process.env.MNO_TEST_BALANCE)
                 if(api_balance.error) return res.status(400).json({ errors: [ {msg : ' api balance url issue '}] });
-                // console.log(api_balance, operatorUrlDetails[0].balance_url, intOperatorId[0].operator_id)
+                console.log(api_balance, operatorUrlDetails[0].balance_url, intOperatorId[0].operator_id)
 
                 api_balance = Number(process.env.MNO_TEST_BALANCE) == 0 ? (Number(api_balance.balance) ? Number(api_balance.balance) : 0) : Number(process.env.MNO_TEST_BALANCE)
 
             // check of operator balance + amount < api balance
-                // console.log(Number(mnoDetails[0].current_balance), Number(req.body.amountAdded), Number(req.body.commAmount), Number(api_balance.balance))
+                console.log(Number(mnoDetails[0].current_balance), Number(req.body.amountAdded), Number(req.body.commAmount), Number(api_balance.balance))
                 if (mnoDetails[0].mno_name == 'Etisalat'){
                     let newBal = Number(mnoDetails[0].current_balance) + Number(req.body.amountAdded) + Number(req.body.commAmount) + 100
                     api_balance = newBal
