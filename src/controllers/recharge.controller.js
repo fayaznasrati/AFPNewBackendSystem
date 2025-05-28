@@ -521,10 +521,10 @@ class rechargeController {
                 for (let i = 0; i < systemDetails.length; i++) {
                     mno_id = systemDetails[i].mno_id
                     // operator_access_uuid = systemDetails[i].operator_access_uuid
-                    // display_name = systemDetails[i].display_name
+                    // display_name = systemDetails[i].display_name 
                     queue_name = systemDetails[i].queue_name
                     status = systemDetails[i].status
-                    minRechargeLimit = systemDetails[i].min_amount
+                    minRechargeLimit = systemDetails[i].min_amount 
                     maxRechargeList = systemDetails[i].max_amount
 
                     if (status == 1) break
@@ -532,7 +532,11 @@ class rechargeController {
 
                 if (status != 1) return ({ status: 400, message: 'Operator in active' })
                 // console.log(Number(minRechargeLimit),Number(data.amount))
-                if (Number(minRechargeLimit) > Number(data.amount)) return ({ status: 400, message: `Please enter amount more then or equal to ${minRechargeLimit}` })
+                if (Number(minRechargeLimit) > Number(data.amount))
+                {
+                    return ({ status: 400, message: `Please enter amount more then or equal to ${minRechargeLimit}` })
+
+                }
                 if (Number(maxRechargeList) > 0 && Number(maxRechargeList) < Number(data.amount)) return ({ status: 400, message: `Please enter amount less then or equal to ${maxRechargeList}` })
 
                 // get recharge count

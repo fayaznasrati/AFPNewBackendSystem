@@ -1,5 +1,12 @@
 const { body, query } = require('express-validator');
 
+exports.createCompanyMiddleware =  [
+    body('company_name')
+    .exists().withMessage('company_name is required')
+    .isString().withMessage('should be a string')
+    .trim().isLength({ min: 1, max: 50 }).withMessage('company_name maximum limit is 50 words'),
+]   
+
 exports.adminDashBoardStatus =[
     query('username')
     .exists().withMessage('username is required')

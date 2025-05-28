@@ -40,6 +40,7 @@ const p2aRoute = require('./P2A.route')
 const ebundleTopup = require('./ebundleTopup.routes')
 const bundleManagementRoute = require('./bundleManagment.route')
 const bundleRechargeRoutes = require('./bundleRecharge.routes')
+const companyManagementRoute = require('./company.routes')
 
 
 router.use('/admin', adminRouter);
@@ -81,6 +82,7 @@ router.use('/P2A',p2aRoute)
 router.use('/bundle-recharge',bundleRechargeRoutes)
 router.use('/ebundle-topup',agentRoute)
 router.use('/bundle-management', bundleManagementRoute)
+router.use('/company', companyManagementRoute)
 
 
 module.exports = router;
