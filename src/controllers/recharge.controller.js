@@ -405,7 +405,7 @@ class rechargeController {
             }
 
             let responce
-
+            console.log('data', data)
             let stockTransferStatus = await this.#checkStockTransferStatus()
             if (stockTransferStatus.length == 0 || stockTransferStatus[0].stock_transfer == 0) {
                 responce = { status: 400, message: 'Recharge is not allowed for a while.' }
@@ -501,9 +501,7 @@ class rechargeController {
         return [finalPermission[channelType]]
     }
 
-    processRecharge =
-
-        async (data) => {
+    processRecharge =  async (data) => {
             try {
 
                 // check operator details
@@ -651,7 +649,7 @@ class rechargeController {
                 }
 
                 // get the channel access details
-                let channelList = ['Mobile', 'SMS', 'USSD', 'Web']
+                let channelList = ['Mobile', 'SMS', 'USSD', 'Web','Company']
                 let channelType = channelList.includes(data.channelType) ? data.channelType : 'Web'
                 // let channelLimit = await sqlQuery.searchQuery(this.tableName14,{userid : data.userid, channel : channelType},['threshold','status'],'userid','ASC',1,0) 
                 let channelLimit = await this.#getUserChannel(data.user_uuid, channelType)

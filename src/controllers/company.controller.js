@@ -3,25 +3,14 @@ const { validationResult } = require('express-validator');
 const sqlQuery = require('../common/sqlQuery.common')
 const sqlQueryReplica = require('../common/sqlQueryReplica.common')
 const redisMaster = require('../common/master/radisMaster.common')
-const commonQueryCommon = require('../common/commonQuery.common')
-const accessFilter = require('../common/accessFilter.common')
-const role = require('../utils/userRoles.utils')
-const genRandom = require('../utils/randomString.utils')
-const varEncryptionString = require('../utils/encryption.utils');
-const varRandomString = require('../utils/randomString.utils');
+const {encryptSecret} = require('../utils/encryption.utils');
 const dotenv = require('dotenv');
-const path = require('path');
-const smsFunction = require('../common/smsFunction.common')
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
-// configer env
 dotenv.config()
 
-const httpRequestMakerCommon = require('../common/httpRequestMaker.common');
-const agentModule = require('../models/agent.module');
-
-// const { toIsoString } = require('../common/timeFunction.common')
+const rechargeService = require('../controllers/recharge.controller');
 
 class companyController {
 
@@ -29,160 +18,164 @@ class companyController {
     tableName2 = 'er_login';
     tableName3 = 'er_company_activity_logs';
     tableName4 = 'er_company_api_key_logs';
+    tableName24 = 'er_access_status';
 
     //################---create company---################
-   createCompany = async (req, res, next) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-
-        console.log('Company/createCompany', JSON.stringify(req.body), JSON.stringify(req.query));
-
-        const date = new Date();
-        date.setHours(date.getHours() + 4, date.getMinutes() + 30);
-        const isodate = date.toISOString();
-
-        const {
-            company_name,
-            allowed_ips = [],
-            company_account_username,
-            status
-        } = req.body;
-
-        const createdBy = req.query.username;
-        if (!createdBy) {
-            return res.status(400).json({ errors: [{ msg: "Missing or invalid username in query" }] });
-        }
-
-                // ❗ Check for duplicate IPs in input
-        const uniqueIps = new Set(allowed_ips);
-        if (uniqueIps.size !== allowed_ips.length) {
-            return res.status(400).json({ errors: [{ msg: "Duplicate IPs detected in allowed_ips" }] });
-        }
-       const allCompanies = await sqlQuery.searchQueryNoCon(
-        this.tableName1,
-        ['allowed_ips'], // ✅ this should be an array of column names you want to select 
-        'company_name',
-        'ASC',
-        1000,
-        0
-        );
-
-        let registeredIps = new Set();
-        for (let company of allCompanies) {
-            try {
-                const ips = JSON.parse(company.allowed_ips || '[]');
-                ips.forEach(ip => registeredIps.add(ip));
-            } catch (e) {
-                console.warn(`Failed to parse IPs for company:`, company);
+    createCompany = async (req, res, next) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
             }
-        }
 
-        const conflictingIps = allowed_ips.filter(ip => registeredIps.has(ip));
-        if (conflictingIps.length > 0) {
-            return res.status(400).json({
-                errors: [{ msg: `These IPs are already registered: ${conflictingIps.join(', ')}` }]
-            });
-        }
+            console.log('Company/createCompany', JSON.stringify(req.body), JSON.stringify(req.query));
 
+            const date = new Date();
+            date.setHours(date.getHours() + 4, date.getMinutes() + 30);
+            const isodate = date.toISOString();
 
-        // 🔍 Fetch user account
-        const searchUser = { username: company_account_username };
-        const userKeys = ['username', 'userid'];
-        const userOrderBy = 'username';
-        const userAccount = await sqlQuery.searchOrQuery(this.tableName2, searchUser, userKeys, userOrderBy, 'ASC', 1, 0);
+            const {
+                company_name,
+                allowed_ips = [],
+                company_account_username,
+                status
+            } = req.body;
 
-        if (!userAccount || userAccount.length !== 1) {
-            return res.status(400).json({ errors: [{ msg: "Invalid or missing user account" }] });
-        }
-
-        const accountUser = userAccount[0];
-
-        // 📦 Prepare insert payload
-        const param = {
-            company_uuid: "uuid()", // Replace with actual UUID if necessary
-            company_name,
-            allowed_ips: JSON.stringify(allowed_ips),
-            company_api_key: null,
-            bcrypt_hash: null,
-            encrypted_secret: null,
-            active: status ?? 1,
-            account_username: company_account_username,
-            account_userid: accountUser.userid,
-            created_by: createdBy,
-            created_at: isodate,
-            last_modified_by: createdBy,
-            last_modified_on: isodate
-        };
-
-        // 🧪 Check if company with same name and IPs exists
-        const existingCompany = await sqlQuery.searchOrQuery(
-            this.tableName1,
-            { company_name: param.company_name, allowed_ips: param.allowed_ips },
-            ['company_name AS company_name'],
-            'company_name',
-            'ASC',
-            10,
-            0
-        );
-        if (existingCompany && existingCompany.length > 0) {
-            return res.status(400).json({ errors: [{ msg: "Company already exists with these allowed IPs" }] });
-        }
-
-        // 🔁 Check if this user already registered a company
-        const userCompanyExists = await sqlQuery.searchOrQuery(
-            this.tableName1,
-            {
-                account_username: param.account_username,
-                account_userid: param.account_userid
-            },
-            ['company_name AS company_name'],
-            'company_name',
-            'ASC',
-            10,
-            0
-        );
-        if (userCompanyExists && userCompanyExists.length > 0) {
-            return res.status(400).json({
-                errors: [{ msg: `Company already registered under this user: ${param.account_username}` }]
-            });
-        }
-
-        // 💾 Insert company
-        const objResult = await sqlQuery.createQuery(this.tableName1, param);
-        if (!objResult) {
-            throw new Error("Something went wrong during company creation");
-        }
-        await this.logActivity({
-            action: 'CREATE',
-            entityType: 'company',
-            entityId: objResult.company_id,
-            performedBy: createdBy,
-            details: {
-                company_name: param.company_name,
-                allowed_ips: param.allowed_ips,
-                created_by: createdBy
+            const createdBy = req.query.username;
+            if (!createdBy) {
+                return res.status(400).json({ errors: [{ msg: "Missing or invalid username in query" }] });
             }
-        });
 
+            // ❗ Check for duplicate IPs in input
+            const uniqueIps = new Set(allowed_ips);
+            if (uniqueIps.size !== allowed_ips.length) {
+                return res.status(400).json({ errors: [{ msg: "Duplicate IPs detected in allowed_ips" }] });
+            }
 
-        return res.status(201).send({ message: "Company created successfully!" });
+            // 🔍 Fetch all companies to validate against existing IPs
+            const allCompanies = await sqlQuery.searchQueryNoCon(
+                this.tableName1,
+                ['allowed_ips'],
+                'company_name',
+                'ASC',
+                1000,
+                0
+            );
 
-    } catch (error) {
-        console.error("createCompany error:", error);
+            let registeredIps = new Set();
+            for (let company of allCompanies) {
+                try {
+                    const ips = JSON.parse(company.allowed_ips || '[]');
+                    ips.forEach(ip => registeredIps.add(ip));
+                } catch (e) {
+                    console.warn(`Failed to parse IPs for company:`, company);
+                }
+            }
 
-        const message = error.message || '';
-        const key = message.split("'");
-        if (message.includes('Duplicate entry')) {
-            return res.status(400).json({ errors: [{ msg: `${key[1]} already registered` }] });
+            const conflictingIps = allowed_ips.filter(ip => registeredIps.has(ip));
+            if (conflictingIps.length > 0) {
+                return res.status(400).json({
+                    errors: [{ msg: `These IPs are already registered: ${conflictingIps.join(', ')}` }]
+                });
+            }
+
+            // 🔍 Fetch user account
+            const searchUser = { username: company_account_username };
+            const userKeys = ['username', 'userid'];
+            const userOrderBy = 'username';
+            const userAccount = await sqlQuery.searchOrQuery(this.tableName2, searchUser, userKeys, userOrderBy, 'ASC', 1, 0);
+
+            if (!userAccount || userAccount.length !== 1) {
+                return res.status(400).json({ errors: [{ msg: "Invalid or missing user account" }] });
+            }
+
+            const accountUser = userAccount[0];
+
+            // ✅ Generate secure 256-bit (32 byte) API key
+            const apiKey = crypto.randomBytes(32).toString('hex'); // 64-char hex string
+
+            const param = {
+                company_uuid: uuidv4(),
+                company_name,
+                allowed_ips: JSON.stringify(allowed_ips),
+                company_api_key: apiKey,
+                bcrypt_hash: null,
+                encrypted_secret: null,
+                active: status ?? 1,
+                account_username: company_account_username,
+                account_userid: accountUser.userid,
+                created_by: createdBy,
+                created_at: isodate,
+                last_modified_by: createdBy,
+                last_modified_on: isodate
+            };
+
+            // 🚫 Check if company with same name and IPs exists
+            const existingCompany = await sqlQuery.searchOrQuery(
+                this.tableName1,
+                { company_name: param.company_name, allowed_ips: param.allowed_ips },
+                ['company_name AS company_name'],
+                'company_name',
+                'ASC',
+                10,
+                0
+            );
+            if (existingCompany && existingCompany.length > 0) {
+                return res.status(400).json({ errors: [{ msg: "Company already exists with these allowed IPs" }] });
+            }
+
+            // 🚫 Check if this user already registered a company
+            const userCompanyExists = await sqlQuery.searchOrQuery(
+                this.tableName1,
+                {
+                    account_username: param.account_username,
+                    account_userid: param.account_userid
+                },
+                ['company_name AS company_name'],
+                'company_name',
+                'ASC',
+                10,
+                0
+            );
+            if (userCompanyExists && userCompanyExists.length > 0) {
+                return res.status(400).json({
+                    errors: [{ msg: `Company already registered under this user: ${param.account_username}` }]
+                });
+            }
+
+            // 💾 Insert into DB
+            const objResult = await sqlQuery.createQuery(this.tableName1, param);
+            if (!objResult) {
+                throw new Error("Something went wrong during company creation");
+            }
+
+            // 📘 Log activity
+            await this.logActivity({
+                action: 'CREATE',
+                entityType: 'company',
+                entityId: objResult.company_id,
+                performedBy: createdBy,
+                details: {
+                    company_name: param.company_name,
+                    allowed_ips: param.allowed_ips,
+                    created_by: createdBy
+                }
+            });
+
+            return res.status(201).send({ message: "Company created successfully!" });
+
+        } catch (error) {
+            console.error("createCompany error:", error);
+
+            const message = error.message || '';
+            const key = message.split("'");
+            if (message.includes('Duplicate entry')) {
+                return res.status(400).json({ errors: [{ msg: `${key[1]} already registered` }] });
+            }
+
+            return res.status(500).json({ errors: [{ msg: message }] });
         }
-
-        return res.status(500).json({ errors: [{ msg: message }] });
-    }
     };
-
 
     //################---edit commpanies---################
     editCompany = async (req, res, next) => {
@@ -194,7 +187,7 @@ class companyController {
 
             console.log('Company/editCompany', JSON.stringify(req.body), JSON.stringify(req.query));
 
-            const { company_name, allowed_ips } = req.body;
+            const { company_name, allowed_ips,status   } = req.body;
             const modifiedBy = req.query.username;
             const id = req.params.id;
 
@@ -277,6 +270,7 @@ class companyController {
             // 📦 Build update fields
             const updateFields = {
                 company_name,
+                active: status ?? 1, // Default to 1 if not provided
                 last_modified_by: modifiedBy,
                 last_modified_on: new Date().toISOString()
             };
@@ -333,7 +327,6 @@ class companyController {
         }
     };
 
-
     //################---fetch companies---################
     getCompanies = async (req, res) => {
       try {
@@ -348,8 +341,9 @@ class companyController {
 
           // search parem
           let searchKeyValue = {
-              Active: 1,
-          }
+              Active: 1
+
+          } 
                var orderby = "company_name"
                 var ordertype = "ASC"
 
@@ -362,7 +356,8 @@ class companyController {
           let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
 
           // if(Object.keys(searchKeyValue).length == 0) return res.status(400).json({ errors: "Improper search key value" }); 
-          let companyList = await sqlQuery.searchQueryTimeout(this.tableName1, searchKeyValue, ['company_id AS id','company_name AS name','allowed_ips','company_api_key AS API_key','encrypted_secret','bcrypt_hash','active AS status','account_username AS belongs_to','account_userid AS belongs_to_id ','created_at','created_by','last_modified_by','last_modified_on' ], orderby, ordertype, limit, offset)
+        //   searchQueryNoCon(this.tableName1,  ['COUNT(1) AS count'], orderby, ordertype,1000, 0);
+          let companyList = await sqlQuery.searchQueryNoCon(this.tableName1,  ['company_id AS id','company_name AS name','allowed_ips','company_api_key AS API_key','encrypted_secret','bcrypt_hash','active AS status','account_username AS belongs_to','account_userid AS belongs_to_id ','created_at','created_by','last_modified_by','last_modified_on' ], orderby, ordertype, limit, offset)
           // check date for start and end 
           if (!companyList || companyList.length == 0) {
               return res.status(200).send({ data: [], totalRecords: intTotlaRecords, pageCount: intPageCount });
@@ -385,164 +380,76 @@ class companyController {
           }
       
     }
-
-    // //################---generate company API---################
-    // generateCompanyKeys = async (req, res, next) => {
-    //     try {
-    //         const companyId = parseInt(req.params.id);
-    //         const userid = req.query.username;
-
-    //         if (isNaN(companyId)) {
-    //             return res.status(400).json({ errors: [{ msg: "Invalid company ID" }] });
-    //         }
-
-    //         var searchKeyValue={
-    //                 company_id: companyId
-    //             }
-                        
-    //             var key = ['company_name AS company_name']
-    //             var orderby = "company_name"
-    //             var ordertype = "ASC"
-    //             var limit = 10
-    //             var offset = 0
-    //                 // 2) check if company name already exists tableName,
-    //                 // const company_exsits = await sqlQueryReplica.searchOrQuery(this.tableName1, searchKeyValue, key, orderby, ordertype, limit, offset);
-    //             const existingCompany = await sqlQuery.searchOrQuery(this.tableName1, searchKeyValue, key, orderby, ordertype, limit, offset);
-    //         if (!existingCompany) {
-    //             return res.status(404).json({ errors: [{ msg: "Company not found" }] });
-    //         }
-
-    //         // 1) Generate random secret (256-bit) and API key (128-bit)
-    //         const rawSecret = crypto.randomBytes(32).toString('hex');
-    //         const apiKey = crypto.randomBytes(16).toString('hex');
-
-    //         // 2) Hash the raw secret
-    //         const bcryptHash = await bcrypt.hash(rawSecret, 12);
-
-    //         // 3) Simulate encryption of secret (base64 encode)
-    //         const encryptedSecret = Buffer.from(rawSecret).toString('base64');
-
-    //         // 4) Prepare update values 
-    //         const updateValues = {
-    //             company_api_key: apiKey,
-    //             bcrypt_hash: bcryptHash,
-    //             encrypted_secret: encryptedSecret,
-    //             last_modified_by: userid,
-    //             last_modified_on: new Date()
-    //         };
-    //     var searchKeyValue={
-    //                 company_id: companyId
-    //             }
-                
-    //         // 5) Update in DB     updateQuery = async(tableName, keyValue, searchKeyValue) => {
-    //         const result = await sqlQuery.updateQuery(this.tableName1, updateValues, searchKeyValue);
-
-    //         if (!result) {
-    //             throw new Error("Failed to update company with generated keys");
-    //         }
-
-    //         // 6) Return downloadable JSON
-    //         const downloadData = {
-    //             company_name: existingCompany.name,
-    //             api_key: apiKey,
-    //             secret: rawSecret,
-    //             note: "Store this secret securely; it cannot be retrieved again."
-    //         };
-
-    //         res.setHeader('Content-Disposition', `attachment; filename=company_keys_${companyId}.json`);
-    //         res.setHeader('Content-Type', 'application/json');
-    //         res.status(200).send(JSON.stringify(downloadData, null, 2));
-
-    //     } catch (error) {
-    //         console.error(error);
-    //         return res.status(500).json({ errors: [{ msg: error.message || 'Server error' }] });
-    //     }
-    // };
-
-//################---generate company API---################
-generateCompanyKeys = async (req, res, next) => {
+  //################---Generate API Key for companies---################
+    generateCompanyKeys = async (req, res, next) => {
     try {
         const companyId = parseInt(req.params.id);
         const userid = req.query.username;
 
-        if (isNaN(companyId)) {
-            return res.status(400).json({ errors: [{ msg: "Invalid company ID" }] });
-        }
-
-        if (!userid) {
-            return res.status(400).json({ errors: [{ msg: "Missing username in query" }] });
-        }
-
-        const searchKeyValue = { company_id: companyId };
-        const key = ['company_name AS company_name'];
-        const orderby = "company_name";
-        const ordertype = "ASC";
-        const limit = 10;
-        const offset = 0;
+        if (isNaN(companyId)) return res.status(400).json({ errors: [{ msg: "Invalid company ID" }] });
+        if (!userid) return res.status(400).json({ errors: [{ msg: "Missing username in query" }] });
 
         const existingCompany = await sqlQuery.searchOrQuery(
-            this.tableName1,
-            searchKeyValue,
-            key,
-            orderby,
-            ordertype,
-            limit,
-            offset
+        this.tableName1,
+        { company_id: companyId },
+        ['company_name', 'company_api_key'],
+        "company_name",
+        "ASC",
+        10,
+        0
         );
 
         if (!existingCompany || existingCompany.length === 0) {
-            return res.status(404).json({ errors: [{ msg: "Company not found" }] });
+        return res.status(404).json({ errors: [{ msg: "Company not found" }] });
         }
 
         const companyName = existingCompany[0].company_name;
+        const API_key = existingCompany[0].company_api_key;
 
-        // 1) Generate random secret (256-bit) and API key (128-bit)
-        const rawSecret = crypto.randomBytes(32).toString('hex');
-        const apiKey = crypto.randomBytes(16).toString('hex');
+        // 1. Generate shared secret key
+        const secretKey = crypto.randomBytes(32).toString('hex'); // 256-bit secret
 
-        // 2) Hash the raw secret
-        const bcryptHash = await bcrypt.hash(rawSecret, 12);
-
-        // 3) Simulate encryption of secret (base64 encode)
-        const encryptedSecret = Buffer.from(rawSecret).toString('base64');
-
-        // 4) Prepare update values 
-        const updateValues = {
-            company_api_key: apiKey,
-            bcrypt_hash: bcryptHash,
-            encrypted_secret: encryptedSecret,
-            last_modified_by: userid,
-            last_modified_on: new Date()
-        };
-
-        // 5) Update in DB
-        const result = await sqlQuery.updateQuery(this.tableName1, updateValues, searchKeyValue);
-
-        if (!result || result.affectedRows === 0) {
-            throw new Error("Failed to update company with generated keys");
+        // 2. Validate and prepare API key as encryption key
+        const keyBuffer = Buffer.from(API_key, 'hex');
+        if (keyBuffer.length !== 32) {
+        throw new Error('Invalid API key length. Must be 256-bit (32 bytes).');
         }
 
-        // 6) Log the API key generation
+        // 3. Encrypt the secret with AES-256-CBC
+        const encryptedSecret = encryptSecret(secretKey, keyBuffer);
+
+        // 4. Hash the secret for one-way validation (optional)
+        const bcryptHash = await bcrypt.hash(secretKey, 10);
+
+        // 5. Save encrypted secret and hash to DB
+        const updateValues = {
+        bcrypt_hash: bcryptHash,
+        encrypted_secret: encryptedSecret,
+        last_modified_by: userid,
+        last_modified_on: new Date()
+        };
+
+        const result = await sqlQuery.updateQuery(this.tableName1, updateValues, { company_id: companyId });
+        if (!result || result.affectedRows === 0) {
+        throw new Error("Failed to update company with generated keys");
+        }
+
+        // 6. Audit logging (you can mask secret if needed)
         await this.logApiKeyGeneration({
-                companyId,
-                companyName,
-                apiKey,
-                rawSecret,
-                bcryptHash,
-                encryptedSecret,
-                generatedBy: userid,
-                note: 'New API key and secret created for company'
-            });
+        companyId,
+        companyName,
+        secretKey,
+        bcryptHash,
+        encryptedSecret,
+        generatedBy: userid,
+        note: 'New API key and secret created for company'
+        });
 
-
-        // 7) Return downloadable JSON
+        // 7. Send download response
         const downloadData = {
-            company_name: companyName,
-            api_key: apiKey,
-            secret: rawSecret,
-            bcryptHash:bcryptHash,
-            encryptedSecret:encryptedSecret,
-            note: "Store this secret securely; it cannot be retrieved again."
+        company_name: companyName,
+        secret: encryptedSecret,
+        note: "Store this secret securely; it cannot be retrieved again from our side."
         };
 
         res.setHeader('Content-Disposition', `attachment; filename=company_keys_${companyId}.json`);
@@ -553,7 +460,7 @@ generateCompanyKeys = async (req, res, next) => {
         console.error(error);
         return res.status(500).json({ errors: [{ msg: error.message || 'Server error' }] });
     }
-};
+    };
 
    logActivity = async ({
     action,
@@ -576,18 +483,16 @@ generateCompanyKeys = async (req, res, next) => {
     logApiKeyGeneration = async ({
         companyId,
         companyName,
-        apiKey,
         rawSecret,
         bcryptHash,
         encryptedSecret,
         generatedBy,
-        note = 'API key generated'
+        note = 'New Secret Key generated'
     }) => {
         const logData = {
             company_id: companyId,
             company_name: companyName,
-            api_key: apiKey,
-            raw_secret: rawSecret,
+            raw_secret: bcryptHash,
             bcrypt_hash: bcryptHash,
             encrypted_secret: encryptedSecret,
             generated_by: generatedBy,
@@ -599,18 +504,6 @@ generateCompanyKeys = async (req, res, next) => {
     };
 
 
-    setSecretKey() {
-        var strRandomString = varRandomString.generateRandomString(15);
-        var strRandomHash = varRandomString.generateRandomHash(strRandomString);
-        return strRandomHash;
-    }
-
-    genAPIKey = () => {
-        var strRandomString = varRandomString.generateRandomString(15);
-        var strRandomHash = varRandomString.generateRandomHash(strRandomString);
-        return strRandomHash;
-    }
-
     checkValidation = (req) => {
         const errors = validationResult(req)
         if (!errors.isEmpty()) {
@@ -618,6 +511,126 @@ generateCompanyKeys = async (req, res, next) => {
             throw new HttpException(400, 'Validation faild', errors);
         }
     }
+
+    //################---Single recharge for company---################
+    CompanySinglerecharge = async (req, res, next) => {
+            try {
+            // check body and query
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+            console.log('recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
+            // 🔍 Fetch user account
+                const searchUser = { username: req.body.username };
+                const userKeys = ['username', 'userid','full_name', 'mobile', 'user_uuid', 'usertype_id', 'region_id', 'user_status', 'active',];
+                const userOrderBy = 'username';
+                const userAccount = await sqlQuery.searchOrQuery(this.tableName2, searchUser, userKeys, userOrderBy, 'ASC', 1, 0);
+                const user_detials = userAccount[0];
+                if (!userAccount || userAccount.length !== 1) {
+                    return res.status(400).json({ errors: [{ msg: "Invalid or missing user account" }] });
+                }
+                if (user_detials.active !== 1) {
+                    return res.status(400).json({ errors: [{ msg: "User account is in-active, Call AFP admin " }] });
+                }
+                // console.log("userAccount", userAccount);
+
+            let operator_uuid = '', operatorName = ''
+
+            switch (req.body.mobile.slice(0, 3)) {
+                case "078":
+                case "073":
+                    // Etisalat
+                    operator_uuid = "70b9906d-c2ba-11"
+                    operatorName = "Etisalat"
+                    break;
+                case "079":
+                case "072":
+                    // Roshan
+                    operator_uuid = "9edb602c-c2ba-11"
+                    operatorName = "Roshan"
+                    break;
+                case "077":
+                case "076":
+                    // MTN
+                    operator_uuid = "456a6b47-c2ba-11",
+                        operatorName = "MTN"
+                    break;
+                case "074":
+                    // Salaam
+                    operator_uuid = "1e0e1eeb-c2a6-11"
+                    operatorName = "Salaam"
+                    break;
+                case "070":
+                case "071":
+                    // AWCC
+                    operator_uuid = "6a904d84-c2a6-11"
+                    operatorName = "AWCC"
+                    break;
+            }
+
+            if (!operator_uuid && !operatorName ) {
+                return res.status(400).json({ errors: [{ msg: "Mobile number does not match with selected operator" }] });
+            }
+
+
+            let params = {
+                operatorName: operatorName,
+                operator_uuid: operator_uuid,
+                amount: req.body.amount,
+                mobile: req.body.mobile,
+                userid: user_detials.userid,
+                user_uuid: user_detials.user_uuid,
+                user_mobile:user_detials.mobile,
+                userType: user_detials.usertype_id,
+                channelType: ['Mobile', 'SMS', 'USSD', 'Web','Company'].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
+                group_topup_id: 0,
+                full_name: user_detials.full_name,
+                username: user_detials.username,
+                region_id: user_detials.region_id,
+                userIpAddress: req.body.userIpAddress ? req.body.userIpAddress : 0,
+                userMacAddress: req.body.userMacAddress ? req.body.userMacAddress : 0, //str
+                userOsDetails: req.body.userOsDetails ? req.body.userOsDetails : 0, //str
+                userImeiNumber: req.body.userImeiNumber ? req.body.userImeiNumber : 0, //str
+                userGcmId: req.body.userGcmId ? req.body.userGcmId : 0, //str
+                userAppVersion: req.body.userAppVersion ? req.body.userAppVersion : null, //str
+                userApplicationType: req.body.userApplicationType == "Web" ? 1 : req.body.userApplicationType == "Company" ? 10 : req.body.userApplicationType == 'Mobile' ? 2 : 0,
+            }
+
+            let responce
+            let stockTransferStatus = await this.#checkStockTransferStatus()
+            
+            if (stockTransferStatus.length == 0 || stockTransferStatus[0].stock_transfer == 0) {
+                responce = { status: 400, message: 'Recharge is not allowed for a while.' }
+            } else {
+                // responce = await this.processRecharge(data)
+                responce = await rechargeService.processRecharge(params)
+                console.log("params", params)
+                
+            }
+
+            // send responce to front end
+            if (responce.status == 200) res.status(responce.status).send({ message: responce.message })
+            else res.status(responce.status).json({ errors: [{ msg: responce.message }] });
+
+        } catch (error) {
+            res.status(400).json({ errors: [{ msg: error.message }] });
+        }
+    
+
+    }
+
+    #checkStockTransferStatus = async () => {
+            let strStockTransferStatus = await redisMaster.asyncGet('STOCK_TRANSFER_STATUS')
+            if (strStockTransferStatus) {
+                return (JSON.parse(strStockTransferStatus))
+            } else {
+                let stockTransferStatus = await sqlQuery.searchQueryNoCon(this.tableName24, ['stock_transfer'], 'stock_transfer', 'ASC', 1, 0)
+                redisMaster.post('STOCK_TRANSFER_STATUS', JSON.stringify(stockTransferStatus))
+                return (stockTransferStatus)
+            }
+        }
+
 }
 
 module.exports = new companyController
