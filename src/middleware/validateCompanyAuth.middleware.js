@@ -48,22 +48,22 @@ const validateCompanyAuth = async (req, res, next) => {
       1,
       0
     );
+    const company = companies[0];
+  // Active check
+    if (company.active !== 1) {
+      return res.status(403).json({ error: 'Company is inactive' });
+    }
 
     if (!companies || companies.length !== 1) {
       return res.status(401).json({ error: 'Invalid API key' });
     }
-
-    const company = companies[0];
 
     // IP check
     if (!company.allowed_ips.includes(normalizedIp)) {
       return res.status(403).json({ error: 'Unauthorized IP address' });
     }
 
-    // Active check
-    if (company.active !== 1) {
-      return res.status(403).json({ error: 'Company is inactive' });
-    }
+  
 
     // Decrypt secret
     const decryptedSecret = decryptSecret(company.encrypted_secret, company.company_api_key);

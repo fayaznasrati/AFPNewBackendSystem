@@ -4,8 +4,8 @@ require('dotenv').config();
 const body = {
   username: "AFP-77454",
   company_name: "Test Company 77454",
-  amount: 2,
-  mobile: "0730720001",
+  // amount: 2,
+  // mobile: "0730720001",
   channelType: "Company",
 };
 

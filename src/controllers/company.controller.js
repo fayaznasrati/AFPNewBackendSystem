@@ -18,7 +18,12 @@ class companyController {
     tableName2 = 'er_login';
     tableName3 = 'er_company_activity_logs';
     tableName4 = 'er_company_api_key_logs';
-    tableName24 = 'er_access_status';
+    tableName5 = 'er_access_status';
+    _tableName1 = 'er_login'
+    _tableName2 = 'er_wallet'
+    _tableName3 = 'er_wallet_transaction'
+    _tableName4 = 'er_recharge'
+    _tableName5 = 'er_commission_amount'
 
     //################---create company---################
     createCompany = async (req, res, next) => {
@@ -533,6 +538,11 @@ class companyController {
                 if (user_detials.active !== 1) {
                     return res.status(400).json({ errors: [{ msg: "User account is in-active, Call AFP admin " }] });
                 }
+                const userUuidBuffer = user_detials.user_uuid; // Assume it's a Buffer
+                const userUuidStr = userUuidBuffer.toString('utf8');
+
+                // Extract only the useful part (until first null character if any)
+                const the_user_uuid = userUuidStr.split('\0')[0]; // "6e481e53-d5fa-11"
                 // console.log("userAccount", userAccount);
 
             let operator_uuid = '', operatorName = ''
@@ -580,7 +590,7 @@ class companyController {
                 amount: req.body.amount,
                 mobile: req.body.mobile,
                 userid: user_detials.userid,
-                user_uuid: user_detials.user_uuid,
+                user_uuid: the_user_uuid,
                 user_mobile:user_detials.mobile,
                 userType: user_detials.usertype_id,
                 channelType: ['Mobile', 'SMS', 'USSD', 'Web','Company'].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
@@ -596,14 +606,12 @@ class companyController {
                 userAppVersion: req.body.userAppVersion ? req.body.userAppVersion : null, //str
                 userApplicationType: req.body.userApplicationType == "Web" ? 1 : req.body.userApplicationType == "Company" ? 10 : req.body.userApplicationType == 'Mobile' ? 2 : 0,
             }
-
             let responce
             let stockTransferStatus = await this.#checkStockTransferStatus()
             
             if (stockTransferStatus.length == 0 || stockTransferStatus[0].stock_transfer == 0) {
                 responce = { status: 400, message: 'Recharge is not allowed for a while.' }
             } else {
-                // responce = await this.processRecharge(data)
                 responce = await rechargeService.processRecharge(params)
                 console.log("params", params)
                 
@@ -625,12 +633,88 @@ class companyController {
             if (strStockTransferStatus) {
                 return (JSON.parse(strStockTransferStatus))
             } else {
-                let stockTransferStatus = await sqlQuery.searchQueryNoCon(this.tableName24, ['stock_transfer'], 'stock_transfer', 'ASC', 1, 0)
+                let stockTransferStatus = await sqlQuery.searchQueryNoCon(this.tableName5, ['stock_transfer'], 'stock_transfer', 'ASC', 1, 0)
                 redisMaster.post('STOCK_TRANSFER_STATUS', JSON.stringify(stockTransferStatus))
                 return (stockTransferStatus)
             }
+    }
+
+       
+    CompanyActivityStatus = async (req,res) => {
+            try{
+                // validate body and query 
+                    const errors = validationResult(req);
+                    if (!errors.isEmpty()) {
+                        return res.status(400).json({ errors: errors.array() });
+                    }
+                    const searchUser = { username: req.body.username };
+                    const userKeys = ['username', 'userid','full_name', 'mobile', 'user_uuid', 'usertype_id', 'region_id', 'user_status', 'active',];
+                    const userOrderBy = 'username';
+                    const userAccount = await sqlQuery.searchOrQuery(this.tableName2, searchUser, userKeys, userOrderBy, 'ASC', 1, 0);
+                    const user_detials = userAccount[0];
+                    if (!userAccount || userAccount.length !== 1) {
+                        return res.status(400).json({ errors: [{ msg: "Invalid or missing user account" }] });
+                    }
+                    if (user_detials.active !== 1) {
+                        return res.status(400).json({ errors: [{ msg: "User account is in-active, Call AFP admin " }] });
+                    }
+
+                    // console.log('dashboard/agentDashboardStatus',JSON.stringify(req.body), JSON.stringify(req.query))
+                    let avaliableBalance, totalTransactions, totalCommission, downlineMember, todayTopup, todayCommission
+    
+                // available balance
+                    const listAvaliableBalance = await sqlQueryReplica.searchQuery(this._tableName2, {userid : user_detials.userid}, ['ex_wallet','comm_wallet'], 'userid', 'ASC', 1, 0)
+                    if (listAvaliableBalance.length == 0) {
+                        avaliableBalance = 0
+                        totalCommission = 0
+                    }
+                    else {
+                        avaliableBalance = listAvaliableBalance[0].ex_wallet ? listAvaliableBalance[0].ex_wallet : 0
+                        totalCommission = listAvaliableBalance[0].comm_wallet ? listAvaliableBalance[0].comm_wallet : 0
+                    }
+    
+                // total transactions
+                    const listTotalTransaction = await sqlQueryReplica.searchQuery(this._tableName4, {userid : user_detials.userid}, ['COUNT(userid)'], 'userid', 'ASC', 1, 0)
+                    if(listTotalTransaction.length == 0) totalTransactions = 0
+                    else totalTransactions = listTotalTransaction[0]["COUNT(userid)"] ? listTotalTransaction[0]["COUNT(userid)"] : 0
+    
+    
+                // today top up
+                    let todayDate = this.currentDateToString()
+                    const listTodayTopup = await sqlQueryReplica.searchQuery(this._tableName4,{ status : 2, created_on : todayDate }, ['SUM(amount) AS totalAmount'], 'userid', 'ASC', 1, 0)
+                    if(listTodayTopup.length == 0) todayTopup = 0
+                    else todayTopup = listTodayTopup[0]["totalAmount"] ? listTodayTopup[0]["totalAmount"] : 0
+    
+                // today commission
+                    const listTodayCommission = await sqlQueryReplica.searchQuery(this._tableName5, { userid : user_detials.userid, created_on : todayDate}, ['SUM(commission_amount) AS totalCommission'], 'userid', 'ASC', 1,0)
+                    // console.log(listTodayCommission)
+                    if(listTodayCommission.length == 0) todayCommission = 0
+                    else todayCommission = listTodayCommission[0].totalCommission ? listTodayCommission[0].totalCommission : 0
+    
+                res.status(200).send({avaliableBalance, totalTransactions,   todayTopup })
+    
+            }catch(error){
+                console.log(error);
+                res.status(400).json({ errors: [ {msg : error.message}] });
+            }
         }
+    
+        currentDateToString() {
+            var varDate = new Date();
+            varDate.setHours(varDate.getHours() + 4, varDate.getMinutes() + 30);
+            // var isodate = varDate.toISOString();
+
+            let date = varDate
+            var mm = date.getMonth() + 1; // getMonth() is zero-based
+            var dd = date.getDate();
+        
+            return [date.getFullYear(),
+                    (mm>9 ? '' : '0') + mm,
+                    (dd>9 ? '' : '0') + dd
+                ].join('-');
+        };
 
 }
+
 
 module.exports = new companyController

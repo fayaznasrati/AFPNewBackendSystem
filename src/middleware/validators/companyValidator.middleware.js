@@ -46,6 +46,27 @@ exports.singlerecharge = [
     })
     .withMessage('wrong request channelType'),
 ]
+
+exports.checkBalance = [
+    body('username')
+    .exists()
+    .withMessage('username is required')
+    .isString()
+    .withMessage('should be a string')
+    .isLength({ min: 9, max: 9 })
+    .withMessage('username limit worng'),
+    body('company_name')
+    .exists().withMessage('company_name is required'),
+    body('channelType')
+    .custom(value => {
+        if (value == 'Company') {
+            return true
+        }
+        return false
+    })
+    .withMessage('wrong request channelType'),
+]
+
 // exports.adminDashBoardStatus =[
 //     query('username')
 //     .exists().withMessage('username is required')

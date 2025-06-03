@@ -4,7 +4,7 @@ const router = express.Router();
 const awaitHandlerFactory = require('../middleware/awaitHandlerFactory.middleware');
 const auth = require('../middleware/auth.middleware');
 const role = require('../utils/userRoles.utils')
-const { createCompanyMiddleware,genAPIKeyCompanyMiddleware,singlerecharge} = require('../middleware/validators/companyValidator.middleware');
+const { createCompanyMiddleware,genAPIKeyCompanyMiddleware,singlerecharge,checkBalance} = require('../middleware/validators/companyValidator.middleware');
 const companyController = require('../controllers/company.controller');
 const accessManager = require('../middleware/acessManager.middleware');
 const apiMethodUtils = require('../utils/apiMethod.utils');
@@ -19,6 +19,12 @@ router.patch('/:id', createCompanyMiddleware, auth(role.Admin), awaitHandlerFact
 router.post(
   '/recharge',singlerecharge,validateCompanyAuth, // ← your HMAC+key auth middleware
   awaitHandlerFactory(companyController.CompanySinglerecharge)
+);
+
+
+router.post(
+  '/check-balance',checkBalance,validateCompanyAuth, // ← your HMAC+key auth middleware
+  awaitHandlerFactory(companyController.CompanyActivityStatus)
 );
 
 
