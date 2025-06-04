@@ -359,17 +359,29 @@ class companyController {
 
           let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
           let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
-
-          // if(Object.keys(searchKeyValue).length == 0) return res.status(400).json({ errors: "Improper search key value" }); 
-        //   searchQueryNoCon(this.tableName1,  ['COUNT(1) AS count'], orderby, ordertype,1000, 0);
+;
           let companyList = await sqlQuery.searchQueryNoCon(this.tableName1,  ['company_id AS id','company_name AS name','allowed_ips','company_api_key AS API_key','encrypted_secret','bcrypt_hash','active AS status','account_username AS belongs_to','account_userid AS belongs_to_id ','created_at','created_by','last_modified_by','last_modified_on' ], orderby, ordertype, limit, offset)
           // check date for start and end 
+          
           if (!companyList || companyList.length == 0) {
               return res.status(200).send({ data: [], totalRecords: intTotlaRecords, pageCount: intPageCount });
           }else {
+            const enrichedCompanyList = await Promise.all(
+                companyList.map(async (company) => {
+                    try {
+                        const reqClone = { ...req, body: { ...req.body, user_detials: { username: company.belongs_to } } };
+                        const status = await this.getCompanyActivityStatus(reqClone);
+                        return { ...company, statusDetails: status };
+                    } catch (err) {
+                        console.error(`Error for company ${company.name}:`, err.message);
+                        return { ...company, statusDetails: null };
+                    }
+                })
+            );
+        // console.log("enrichedCompanyList", enrichedCompanyList);
           // send response
             res.status(200).send({
-                  reportList: companyList,
+                  reportList: enrichedCompanyList,
                   totalRepords: intTotlaRecords,
                   pageCount: intPageCount,
                   currentPage: Number(req.query.pageNumber),
@@ -642,56 +654,8 @@ class companyController {
        
     CompanyActivityStatus = async (req,res) => {
             try{
-                // validate body and query 
-                    const errors = validationResult(req);
-                    if (!errors.isEmpty()) {
-                        return res.status(400).json({ errors: errors.array() });
-                    }
-                    const searchUser = { username: req.body.username };
-                    const userKeys = ['username', 'userid','full_name', 'mobile', 'user_uuid', 'usertype_id', 'region_id', 'user_status', 'active',];
-                    const userOrderBy = 'username';
-                    const userAccount = await sqlQuery.searchOrQuery(this.tableName2, searchUser, userKeys, userOrderBy, 'ASC', 1, 0);
-                    const user_detials = userAccount[0];
-                    if (!userAccount || userAccount.length !== 1) {
-                        return res.status(400).json({ errors: [{ msg: "Invalid or missing user account" }] });
-                    }
-                    if (user_detials.active !== 1) {
-                        return res.status(400).json({ errors: [{ msg: "User account is in-active, Call AFP admin " }] });
-                    }
-
-                    // console.log('dashboard/agentDashboardStatus',JSON.stringify(req.body), JSON.stringify(req.query))
-                    let avaliableBalance, totalTransactions, totalCommission, downlineMember, todayTopup, todayCommission
-    
-                // available balance
-                    const listAvaliableBalance = await sqlQueryReplica.searchQuery(this._tableName2, {userid : user_detials.userid}, ['ex_wallet','comm_wallet'], 'userid', 'ASC', 1, 0)
-                    if (listAvaliableBalance.length == 0) {
-                        avaliableBalance = 0
-                        totalCommission = 0
-                    }
-                    else {
-                        avaliableBalance = listAvaliableBalance[0].ex_wallet ? listAvaliableBalance[0].ex_wallet : 0
-                        totalCommission = listAvaliableBalance[0].comm_wallet ? listAvaliableBalance[0].comm_wallet : 0
-                    }
-    
-                // total transactions
-                    const listTotalTransaction = await sqlQueryReplica.searchQuery(this._tableName4, {userid : user_detials.userid}, ['COUNT(userid)'], 'userid', 'ASC', 1, 0)
-                    if(listTotalTransaction.length == 0) totalTransactions = 0
-                    else totalTransactions = listTotalTransaction[0]["COUNT(userid)"] ? listTotalTransaction[0]["COUNT(userid)"] : 0
-    
-    
-                // today top up
-                    let todayDate = this.currentDateToString()
-                    const listTodayTopup = await sqlQueryReplica.searchQuery(this._tableName4,{ status : 2, created_on : todayDate }, ['SUM(amount) AS totalAmount'], 'userid', 'ASC', 1, 0)
-                    if(listTodayTopup.length == 0) todayTopup = 0
-                    else todayTopup = listTodayTopup[0]["totalAmount"] ? listTodayTopup[0]["totalAmount"] : 0
-    
-                // today commission
-                    const listTodayCommission = await sqlQueryReplica.searchQuery(this._tableName5, { userid : user_detials.userid, created_on : todayDate}, ['SUM(commission_amount) AS totalCommission'], 'userid', 'ASC', 1,0)
-                    // console.log(listTodayCommission)
-                    if(listTodayCommission.length == 0) todayCommission = 0
-                    else todayCommission = listTodayCommission[0].totalCommission ? listTodayCommission[0].totalCommission : 0
-    
-                res.status(200).send({avaliableBalance, totalTransactions,   todayTopup })
+                const companyActivityStatus = await this.getCompanyActivityStatus(req);
+                res.status(200).send(companyActivityStatus);
     
             }catch(error){
                 console.log(error);
@@ -699,20 +663,68 @@ class companyController {
             }
         }
     
-        currentDateToString() {
-            var varDate = new Date();
-            varDate.setHours(varDate.getHours() + 4, varDate.getMinutes() + 30);
-            // var isodate = varDate.toISOString();
+    currentDateToString() {
+        var varDate = new Date();
+        varDate.setHours(varDate.getHours() + 4, varDate.getMinutes() + 30);
+        // var isodate = varDate.toISOString();
 
-            let date = varDate
-            var mm = date.getMonth() + 1; // getMonth() is zero-based
-            var dd = date.getDate();
-        
-            return [date.getFullYear(),
-                    (mm>9 ? '' : '0') + mm,
-                    (dd>9 ? '' : '0') + dd
-                ].join('-');
+        let date = varDate
+        var mm = date.getMonth() + 1; // getMonth() is zero-based
+        var dd = date.getDate();
+    
+        return [date.getFullYear(),
+                (mm>9 ? '' : '0') + mm,
+                (dd>9 ? '' : '0') + dd
+            ].join('-');
+    };
+
+    getCompanyActivityStatus = async (req) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new Error("Validation error");
+        }
+
+        const searchUser = {
+            username: req.body.username || req.body.user_detials.username
         };
+
+        const userKeys = ['username', 'userid','full_name', 'mobile', 'user_uuid', 'usertype_id', 'region_id', 'user_status', 'active'];
+        const userOrderBy = 'username';
+
+        const userAccount = await sqlQuery.searchOrQuery(this.tableName2, searchUser, userKeys, userOrderBy, 'ASC', 1, 0);
+        const user_detials = userAccount[0];
+
+        if (!userAccount || userAccount.length !== 1) {
+            throw new Error("Invalid or missing user account");
+        }
+
+        if (user_detials.active !== 1) {
+            throw new Error("User account is in-active, Call AFP admin");
+        }
+
+        let avaliableBalance = 0, totalTransactions = 0, todayTopup = 0, todayCommission = 0;
+        const todayDate = this.currentDateToString();
+
+        const listAvaliableBalance = await sqlQueryReplica.searchQuery(this._tableName2, { userid: user_detials.userid }, ['ex_wallet', 'comm_wallet'], 'userid', 'ASC', 1, 0);
+        if (listAvaliableBalance.length) {
+            avaliableBalance = listAvaliableBalance[0].ex_wallet || 0;
+            todayCommission = listAvaliableBalance[0].comm_wallet || 0;
+        }
+
+        const listTotalTransaction = await sqlQueryReplica.searchQuery(this._tableName4, { userid: user_detials.userid }, ['COUNT(userid)'], 'userid', 'ASC', 1, 0);
+        totalTransactions = listTotalTransaction?.[0]?.["COUNT(userid)"] || 0;
+
+        const listTodayTopup = await sqlQueryReplica.searchQuery(this._tableName4, { status: 2, created_on: todayDate }, ['SUM(amount) AS totalAmount'], 'userid', 'ASC', 1, 0);
+        todayTopup = listTodayTopup?.[0]?.totalAmount || 0;
+
+        return { avaliableBalance, totalTransactions, todayTopup };
+
+    } catch (error) {
+        throw error;
+    }
+}
+
 
 }
 
