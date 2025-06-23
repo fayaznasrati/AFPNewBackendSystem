@@ -75,8 +75,8 @@ class rollbackController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('rollback/rollbackTransaction',JSON.stringify(req.body), JSON.stringify(req.query))
-                if ( ! req.query.pageNumber ) req.query.pageNumber = 0
+                console.log('rollback/rollbackTransaction',JSON.stringify(req.body), JSON.stringify(req.query))
+                if ( ! req.query.page ) req.query.page = 0
 
             // limit offset
                 // let offset = req.query.start
@@ -84,14 +84,15 @@ class rollbackController {
 
             // search param
                 let searchKeyValue = {
-                    rollback_status : 1,
-                    // region_ids : req.body.user_detials.region_list.join(',')
+                    // rollback_status : 2,
+                    region_ids : req.body.user_detials.region_list.join(',')
                 }
 
                 if(req.body.user_detials.region_list.length != 7){
                     searchKeyValue.region_ids = req.body.user_detials.region_list.join(',')
                 }
 
+                if ( req.query.status ) searchKeyValue.rollback_status = req.query.status
                 if ( req.query.userid ) searchKeyValue.userid = req.query.userid
                 if ( req.query.name ) searchKeyValue.userName = req.query.name
                 if ( req.query.mobile ) searchKeyValue.mobile_number = req.query.mobile
@@ -119,8 +120,8 @@ class rollbackController {
                 let intTotlaRecords = Number(lisTotalRecords[0].count)
                 let intPageCount = ( intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0 ) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
 
-                let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
-                let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
+                let offset = req.query.page > 0 ? Number(req.query.page - 1) * Number(process.env.PER_PAGE_COUNT) : 0
+                let limit = req.query.page > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
 
 
             // get report from model
@@ -129,14 +130,14 @@ class rollbackController {
                 
             // send responce to front end_date
                 // res.status(200).send(rollbackList)
-                if( req.query.pageNumber == 0 ) {
+                if( req.query.page == 0 ) {
                     res.status(200).send(rollbackList)
                 }else{
                     res.status(200).send({
                         reportList : rollbackList,
                         totalRepords : intTotlaRecords,
                         pageCount : intPageCount,
-                        currentPage : Number(req.query.pageNumber),
+                        currentPage : Number(req.query.page),
                         pageLimit : Number(process.env.PER_PAGE_COUNT),
                         totalRechargeAmount : lisTotalRecords[0].totalRechargeAmount || 0,
                         totalDeductedAmt : lisTotalRecords[0].totalDeductedAmt || 0
@@ -362,7 +363,7 @@ class rollbackController {
                     return res.status(400).json({ errors: errors.array() });
                 }
                 // console.log('rollback/pendingRollback',JSON.stringify(req.body), JSON.stringify(req.query))
-                if ( ! req.query.pageNumber ) req.query.pageNumber = 0
+                if ( ! req.query.page ) req.query.page = 0
 
             // search param
                 let searchKeyValue = {
@@ -386,7 +387,7 @@ class rollbackController {
                 if(req.query.status){
                     searchKeyValue.status = req.query.status
                 }else{
-                    searchKeyValue.status = ' 1,2,3,4 '
+                    searchKeyValue.status = ' 1 '
                 }
 
                 // check date for start and end 
@@ -404,8 +405,8 @@ class rollbackController {
                 let intTotlaRecords = Number(lisTotalRecords[0].count)
                 let intPageCount = ( intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0 ) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
 
-                let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
-                let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
+                let offset = req.query.page > 0 ? Number(req.query.page - 1) * Number(process.env.PER_PAGE_COUNT) : 0
+                let limit = req.query.page > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
 
             // if search param is proper
                 if(Object.keys(searchKeyValue).length == 0) return res.status(400).json({ errors: [ {msg : 'Improper search param'}] }); 
@@ -423,14 +424,14 @@ class rollbackController {
                 // })
                 
                 // res.status(200).send(rollbackList)
-                if( req.query.pageNumber == 0 ) {
+                if( req.query.page == 0 ) {
                     res.status(200).send(rollbackList)
                 }else{
                     res.status(200).send({
                         reportList : rollbackList,
                         totalRepords : intTotlaRecords,
                         pageCount : intPageCount,
-                        currentPage : Number(req.query.pageNumber),
+                        currentPage : Number(req.query.page),
                         pageLimit : Number(process.env.PER_PAGE_COUNT),
                         totalRechargeAmt : lisTotalRecords[0].totalRechargeAmt || 0,
                         totalDeductedAmt : lisTotalRecords[0].totalDeductedAmt || 0,
@@ -1602,10 +1603,10 @@ class rollbackController {
             },['status','rollback_status'],'id','ASC', 1, 0)
 
             if(searchReport.length == 0) return res.status(400).json({ errors: [ {msg : 'Rollback Request not found'}] })
-            if(searchReport[0].status != 2) return res.status(400).json({ errors: [ {msg : 'Recharge is not success, not allowed to rollback it'}] })
-            if(searchReport[0].rollback_status == 1 || searchReport[0].rollback_status == 2) return res.send({ message: "Already is under process" });
-            if(searchReport[0].rollback_status == 3 ) return res.send({ message: "Rollback request already accepted" });
-            if(searchReport[0].rollback_status == 4 ) return res.status(400).json({ errors: [ {msg : 'Rollback request already rejected'}] }) //res.send({ message: "Rollback request rejected" });
+            if(searchReport[0].status != 2) return res.status(400).json({ errors: [ {msg : `This [ ${req.body.transactionId} ] Recharge is not success yet, not allowed to rollback it`}] })
+            if(searchReport[0].rollback_status == 1 || searchReport[0].rollback_status == 2) return res.send({ message: `This [ ${req.body.transactionId} ] Roolback Transaction is Already is under process` });
+            if(searchReport[0].rollback_status == 3 ) return res.send({ message: `This [ ${req.body.transactionId} ] Rollback request is already accepted` });
+            if(searchReport[0].rollback_status == 4 ) return res.status(400).json({ errors: [ {msg : `This [ ${req.body.transactionId} ] Rollback request is already rejected`}] }) //res.send({ message: "Rollback request rejected" });
 
             // update rechange request
                 let searchKeyValue = {
@@ -1636,7 +1637,7 @@ class rollbackController {
     // admin, sub admin and agent add rollback report
     addRollback = async (req, res) =>{
         try{
-            // console.log('addRollback',req.body)
+            console.log('addRollback',req.body)
             // check body and query
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
@@ -1652,10 +1653,10 @@ class rollbackController {
             },['status','rollback_status'],'id','ASC', 1, 0)
 
             if(searchReport.length == 0) return res.status(400).json({ errors: [ {msg : 'Rollback Request not found'}] })
-            if(searchReport[0].status != 2) return res.status(400).json({ errors: [ {msg : 'Recharge is not success, not allowed to rollback it'}] })
-            if(searchReport[0].rollback_status == 1 || searchReport[0].rollback_status == 2) return res.send({ message: "Already is under process" });
-            if(searchReport[0].rollback_status == 3 ) return res.send({ message: "Rollback request already accepted" });
-            if(searchReport[0].rollback_status == 4 ) return res.status(400).json({ errors: [ {msg : 'Rollback request already rejected'}] }) //res.send({ message: "Rollback request rejected" });
+            if(searchReport[0].status != 2) return res.status(400).json({ errors: [ {msg : `This [ ${req.body.transactionId} ] Recharge is not success yet, not allowed to rollback it`}] })
+            if(searchReport[0].rollback_status == 1 || searchReport[0].rollback_status == 2) return res.send({ message: `This [ ${req.body.transactionId} ] Roolback Transaction is Already is under process` });
+            if(searchReport[0].rollback_status == 3 ) return res.send({ message: `This [ ${req.body.transactionId} ] Rollback request already accepted` });
+            if(searchReport[0].rollback_status == 4 ) return res.status(400).json({ errors: [ {msg : `This [ ${req.body.transactionId} ] Rollback request is already rejected`}] }) //res.send({ message: "Rollback request rejected" });
 
         // update rechange request
             let searchKeyValue = {

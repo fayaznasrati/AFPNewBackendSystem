@@ -657,7 +657,7 @@ class rechargeController {
                     redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
                     return ({ status: 400, message: 'Channel limit not found' })
                 }
-                // console.log(channelLimit)
+                console.log(channelLimit)
                 if (channelLimit[0].status != 1) {
                     var lisresponce = await sqlQuery.specialCMD('rollback')
                     var searchKeyValue = {

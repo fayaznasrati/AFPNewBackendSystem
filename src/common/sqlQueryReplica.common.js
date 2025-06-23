@@ -99,7 +99,21 @@ class sqlQueryCommon {
         }
 
     }
+    //sql search query with where ID parameter
+    searchQueryById = async(tableName, searchKeyValue, key) => {
+        try {
+            const { seColumnSet, sevalues } = multipleAndColumnSet(searchKeyValue)
+            // console.log(boolConsole)
+            const sql = `SELECT ${key.join(",")} FROM ${tableName} WHERE ${seColumnSet} `;
+            if (boolConsole) console.log(sql, seColumnSet, sevalues)
+            const result = await dbConnection.query(sql, [...sevalues]);
+            return result
+        } catch (error) {
+            console.log(error);
+            throw new HttpException(error.status, error.message);
+        }
 
+    }
 
     // search query without any where parameter
     searchQueryNoCon = async(tableName, key, orderby, ordertype, limit, offset) => {

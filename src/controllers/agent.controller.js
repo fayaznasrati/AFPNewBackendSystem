@@ -1296,11 +1296,12 @@ class agentController {
                 throw new HttpException(500, 'Something went wrong');
             }
 
-            // add the data using the function created
+            // add the data using the Channels function created
             var strRe1 = await createStock(lisResponse1[0].userid, req.body.user_uuid, "Web", req.body.webStatus, req.body.webThreshold, this.tableName6)
             var strRe2 = await createStock(lisResponse1[0].userid, req.body.user_uuid, "Mobile", req.body.mobileStatus, req.body.MobileThreshold, this.tableName6)
             var strRe3 = await createStock(lisResponse1[0].userid, req.body.user_uuid, "USSD", req.body.ussdStatus, req.body.ussdThreshold, this.tableName6)
             var strRe4 = await createStock(lisResponse1[0].userid, req.body.user_uuid, "sms", req.body.smsStatus, req.body.smsThreshold, this.tableName6)
+            var strRe4 = await createStock(lisResponse1[0].userid, req.body.user_uuid, "Company", req.body.CompanyStatus, req.body.CompanyThreshold, this.tableName6)
 
             //commit the transaction
             const objResponse2 = await sqlQuery.specialCMD("commit")
@@ -1353,7 +1354,7 @@ class agentController {
                 return res.status(400).json({ errors: [ {msg : 'user not found'}] });
             }
 
-            let lisStockTransferChannel = ['Mobile','SMS','USSD','Web']
+            let lisStockTransferChannel = ['Mobile','SMS','USSD','Web', "Company"]
 
             //variable for sql query to get stock transfer by user id
             var searchKeyValue = {

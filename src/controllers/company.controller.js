@@ -24,6 +24,7 @@ class companyController {
     _tableName3 = 'er_wallet_transaction'
     _tableName4 = 'er_recharge'
     _tableName5 = 'er_commission_amount'
+      tableName6 = 'er_agent_type' // agent type
 
     //################---create company---################
     createCompany = async (req, res, next) => {
@@ -51,7 +52,7 @@ class companyController {
                 return res.status(400).json({ errors: [{ msg: "Missing or invalid username in query" }] });
             }
 
-            // ❗ Check for duplicate IPs in input
+            // ❗ Check for duplicate IPs in input 
             const uniqueIps = new Set(allowed_ips);
             if (uniqueIps.size !== allowed_ips.length) {
                 return res.status(400).json({ errors: [{ msg: "Duplicate IPs detected in allowed_ips" }] });
@@ -331,6 +332,74 @@ class companyController {
             return res.status(500).json({ errors: [{ msg: message }] });
         }
     };
+    
+    getCompanyById = async(req, res, next) => {
+
+           try {
+
+            // check body and query
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+            console.log('company/getCompanyById', JSON.stringify(req.body), JSON.stringify(req.query))
+
+            //test 
+            var key = ['company_id AS id','company_name AS name','allowed_ips','company_api_key AS API_key','encrypted_secret','active AS status','account_username AS belongs_to','account_userid AS belongs_to_id ','created_at','created_by','last_modified_by','last_modified_on' ]
+                 if(req.params.id){
+                var searchKeyValue = {
+                    company_id: req.params.id,
+                }
+                }
+            // fire sql query to get str user_uuid, str full_name
+            const theCompany = await sqlQueryReplica.searchQueryById(this.tableName1, searchKeyValue, key)
+                const  {belongs_to,belongs_to_id, ...data} = theCompany[0];
+                console.log("company", data);
+
+    
+        const searchUser = {
+            username: belongs_to // Use the company account username to fetch user details
+        };
+
+        const userKeys = ['username', 'userid','full_name', 'mobile',  'usertype_id', 'region_id', 'user_status', 'active'];
+        const userOrderBy = 'username';
+
+        const userAccount = await sqlQueryReplica.searchOrQuery(this.tableName2, searchUser, userKeys, userOrderBy, 'ASC', 1, 0);
+        const user_detials = userAccount[0];
+
+        if (!userAccount || userAccount.length !== 1) {
+            throw new Error("Invalid or missing user account");
+        }
+
+        if (user_detials.active !== 1) {
+            throw new Error("User account is in-active, Call AFP admin");
+        }
+
+        let avaliableBalance = 0, totalTransactions = 0, todayTopup = 0, todayCommission = 0;
+        const todayDate = this.currentDateToString();
+
+        const listAvaliableBalance = await sqlQueryReplica.searchQuery(this._tableName2, { userid: user_detials.userid }, ['ex_wallet', 'comm_wallet'], 'userid', 'ASC', 1, 0);
+        if (listAvaliableBalance.length) {
+            avaliableBalance = listAvaliableBalance[0].ex_wallet || 0;
+            todayCommission = listAvaliableBalance[0].comm_wallet || 0;
+        }
+
+        const listTotalTransaction = await sqlQueryReplica.searchQuery(this._tableName4, { userid: user_detials.userid }, ['COUNT(userid)'], 'userid', 'ASC', 1, 0);
+        totalTransactions = listTotalTransaction?.[0]?.["COUNT(userid)"] || 0;
+
+        const listTodayTopup = await sqlQueryReplica.searchQuery(this._tableName4, { status: 2, created_on: todayDate }, ['SUM(amount) AS totalAmount'], 'userid', 'ASC', 1, 0);
+        todayTopup = listTodayTopup?.[0]?.totalAmount || 0;
+
+           const CompanyTransactionsActitiy =  { avaliableBalance, totalTransactions, todayTopup };
+           const result =  { ...data, statusDetails: CompanyTransactionsActitiy, ownerDetatils: user_detials }                
+            res.status(200).send({
+                reportList : result,
+            })
+    } catch (error) {
+        throw error;
+    }
+    
+    }
 
     //################---fetch companies---################
     getCompanies = async (req, res) => {
@@ -343,24 +412,18 @@ class companyController {
           console.log('companies',JSON.stringify(req.body), JSON.stringify(req.query))
           if (!req.query.pageNumber) req.query.pageNumber = 0
 
-
-          // search parem
-          let searchKeyValue = {
-              Active: 1
-
-          } 
-               var orderby = "company_name"
-                var ordertype = "ASC"
-
-          let lisTotalRecords = await sqlQuery.searchQueryNoLimitTimeout(this.tableName1, searchKeyValue, ['COUNT(1) AS count'], orderby, ordertype);
-
-          let intTotlaRecords = Number(lisTotalRecords[0].count)
+               var orderby = "company_id"
+                var ordertype = "DESC"
+                
+                var key = ['company_id','company_name ','allowed_ips','company_api_key','bcrypt_hash','active','account_username','account_userid ','created_at','created_by','last_modified_by','last_modified_on' ]
+            let lisTotalRecords = await sqlQuery.selectStar(this.tableName1,key);
+          let intTotlaRecords = Number(lisTotalRecords.length)
           let intPageCount = (intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
 
           let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
           let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
 ;
-          let companyList = await sqlQuery.searchQueryNoCon(this.tableName1,  ['company_id AS id','company_name AS name','allowed_ips','company_api_key AS API_key','encrypted_secret','bcrypt_hash','active AS status','account_username AS belongs_to','account_userid AS belongs_to_id ','created_at','created_by','last_modified_by','last_modified_on' ], orderby, ordertype, limit, offset)
+          let companyList = await sqlQuery.searchQueryNoCon(this.tableName1,  ['company_id AS id','company_name AS name','allowed_ips','company_api_key AS API_key','bcrypt_hash','active AS status','account_username AS belongs_to','account_userid AS belongs_to_id ','created_at','created_by','last_modified_by','last_modified_on' ], orderby, ordertype, limit, offset)
           // check date for start and end 
           
           if (!companyList || companyList.length == 0) {
@@ -370,7 +433,7 @@ class companyController {
                 companyList.map(async (company) => {
                     try {
                         const reqClone = { ...req, body: { ...req.body, user_detials: { username: company.belongs_to } } };
-                        const status = await this.getCompanyActivityStatus(reqClone);
+                        const status = await this.getCompanyActivity(reqClone);
                         return { ...company, statusDetails: status };
                     } catch (err) {
                         console.error(`Error for company ${company.name}:`, err.message);
@@ -421,7 +484,9 @@ class companyController {
         }
 
         const companyName = existingCompany[0].company_name;
-        const API_key = existingCompany[0].company_api_key;
+        // const API_key = existingCompany[0].company_api_key;
+        const API_key = process.env.COMPANY_API_SECRET_KEY; // Use env variable or existing key
+
 
         // 1. Generate shared secret key
         const secretKey = crypto.randomBytes(32).toString('hex'); // 256-bit secret
@@ -455,8 +520,6 @@ class companyController {
         await this.logApiKeyGeneration({
         companyId,
         companyName,
-        secretKey,
-        bcryptHash,
         encryptedSecret,
         generatedBy: userid,
         note: 'New API key and secret created for company'
@@ -465,7 +528,7 @@ class companyController {
         // 7. Send download response
         const downloadData = {
         company_name: companyName,
-        secret: encryptedSecret,
+        secret: secretKey,
         note: "Store this secret securely; it cannot be retrieved again from our side."
         };
 
@@ -500,8 +563,6 @@ class companyController {
     logApiKeyGeneration = async ({
         companyId,
         companyName,
-        rawSecret,
-        bcryptHash,
         encryptedSecret,
         generatedBy,
         note = 'New Secret Key generated'
@@ -509,9 +570,7 @@ class companyController {
         const logData = {
             company_id: companyId,
             company_name: companyName,
-            raw_secret: bcryptHash,
-            bcrypt_hash: bcryptHash,
-            encrypted_secret: encryptedSecret,
+            encrypted_secret: "**********************", // Masked for security
             generated_by: generatedBy,
             generated_at: new Date(),
             note
@@ -531,6 +590,8 @@ class companyController {
 
     //################---Single recharge for company---################
     CompanySinglerecharge = async (req, res, next) => {
+            const apiKey = req.header('X-Api-Key');
+
             try {
             // check body and query
             const errors = validationResult(req);
@@ -538,8 +599,34 @@ class companyController {
                 return res.status(400).json({ errors: errors.array() });
             }
             console.log('recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
+
+            //test 
+
+                const companies = await sqlQuery.searchOrQuery(
+                  tableName1,
+                  { company_api_key: apiKey },
+                  [
+                    'company_name',
+                    'company_uuid',
+                    'allowed_ips',
+                    'company_api_key',
+                    'encrypted_secret',
+                    'bcrypt_hash',
+                    'active',
+                    'account_username',
+                    'account_userid'
+                  ],
+                  'company_name',
+                  'ASC',
+                  1,
+                  0
+                );
+                const company = companies[0];
+                console.log("company", company);
+
+                //end test
             // 🔍 Fetch user account
-                const searchUser = { username: req.body.username };
+                const searchUser = { username: company.account_username }; 
                 const userKeys = ['username', 'userid','full_name', 'mobile', 'user_uuid', 'usertype_id', 'region_id', 'user_status', 'active',];
                 const userOrderBy = 'username';
                 const userAccount = await sqlQuery.searchOrQuery(this.tableName2, searchUser, userKeys, userOrderBy, 'ASC', 1, 0);
@@ -605,7 +692,8 @@ class companyController {
                 user_uuid: the_user_uuid,
                 user_mobile:user_detials.mobile,
                 userType: user_detials.usertype_id,
-                channelType: ['Mobile', 'SMS', 'USSD', 'Web','Company'].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
+                // channelType: ['Mobile', 'SMS', 'USSD', 'Web','Company'].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
+                channelType:'Company',
                 group_topup_id: 0,
                 full_name: user_detials.full_name,
                 username: user_detials.username,
@@ -616,7 +704,8 @@ class companyController {
                 userImeiNumber: req.body.userImeiNumber ? req.body.userImeiNumber : 0, //str
                 userGcmId: req.body.userGcmId ? req.body.userGcmId : 0, //str
                 userAppVersion: req.body.userAppVersion ? req.body.userAppVersion : null, //str
-                userApplicationType: req.body.userApplicationType == "Web" ? 1 : req.body.userApplicationType == "Company" ? 10 : req.body.userApplicationType == 'Mobile' ? 2 : 0,
+                // userApplicationType: req.body.userApplicationType == "Web" ? 1 : req.body.userApplicationType == "Company" ? 10 : req.body.userApplicationType == 'Mobile' ? 2 : 0,
+                userApplicationType: 10, // Company
             }
             let responce
             let stockTransferStatus = await this.#checkStockTransferStatus()
@@ -680,12 +769,90 @@ class companyController {
 
     getCompanyActivityStatus = async (req) => {
     try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            throw new Error("Validation error");
+         const apiKey = req.header('X-Api-Key');
+           
+            // check body and query
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+            console.log('recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
+
+            //test 
+
+                const companies = await sqlQuery.searchOrQuery(
+                  tableName1,
+                  { company_api_key: apiKey },
+                  [
+                    'company_name',
+                    'company_uuid',
+                    'allowed_ips',
+                    'company_api_key',
+                    'active',
+                    'account_username',
+                    'account_userid'
+                  ],
+                  'company_name',
+                  'ASC',
+                  1,
+                  0
+                );
+                const company = companies[0];
+                console.log("company", company);
+
+    
+        const searchUser = {
+            username: company.account_username // Use the company account username to fetch user details
+        };
+
+        const userKeys = ['username', 'userid','full_name', 'mobile', 'user_uuid', 'usertype_id', 'region_id', 'user_status', 'active'];
+        const userOrderBy = 'username';
+
+        const userAccount = await sqlQuery.searchOrQuery(this.tableName2, searchUser, userKeys, userOrderBy, 'ASC', 1, 0);
+        const user_detials = userAccount[0];
+
+        if (!userAccount || userAccount.length !== 1) {
+            throw new Error("Invalid or missing user account");
         }
 
-        const searchUser = {
+        if (user_detials.active !== 1) {
+            throw new Error("User account is in-active, Call AFP admin");
+        }
+
+        let avaliableBalance = 0, totalTransactions = 0, todayTopup = 0, todayCommission = 0;
+        const todayDate = this.currentDateToString();
+
+        const listAvaliableBalance = await sqlQueryReplica.searchQuery(this._tableName2, { userid: user_detials.userid }, ['ex_wallet', 'comm_wallet'], 'userid', 'ASC', 1, 0);
+        if (listAvaliableBalance.length) {
+            avaliableBalance = listAvaliableBalance[0].ex_wallet || 0;
+            todayCommission = listAvaliableBalance[0].comm_wallet || 0;
+        }
+
+        const listTotalTransaction = await sqlQueryReplica.searchQuery(this._tableName4, { userid: user_detials.userid }, ['COUNT(userid)'], 'userid', 'ASC', 1, 0);
+        totalTransactions = listTotalTransaction?.[0]?.["COUNT(userid)"] || 0;
+
+        const listTodayTopup = await sqlQueryReplica.searchQuery(this._tableName4, { status: 2, created_on: todayDate }, ['SUM(amount) AS totalAmount'], 'userid', 'ASC', 1, 0);
+        todayTopup = listTodayTopup?.[0]?.totalAmount || 0;
+
+        return { avaliableBalance, totalTransactions, todayTopup };
+
+    } catch (error) {
+        throw error;
+    }
+    }
+
+
+     getCompanyActivity = async (req) => {
+    try {          
+            // check body and query
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+            console.log('recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
+
+    
+         const searchUser = {
             username: req.body.username || req.body.user_detials.username
         };
 
@@ -723,9 +890,47 @@ class companyController {
     } catch (error) {
         throw error;
     }
-}
+    }
 
 
+
+    getAgentsName = async(req, res, next) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+            console.log('login/getParentName',JSON.stringify(req.body), JSON.stringify(req.query), JSON.stringify(req.params))
+            var offset = 0
+            var limit = 10
+
+            var searchKeyValue = {
+                active: 1,
+            }
+            var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid", "username", "full_name",]
+            var orderby = "usertype_id"
+            var ordertype = "DESC"
+             if(req.query.agent){
+                var searchKeyValue = {
+                    username: req.query.agent,
+                    active: 1,
+                }
+                }
+            // fire sql query to get str user_uuid, str full_name
+            const lisResponce1 = await sqlQueryReplica.searchQuery(this.tableName2, searchKeyValue, key, orderby, ordertype, limit, offset)
+
+            console.log("lisResponce1", lisResponce1);
+                   
+            res.status(200).send({
+                reportList : lisResponce1,
+            })
+            
+
+        } catch (error) {
+            console.log(error);
+            return res.status(400).json({ errors: [ {msg : error.message}] });
+        }
+    }
 }
 
 

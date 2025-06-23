@@ -1,4 +1,4 @@
-// middlewares/validateCompanyAuth.js
+// middlewares/validateCompanyAuthCheckBalance.js
 const crypto = require('crypto');
 const sqlQuery = require('../common/sqlQuery.common');
 const sqlQueryReplica = require('../common/sqlQueryReplica.common');
@@ -7,21 +7,10 @@ const { decryptSecret } = require('../utils/encryption.utils');
 const tableName = 'er_company';
 
 
-const validateCompanyAuth = async (req, res, next) => {
+const validateCompanyAuthCheckBalance = async (req, res, next) => {
   try {
     const apiKey = req.header('X-Api-Key');
-    const signature = req.header('X-Signature');
-    const timestamp = parseInt(req.header('X-Timestamp'), 10);
-
-    if (!apiKey || !signature || !timestamp) {
-      return res.status(401).json({ error: 'Missing auth headers' });
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-    if (Math.abs(now - timestamp) > 3000) {
-      return res.status(401).json({ error: 'Timestamp expired or invalid' });
-    }
-
+   
     // Extract client IP
     const forwarded = req.headers['x-forwarded-for'];
     const ipList = forwarded ? forwarded.split(',') : [];
@@ -30,7 +19,7 @@ const validateCompanyAuth = async (req, res, next) => {
     const normalizedIp = clientIp.replace('::ffff:', '');
 
     // Get company by API key
-    const companies = await sqlQuery.searchOrQuery(
+    const companies = await sqlQueryReplica.searchOrQuery(
       tableName,
       { company_api_key: apiKey },
       [
@@ -64,31 +53,12 @@ const validateCompanyAuth = async (req, res, next) => {
     }
 
 
-
-  if (!company.encrypted_secret) {
-  return res.status(400).json({ error: 'Company secret is missing or invalid' });
-  }
-
-
-    // Decrypt secret
-    // const decryptedSecret = decryptSecret(company.encrypted_secret, company.company_api_key);
-    const decryptedSecret = company.encrypted_secret;
-    
-
-    // Validate HMAC
-    const message = timestamp + JSON.stringify(req.body);
-    const computedSignature = crypto.createHmac('sha256', decryptedSecret).update(message).digest('hex');
-
-    if (computedSignature !== signature) {
-      return res.status(403).json({ error: 'Invalid HMAC signature' });
-    }
-
-    req.company = company;
+   req.company = company;
     next();
   } catch (err) {
-    console.error('validateCompanyAuth error:', err);
+    console.error('validateCompanyAuthCheckBalance error:', err);
     res.status(400).json({ error: 'Auth middleware failed: ' + err.message });
   }
 };
 
-module.exports = validateCompanyAuth;
+module.exports = validateCompanyAuthCheckBalance;
