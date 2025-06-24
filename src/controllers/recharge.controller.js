@@ -3110,7 +3110,12 @@ class rechargeController {
             // }else{
             //     searchKeyValue.region_ids = req.body.user_detials.region_list.join(',')
             // }
-            if (req.query.userId) searchKeyValue.username = req.query.userId;
+            // if (req.query.userId) searchKeyValue.username = req.query.userId;
+
+                 if (req.query.userId) {
+                const userId = req.query.userId;
+                searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
+              }
             if (req.query.userName) {
                 if (Number(req.query.userName)) {
                     let reqNum = []
@@ -3276,7 +3281,11 @@ class rechargeController {
                     searchKeyValue.parent_id = 1
                 }
             }
-            if (req.query.userId) searchKeyValue.username = req.query.userId;
+            // if (req.query.userId) searchKeyValue.username = req.query.userId;"
+                 if (req.query.userId) {
+                const userId = req.query.userId;
+                searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
+              }
             if (req.query.userName) searchKeyValue.full_name = req.query.userName;
 
             let lisTotalRecords = await sqlQueryReplica.searchQueryNoLimitTimeout(this.tableName2, searchKeyValue, ['COUNT(1) AS count'], 'userid', "ASC")
@@ -3726,7 +3735,11 @@ class rechargeController {
             } else {
                 searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
             }
-            if (req.query.userId) searchKeyValue.username = req.query.userId;
+            // if (req.query.userId) searchKeyValue.username = req.query.userId;
+                 if (req.query.userId) {
+                const userId = req.query.userId;
+                searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
+              }
             if (req.query.userName) searchKeyValue.full_name = req.query.userName;
             if (req.query.agent_type_uuid) {
                 const lisResponce1 = await commonQueryCommon.getAgentTypeId(req.query.agent_type_uuid)

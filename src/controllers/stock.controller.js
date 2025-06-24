@@ -911,7 +911,11 @@ class stockController {
                 if (lisResponce == 0) return res.status(400).json({ errors: [ {msg : 'user type uuid not found'}] });
                 searchKeyValue.usertype_id = lisResponce[0].agent_type_id //int user typeId
             }
-            if (req.query.userId) searchKeyValue.sender_username = req.query.userId //str username
+            // if (req.query.userId) searchKeyValue.sender_username = req.query.userId //str username
+             if (req.query.userid) {
+                const userid = req.query.userid;
+                searchKeyValue.sender_username = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
             if (req.query.name) searchKeyValue.reciever_username = req.query.name //str full name
             if (req.query.start_date) searchKeyValue.start_date = req.query.start_date //dt start date
             if (req.query.end_date) searchKeyValue.end_date = req.query.end_date // dt end date

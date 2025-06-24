@@ -93,7 +93,11 @@ class rollbackController {
                 }
 
                 if ( req.query.status ) searchKeyValue.rollback_status = req.query.status
-                if ( req.query.userid ) searchKeyValue.userid = req.query.userid
+                // if ( req.query.userid ) searchKeyValue.userid = req.query.userid
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                searchKeyValue.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if ( req.query.name ) searchKeyValue.userName = req.query.name
                 if ( req.query.mobile ) searchKeyValue.mobile_number = req.query.mobile
                 if ( req.query.txnNumber ) searchKeyValue.trans_number = req.query.txnNumber
@@ -375,7 +379,11 @@ class rollbackController {
                     searchKeyValue.region_ids = req.body.user_detials.region_list.join(',')
                 }
 
-                if ( req.query.userid ) searchKeyValue.userid = req.query.userid
+                // if ( req.query.userid ) searchKeyValue.userid = req.query.userid
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                searchKeyValue.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if ( req.query.name ) searchKeyValue.userName = req.query.name
                 if ( req.query.mobile ) searchKeyValue.mobile_number = req.query.mobile
                 if ( req.query.operator_uuid ){
@@ -464,7 +472,11 @@ class rollbackController {
                     searchKeyValue.region_ids = req.body.user_detials.region_list.join(',')
                 }
 
-                if ( req.query.userid ) searchKeyValue.userid = req.query.userid
+                // if ( req.query.userid ) searchKeyValue.userid = req.query.userid
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                searchKeyValue.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if ( req.query.name ) searchKeyValue.userName = req.query.name
                 if ( req.query.mobile ) searchKeyValue.mobile_number = req.query.mobile
 
@@ -1242,7 +1254,12 @@ class rollbackController {
                     searchKeyValue.region_ids = req.body.user_detials.region_list.join(',')
                 }
 
-                if ( req.query.userid ) searchKeyValue.userid = req.query.userid
+                // if ( req.query.userid ) searchKeyValue.userid = req.query.userid
+
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                searchKeyValue.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if ( req.query.name ) searchKeyValue.userName = req.query.name
                 if ( req.query.mobile ) searchKeyValue.mobile_number = req.query.mobile
                 if ( req.query.txnNumber ) searchKeyValue.trans_number = req.query.txnNumber
