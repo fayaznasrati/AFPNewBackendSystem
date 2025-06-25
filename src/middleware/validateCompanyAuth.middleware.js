@@ -68,16 +68,12 @@ const validateCompanyAuth = async (req, res, next) => {
   if (!company.encrypted_secret) {
   return res.status(400).json({ error: 'Company secret is missing or invalid' });
   }
-
-
-    // Decrypt secret
-    // const decryptedSecret = decryptSecret(company.encrypted_secret, company.company_api_key);
-    const decryptedSecret = company.encrypted_secret;
+    const secretKey = company.encrypted_secret;
     
 
     // Validate HMAC
-    const message = timestamp + JSON.stringify(req.body);
-    const computedSignature = crypto.createHmac('sha256', decryptedSecret).update(message).digest('hex');
+    const theRequestedTopUp = timestamp + JSON.stringify(req.body);
+    const computedSignature = crypto.createHmac('sha256', secretKey).update(theRequestedTopUp).digest('hex');
 
     if (computedSignature !== signature) {
       return res.status(403).json({ error: 'Invalid HMAC signature' });

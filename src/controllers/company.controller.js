@@ -603,7 +603,7 @@ class companyController {
             //test 
 
                 const companies = await sqlQuery.searchOrQuery(
-                  tableName1,
+                  this.tableName1,
                   { company_api_key: apiKey },
                   [
                     'company_name',
