@@ -719,7 +719,11 @@ class companyController {
             }
 
             // send responce to front end
-            if (responce.status == 200) res.status(responce.status).send({ message: responce.message })
+            if (responce.status == 200) res.status(responce.status)
+                .send({ 
+                    status:  responce.status,
+                    message: responce.message
+             })
             else res.status(responce.status).json({ errors: [{ msg: responce.message }] });
 
         } catch (error) {
