@@ -53,7 +53,7 @@ class rollbackModule {
         const {sevalues,seColumnSet} = await this.queryGen(parma);
 
         const sql = `SELECT /*+ MAX_EXECUTION_TIME(${process.env.SQL_QUERY_TIME_OUT}) */ ${this.tableName1}.username AS userid, ${this.tableName1}.full_name AS agnetName, ${this.tableName1}.mobile AS contactNumber,
-                            ${this.tableName2}.trans_number AS txnNumber, ${this.tableName2}.operator_name AS operatorName, ${this.tableName2}.operator_transid AS operatorTxn, ${this.tableName2}.mobile_number AS rechangeMobile, ${this.tableName2}.amount AS recargeAmt, ${this.tableName2}.deduct_amt AS deductedAmt, CAST(${this.tableName2}.rollback_confirm_on AS CHAR(20)) AS dateTime
+                            ${this.tableName2}.trans_number AS txnNumber, ${this.tableName2}.operator_name AS operatorName, ${this.tableName2}.operator_transid AS operatorTxn, ${this.tableName2}.mobile_number AS rechangeMobile, ${this.tableName2}.amount AS recargeAmt, ${this.tableName2}.deduct_amt AS deductedAmt,${this.tableName2}.rollback_status AS status, CAST(${this.tableName2}.rollback_confirm_on AS CHAR(20)) AS dateTime
                     FROM ${this.tableName1} JOIN ${this.tableName2}
                     ON ${this.tableName1}.userid = ${this.tableName2}.userid
                     WHERE ${seColumnSet} ORDER BY ${this.tableName2}.rollback_confirm_on DESC LIMIT ${limit} OFFSET ${offset}`

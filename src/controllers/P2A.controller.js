@@ -19,7 +19,7 @@ class p2aController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log(req.body)
+            console.log(req.body)
             let { MSISDN, input} = req.body;
 
             if(! input.includes('P2A Request :')) return res.send()

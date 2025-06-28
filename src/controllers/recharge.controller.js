@@ -405,7 +405,7 @@ class rechargeController {
             }
 
             let responce
-
+            console.log('data', data)
             let stockTransferStatus = await this.#checkStockTransferStatus()
             if (stockTransferStatus.length == 0 || stockTransferStatus[0].stock_transfer == 0) {
                 responce = { status: 400, message: 'Recharge is not allowed for a while.' }
@@ -501,9 +501,7 @@ class rechargeController {
         return [finalPermission[channelType]]
     }
 
-    processRecharge =
-
-        async (data) => {
+    processRecharge =  async (data) => {
             try {
 
                 // check operator details
@@ -521,10 +519,10 @@ class rechargeController {
                 for (let i = 0; i < systemDetails.length; i++) {
                     mno_id = systemDetails[i].mno_id
                     // operator_access_uuid = systemDetails[i].operator_access_uuid
-                    // display_name = systemDetails[i].display_name
+                    // display_name = systemDetails[i].display_name 
                     queue_name = systemDetails[i].queue_name
                     status = systemDetails[i].status
-                    minRechargeLimit = systemDetails[i].min_amount
+                    minRechargeLimit = systemDetails[i].min_amount 
                     maxRechargeList = systemDetails[i].max_amount
 
                     if (status == 1) break
@@ -532,7 +530,11 @@ class rechargeController {
 
                 if (status != 1) return ({ status: 400, message: 'Operator in active' })
                 // console.log(Number(minRechargeLimit),Number(data.amount))
-                if (Number(minRechargeLimit) > Number(data.amount)) return ({ status: 400, message: `Please enter amount more then or equal to ${minRechargeLimit}` })
+                if (Number(minRechargeLimit) > Number(data.amount))
+                {
+                    return ({ status: 400, message: `Please enter amount more then or equal to ${minRechargeLimit}` })
+
+                }
                 if (Number(maxRechargeList) > 0 && Number(maxRechargeList) < Number(data.amount)) return ({ status: 400, message: `Please enter amount less then or equal to ${maxRechargeList}` })
 
                 // get recharge count
@@ -647,7 +649,7 @@ class rechargeController {
                 }
 
                 // get the channel access details
-                let channelList = ['Mobile', 'SMS', 'USSD', 'Web']
+                let channelList = ['Mobile', 'SMS', 'USSD', 'Web','Company']
                 let channelType = channelList.includes(data.channelType) ? data.channelType : 'Web'
                 // let channelLimit = await sqlQuery.searchQuery(this.tableName14,{userid : data.userid, channel : channelType},['threshold','status'],'userid','ASC',1,0) 
                 let channelLimit = await this.#getUserChannel(data.user_uuid, channelType)
@@ -655,7 +657,7 @@ class rechargeController {
                     redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
                     return ({ status: 400, message: 'Channel limit not found' })
                 }
-                // console.log(channelLimit)
+                console.log(channelLimit)
                 if (channelLimit[0].status != 1) {
                     var lisresponce = await sqlQuery.specialCMD('rollback')
                     var searchKeyValue = {
@@ -3108,7 +3110,12 @@ class rechargeController {
             // }else{
             //     searchKeyValue.region_ids = req.body.user_detials.region_list.join(',')
             // }
-            if (req.query.userId) searchKeyValue.username = req.query.userId;
+            // if (req.query.userId) searchKeyValue.username = req.query.userId;
+
+                 if (req.query.userId) {
+                const userId = req.query.userId;
+                searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
+              }
             if (req.query.userName) {
                 if (Number(req.query.userName)) {
                     let reqNum = []
@@ -3274,7 +3281,11 @@ class rechargeController {
                     searchKeyValue.parent_id = 1
                 }
             }
-            if (req.query.userId) searchKeyValue.username = req.query.userId;
+            // if (req.query.userId) searchKeyValue.username = req.query.userId;"
+                 if (req.query.userId) {
+                const userId = req.query.userId;
+                searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
+              }
             if (req.query.userName) searchKeyValue.full_name = req.query.userName;
 
             let lisTotalRecords = await sqlQueryReplica.searchQueryNoLimitTimeout(this.tableName2, searchKeyValue, ['COUNT(1) AS count'], 'userid', "ASC")
@@ -3724,7 +3735,11 @@ class rechargeController {
             } else {
                 searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
             }
-            if (req.query.userId) searchKeyValue.username = req.query.userId;
+            // if (req.query.userId) searchKeyValue.username = req.query.userId;
+                 if (req.query.userId) {
+                const userId = req.query.userId;
+                searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
+              }
             if (req.query.userName) searchKeyValue.full_name = req.query.userName;
             if (req.query.agent_type_uuid) {
                 const lisResponce1 = await commonQueryCommon.getAgentTypeId(req.query.agent_type_uuid)

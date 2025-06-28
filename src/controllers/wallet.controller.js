@@ -544,7 +544,11 @@ class walletController {
             param.region_ids = req.body.user_detials.region_list.join(',');
         }
 
-        if (req.query.userid) param.userid = req.query.userid;
+        // if (req.query.userid) param.userid = req.query.userid;
+         if (req.query.userid) {
+                const userid = req.query.userid;
+                param.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
         if (req.query.name) param.userName = req.query.name;
         if (req.query.mobile) param.number = req.query.mobile;
 
@@ -708,7 +712,11 @@ class walletController {
                 }
 
                 // search param related to user
-                if(req.query.userid) param.userid = req.query.userid
+                // if(req.query.userid) param.userid = req.query.userid
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                param.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if(req.query.name) param.userName = req.query.name
                 if(req.query.mobile) param.number = req.query.mobile
                 if(req.query.region_uuid) param.region_uuid = req.query.region_uuid
@@ -808,7 +816,11 @@ class walletController {
                 }
 
                 // optional search paremeters
-                if(req.query.userid) param.userid = req.query.userid
+                // if(req.query.userid) param.userid = req.query.userid
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                param.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if(req.query.name) param.userName = req.query.name
                 if(req.query.mobile) param.number = req.query.mobile
                 if(req.query.region_uuid) param.region_uuid = req.query.region_uuid
@@ -935,7 +947,11 @@ class walletController {
                 }
 
                 // optional search paremeters
-                if(req.query.userid) param.userid = req.query.userid
+                // if(req.query.userid) param.userid = req.query.userid
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                param.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if(req.query.name) param.userName = req.query.name
                 if(req.query.userType_uuid){
                     var intUserTypeId = await commonQueryCommon.getAgentTypeId(req.query.userType_uuid)
@@ -1023,7 +1039,11 @@ class walletController {
                     param.region_ids = req.body.user_detials.region_list.join(',')
                 }
 
-                if(req.query.userid) param.userid = req.query.userid
+                // if(req.query.userid) param.userid = req.query.userid
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                param.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if(req.query.name) param.userName = req.query.name
                 if(req.query.mobile) param.number = req.query.mobile
 
@@ -1516,7 +1536,11 @@ class walletController {
                     param.region_ids = req.body.user_detials.region_list.join(',')
                 }
 
-                if(req.query.userid) param.userid = req.query.userid;
+                // if(req.query.userid) param.userid = req.query.userid;
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                param.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if(req.query.name) param.userName = req.query.name;
                 if(req.query.contactNumber) param.number = req.query.contactNumber;
                 if(req.query.revertedTo) param.reverted_to = req.query.revertedTo;

@@ -440,7 +440,11 @@ class membersController {
                     region_ids : req.body.user_detials.region_list
                 }
                 // optional search param
-                if(req.query.userid) param.username = req.query.userid
+                // if(req.query.userid) param.username = req.query.userid
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                param.username = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if(req.query.name) param.full_name = req.query.name
                 if(req.query.agent_type_uuid){
                     const lisAgentTypeId = await commonQueryCommon.getAgentTypeId(req.query.agent_type_uuid)

@@ -441,7 +441,11 @@ class logController  {
                     region_ids : req.body.user_detials.region_list.join(',')
                 }
 
-                if(req.query.userid) searchKeyValue.username = req.query.userid
+                // if(req.query.userid) searchKeyValue.username = req.query.userid
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                searchKeyValue.username = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if(req.query.name) searchKeyValue.full_name = req.query.name
                 if(req.query.mobile) searchKeyValue.mobile = req.query.mobile
 
@@ -546,7 +550,11 @@ class logController  {
                 // if sub admin checks the log report then show only its reports not other sub admin report
                 if(req.body.user_detials.type != roles.Admin) searchKeyValue.userid = req.body.user_detials.id
 
-                if(req.query.userid) searchKeyValue.username = req.query.userid
+                // if(req.query.userid) searchKeyValue.username = req.query.userid
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                searchKeyValue.username = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if(req.query.name) searchKeyValue.full_name = req.query.name
                 if(req.query.mobile) searchKeyValue.mobile = req.query.mobile
 
@@ -639,7 +647,12 @@ class logController  {
                 if(req.body.user_detials.region_list.length != 7){
                     param.region_ids = req.body.user_detials.region_list.join(',')
                 }
-                if(req.query.userid) param.username = req.query.userid
+                // if(req.query.userid) param.username = req.query.userid
+
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                param.username = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if(req.query.name) param.full_name = req.query.name
                 if(req.query.mobile) param.mobile = req.query.mobile
                 if(req.query.dayCount) param.dayCount = req.query.dayCount
@@ -1152,7 +1165,11 @@ class logController  {
                     region_ids : req.body.user_detials.region_list.join(',')
                 }
                 if(req.query.name) searchKeyValue.full_name = req.query.name;
-                if(req.query.userId) searchKeyValue.username = req.query.userId;
+                // if(req.query.userId) searchKeyValue.username = req.query.userId;
+                     if (req.query.userId) {
+                const userId = req.query.userId;
+                searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
+              }
                 if(req.query.agenttype_uuid) {
                     // search user id 
                     let agentId = await commonQueryCommon.getAgentTypeId(req.query.agenttype_uuid)

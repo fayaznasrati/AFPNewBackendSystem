@@ -183,7 +183,11 @@ class commisionController {
                 var param = {
                     parent_id : req.body.user_detials.userid
                 }
-                if(req.query.userid) param.userid = req.query.userid
+                // if(req.query.userid) param.userid = req.query.userid
+                     if (req.query.userid) {
+                const userid = req.query.userid;
+                param.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if(req.query.name) param.userName = req.query.name
                 if(req.query.userType_uuid){
                     var intUserTypeId = await commonQueryCommon.getAgentTypeId(req.query.userType_uuid)
@@ -263,7 +267,11 @@ class commisionController {
                 var param = {
                     parent_id : req.body.user_detials.userid
                 }
-                if(req.query.userid) param.userid = req.query.userid
+                // if(req.query.userid) param.userid = req.query.userid
+                     if (req.query.userid) {
+                const userid = req.query.userid;
+                param.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if(req.query.name) param.userName = req.query.name
                 if(req.query.userType_uuid){
                     var intUserTypeId = await commonQueryCommon.getAgentTypeId(req.query.userType_uuid)
@@ -375,7 +383,11 @@ class commisionController {
                     }
                 }
 
-                if(req.query.userid) param.userid = req.query.userid
+                // if(req.query.userid) param.userid = req.query.userid
+                     if (req.query.userid) {
+                const userid = req.query.userid;
+                param.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if(req.query.name) param.userName = req.query.name
                 if(req.query.userType_uuid){
                     var intUserTypeId = await commonQueryCommon.getAgentTypeId(req.query.userType_uuid)
@@ -479,7 +491,11 @@ class commisionController {
                     }
                 }
 
-                if(req.query.userid) param.userid = req.query.userid
+                // if(req.query.userid) param.userid = req.query.userid
+                 if (req.query.userid) {
+                const userid = req.query.userid;
+                param.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+              }
                 if(req.query.name) param.userName = req.query.name
                 if(req.query.userType_uuid){
                     var intUserTypeId = await commonQueryCommon.getAgentTypeId(req.query.userType_uuid)

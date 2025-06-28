@@ -67,7 +67,7 @@ router.get('/operator-access', getOperatorByIdSchema, auth(role.Admin,role.SubAd
 router.put('/operator-access', updateOperatorStatusSchema, auth(role.Admin,role.SubAdmin,1,2,3,4,5), awaitHandlerFactory(agentController.updateOperatorStatus))  // child condition applyed
 
 //Apis to manage agent stock transfer channel
-router.post('/stock-transfer/', createStockTransferSchema, auth(role.Admin), awaitHandlerFactory(agentController.createStockTransfer))
+router.post('/stock-transfer/',  auth(role.Admin), awaitHandlerFactory(agentController.createStockTransfer))
 router.get('/stock-transfer/', getStockTransferByIdSchema, auth(role.Admin,role.SubAdmin,1,2,3,4,5), accessManager({subAdmin : { module: [1,1], permission: apiMethod.view } , agent: { module: [1,1], permission: apiMethod.view }}), awaitHandlerFactory(agentController.getStockTransferById))  // child condition applyed
 router.put('/stock-transfer/', updateStransferChannelSchema, auth(role.Admin,role.SubAdmin,1,2,3,4,5), awaitHandlerFactory(agentController.updateStransferChannel))  // child condition applyed
 
