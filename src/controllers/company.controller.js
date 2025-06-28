@@ -11,6 +11,8 @@ const bcrypt = require('bcrypt');
 dotenv.config()
 
 const rechargeService = require('../controllers/recharge.controller');
+const { response } = require('express');
+const { send } = require('express/lib/response');
 
 class companyController {
 
@@ -596,7 +598,13 @@ class companyController {
             // check body and query
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
-                return res.status(400).json({ errors: errors.array() });
+                const amount =  errors.errors[0].value
+                if(amount === 0){
+                    return res.send({ status: 400, message: 'Recharge amount must be greater than zero, 0' })
+                } else {
+                    return res.status(400).json({ errors: errors.array() });
+                }
+               
             }
             console.log('recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
 
@@ -714,17 +722,14 @@ class companyController {
                 responce = { status: 400, message: 'Recharge is not allowed for a while.' }
             } else {
                 responce = await rechargeService.processRecharge(params)
-                console.log("params", params)
-                
+                // console.log("params", params)
+                console.log("Rechage Responce", responce)
             }
-
-            // send responce to front end
-            if (responce.status == 200) res.status(responce.status)
-                .send({ 
-                    status:  responce.status,
-                    message: responce.message
-             })
-            else res.status(responce.status).json({ errors: [{ msg: responce.message }] });
+           
+            if (responce.status == 200) res.status(responce.status).send({ the_response: responce }) 
+                else if (responce.status == 400) return res.send(responce);
+                else if (responce.status == 500) return res.send(responce); 
+            else return res.send(responce);
 
         } catch (error) {
             res.status(400).json({ errors: [{ msg: error.message }] });
@@ -785,7 +790,7 @@ class companyController {
             //test 
 
                 const companies = await sqlQuery.searchOrQuery(
-                  tableName1,
+                  this.tableName1,
                   { company_api_key: apiKey },
                   [
                     'company_name',
