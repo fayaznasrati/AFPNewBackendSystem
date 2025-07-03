@@ -38,6 +38,7 @@ router.get('/report/group/top-up',groupTopUpReport, auth(1,2,3,4,5,6), accessMan
 router.get('/report/telco/top-up',telcoWiseTopUpReport, auth(1,2,3,4,5,6), accessManager({agent : { module: [5,6], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.telcoWiseTopUpReport))
 
 // admin panel report
+router.get('/admin-report/download-Agent-Topup-Report',agentTopupReport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,6], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.downloadAgentTopupReport))
 router.get('/admin-report/top-up',agentTopupReport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,6], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.agentTopupReport))
 router.get('/admin-report/summery/top-up',topUpSummeryReport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,7], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.topUpSummeryReport))
 router.get('/admin-report/downline/top-up',agentDownlineTopUpReport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,8], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.agentDownlineTopUpReport))

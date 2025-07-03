@@ -28,6 +28,7 @@ const path = require('path');
 const { type, send, sendStatus } = require('express/lib/response');
 
 const redisMaster = require('../common/master/radisMaster.common')
+const { format } = require('fast-csv');
 
 // configer env
 dotenv.config()
@@ -3240,6 +3241,275 @@ class rechargeController {
             // return res.status(400).json({ errors: [ {msg : error.message}] }); 
         }
     }
+
+
+downloadAgentTopupReport = async (req, res) => {
+  try {
+    // const searchKeyValue = this.buildSearchKeyFrom(req); // Extracted from your logic
+    // body and query validators
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+            console.log('recharge/agentTopUpReport',JSON.stringify(req.body), JSON.stringify(req.query))
+            if (!req.query.pageNumber) req.query.pageNumber = 0
+            // optional search paremeters
+            var searchKeyValue = {
+                Active: 1,
+                // region_ids : req.body.user_detials.region_list.join(',')
+            }
+
+            if (req.body.user_detials.region_list.length != 7) {
+                searchKeyValue.region_ids = req.body.user_detials.region_list.join(',')
+            }
+
+            if (req.query.contactNumber) {
+                if (req.query.contactNumber.length == 10) searchKeyValue.mobile_number = req.query.contactNumber;
+                else searchKeyValue.trans_number = req.query.contactNumber;
+            }
+
+                 if (req.query.userId) {
+                const userId = req.query.userId;
+                searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
+              }
+            if (req.query.userName) {
+                if (Number(req.query.userName)) {
+                    let reqNum = []
+                    if (req.query.userName.length == 10) {
+                        reqNum = [req.query.userName, req.query.userName.slice(1, 11)]
+                    } else {
+                        reqNum = [req.query.userName, 0 + req.query.userName]
+                    }
+                    searchKeyValue.request_mobile_no = reqNum
+                } else {
+                    searchKeyValue.full_name = req.query.userName;
+                }
+            }
+            if (req.query.region_uuid) searchKeyValue.region_uuid = req.query.region_uuid;
+            if (req.query.province_uuid) searchKeyValue.province_uuid = req.query.province_uuid;
+            if (req.query.district_uuid) searchKeyValue.district_uuid = req.query.district_uuid;
+            // transaction search parem
+            // check date for start and end 
+            if (!searchKeyValue.trans_number) {
+                if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+
+                if (req.query.startDate) {
+                    searchKeyValue.start_date = req.query.startDate //dt start date
+                }
+                if (req.query.endDate) {
+                    searchKeyValue.end_date = req.query.endDate //dt end date
+                }
+            }
+
+            if (req.query.operator_uuid) {
+                const lisResponce1 = await commonQueryCommon.getOperatorById(req.query.operator_uuid)
+                if (lisResponce1 == 0) return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
+                searchKeyValue.operator_id = lisResponce1[0].operator_id
+            }
+            if (req.query.status) {
+                if (req.query.status == 4) {
+                    searchKeyValue.rollback_status = 3
+                } else {
+                    if (req.query.status == 2) {
+                        searchKeyValue.isIn = {
+                            key: 'rollback_status',
+                            value: ' 0,1,2,4 '
+                        }
+                    }
+                    searchKeyValue.status = req.query.status
+                }
+            }
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", "attachment; filename=agent_report.csv");
+
+    const csvStream = format({ headers: true });
+    csvStream.pipe(res);
+
+    const perPage = 1000; // Number of records per page
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const offset = (page - 1) * perPage;
+      const chunk = await rechargeModel.agentTopupReport(searchKeyValue, perPage, offset);
+        console.log("chunk", chunk.length, "page", page, "offset", offset, "perPage", perPage);
+      if (chunk.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      chunk.forEach(row => {
+        csvStream.write(row);
+      });
+
+      if (chunk.length < perPage) {
+        hasMore = false;
+      }
+
+      page++;
+    }
+
+    csvStream.end(); // Ends the stream (also ends the response)
+
+  } catch (err) {
+    console.error("Export error:", err);
+    res.status(500).send("Internal Server Error while exporting.");
+  }
+};
+
+
+
+
+
+
+// downloadAgentTopupReport = async (req, res) => {
+//   try {
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//       return res.status(400).json({ errors: errors.array() });
+//     }
+
+//     console.log('recharge/agentTopUpReport', JSON.stringify(req.body), JSON.stringify(req.query));
+
+//     if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+//     let searchKeyValue = { Active: 1 };
+
+//     if (req.body.user_detials.region_list.length !== 7) {
+//       searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+//     }
+
+//     if (req.query.contactNumber) {
+//       if (req.query.contactNumber.length === 10) {
+//         searchKeyValue.mobile_number = req.query.contactNumber;
+//       } else {
+//         searchKeyValue.trans_number = req.query.contactNumber;
+//       }
+//     }
+
+//     if (req.query.userId) {
+//       const userId = req.query.userId;
+//       searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
+//     }
+
+//     if (req.query.userName) {
+//       if (!isNaN(req.query.userName)) {
+//         const num = req.query.userName;
+//         const formatted = num.length === 10 ? [num, num.slice(1, 11)] : [num, '0' + num];
+//         searchKeyValue.request_mobile_no = formatted;
+//       } else {
+//         searchKeyValue.full_name = req.query.userName;
+//       }
+//     }
+
+//     if (req.query.region_uuid) searchKeyValue.region_uuid = req.query.region_uuid;
+//     if (req.query.province_uuid) searchKeyValue.province_uuid = req.query.province_uuid;
+//     if (req.query.district_uuid) searchKeyValue.district_uuid = req.query.district_uuid;
+
+//     if (!searchKeyValue.trans_number) {
+//       if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+//         return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+//       }
+//       if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+//       if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+//     }
+
+//     if (req.query.operator_uuid) {
+//       const operatorInfo = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+//       if (!operatorInfo || operatorInfo.length === 0) {
+//         return res.status(400).json({ errors: [{ msg: 'Operator ID not found' }] });
+//       }
+//       searchKeyValue.operator_id = operatorInfo[0].operator_id;
+//     }
+
+//     if (req.query.status) {
+//       if (req.query.status == 4) {
+//         searchKeyValue.rollback_status = 3;
+//       } else {
+//         if (req.query.status == 2) {
+//           searchKeyValue.isIn = { key: 'rollback_status', value: '0,1,2,4' };
+//         }
+//         searchKeyValue.status = req.query.status;
+//       }
+//     }
+
+//     // ✅ Excel compatibility: UTF-8 BOM
+//     res.setHeader("Content-Type", "text/csv");
+//     res.setHeader("Content-Disposition", "attachment; filename=agent_report.csv");
+//     res.write('\uFEFF'); // Excel needs BOM for UTF-8 support
+
+//     const csvStream = format({ headers: true });
+//     csvStream.pipe(res);
+
+//     const perPage = 1000;
+//     let page = 1;
+//     let hasMore = true;
+
+//     while (hasMore) {
+//       const offset = (page - 1) * perPage;
+//       const chunk = await rechargeModel.agentTopupReport(searchKeyValue, perPage, offset);
+
+//       console.log("chunk", chunk.length, "page", page, "offset", offset);
+
+//       if (chunk.length === 0) {
+//         hasMore = false;
+//         break;
+//       }
+
+//       chunk.forEach(row => {
+//         // 🧹 Optional: truncate large 'apiResponce' fields for better Excel experience
+//         if (row.apiResponce && typeof row.apiResponce === 'string' && row.apiResponce.length > 200) {
+//           row.apiResponce = row.apiResponce.slice(0, 200) + '...';
+//         }
+//         // ✅ Make sure we write a flat object
+//         csvStream.write(row);
+//       });
+
+//       if (chunk.length < perPage) {
+//         hasMore = false;
+//       }
+
+//       page++;
+//     }
+
+//     csvStream.end(); // Ends the stream (and response)
+
+//   } catch (err) {
+//     console.error("Export error:", err);
+//     res.status(500).send("Internal Server Error while exporting.");
+//   }
+// };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     topUpSummeryReport = async (req, res) => {
         try {
