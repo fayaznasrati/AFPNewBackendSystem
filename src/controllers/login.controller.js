@@ -2485,7 +2485,7 @@ class loginController {
             if (req.query.province_uuid) searchKeyValue.province_uuid = req.query.province_uuid //str uuid
             if (req.query.region_uuid) searchKeyValue.region_uuid = req.query.region_uuid // str region_uuid
             if (req.query.status) searchKeyValue.Active = req.query.status // tinyint 1,2
-            if (req.query.mobileNumber) searchKeyValue.mobile = req.query.mobileNumber
+            if (req.query.mobile) searchKeyValue.mobile = req.query.mobile
 
             //check if the search parameter are correct or not
             if (Object.keys(searchKeyValue).length == 2) {
