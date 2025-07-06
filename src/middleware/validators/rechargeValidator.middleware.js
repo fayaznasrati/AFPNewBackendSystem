@@ -128,6 +128,23 @@ exports.rejectRecharge = [
     .withMessage('wrong request')
 ]
 
+
+exports.failePendingRecharge = [
+    body('transNumber')
+    .exists().withMessage('transNumber is required')
+    .isLength({min:1,max:20}).withMessage('it is of 14 character long'),
+    body('rechargeResponce')
+    .exists().withMessage('responce form api is required'),
+    body('user_detials')
+    .custom(value => {
+        if (value === undefined) {
+            return true
+        }
+        return false
+    })
+    .withMessage('wrong request')
+]
+
 exports.pendingRechange = [
     body('transNumber')
     .exists().withMessage('transNumber is required')
