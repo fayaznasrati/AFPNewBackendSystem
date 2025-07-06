@@ -40,6 +40,7 @@ const p2aRoute = require('./P2A.route')
 const ebundleTopup = require('./ebundleTopup.routes')
 const bundleManagementRoute = require('./bundleManagment.route')
 const bundleRechargeRoutes = require('./bundleRecharge.routes')
+const newEtisalatUssdRoutes = require('./etisalatUSSD.routes')
 
 
 router.use('/admin', adminRouter);
@@ -82,6 +83,10 @@ router.use('/bundle-recharge',bundleRechargeRoutes)
 router.use('/ebundle-topup',agentRoute)
 router.use('/bundle-management', bundleManagementRoute)
 
+
+
+// test Etisalat USSD 
+router.use('/NewUSSDEtisalat', newEtisalatUssdRoutes)
 
 module.exports = router;
 
