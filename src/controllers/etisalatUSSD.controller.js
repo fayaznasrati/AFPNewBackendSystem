@@ -4,6 +4,8 @@ class etisalatController {
     ussdMainFunTesting = async (req,res) =>{
         try{
               console.log('***********************----Etisalat USSD Test----****************************')
+                console.log("the Req : ",req)
+                console.log("the Req.file : ",req.file)
                 console.log("URL : ",req.url)
                 console.log("METHOD : ",req.method)
                 console.log("Header : ", req.headers)
