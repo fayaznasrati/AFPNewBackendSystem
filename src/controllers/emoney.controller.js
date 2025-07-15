@@ -16,7 +16,11 @@ const emoneyModule = require('../models/emoney.module')
 const { apiCall } = require('../common/makeApiCall.common')
 
 const { start,sendMessage,createWorker } = require('../common/rabbitmq.common')
+const ExcelJS = require('exceljs');
+const fs = require('fs');
+const moment = require('moment');
 
+const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
 // configer env
 dotenv.config()
 
@@ -317,6 +321,115 @@ class emoneyController {
         }
     }
 
+    downloadEmoneyDetailByDate = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        const searchKeyValue = {
+            active: 1,
+            type: 1
+        };
+
+        const key = [
+            "CAST(emoney_uuid AS CHAR(16)) AS emoney_uuid",
+            "emoney_txn_id AS txnId",
+            "mno_name AS operator",
+            "amount_added AS amount",
+            "comm_amount AS commAmount",
+            "opening_balance AS openingBalance",
+            "closing_balance AS closingBalance",
+            "CAST(emoney_txn_date AS CHAR(20)) AS txnDate"
+        ];
+        const orderby = "emoney_id";
+        const ordertype = "DESC";
+
+        const lisTotalRecords = await sqlQueryReplica.searchQueryNoLimit(
+            this.tableName2,
+            searchKeyValue,
+            ['COUNT(1) AS count', 'SUM(amount_added) AS totalAmount', 'SUM(comm_amount) AS totalCommAmount'],
+            orderby,
+            ordertype
+        );
+
+        const intTotlaRecords = Number(lisTotalRecords[0].count);
+        const intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+        const offset = req.query.pageNumber > 0 ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+        const limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
+
+        const lisResults = await sqlQueryReplica.searchQuery(this.tableName2, searchKeyValue, key, orderby, ordertype, limit, offset);
+
+        // === Export Excel if pageNumber = 0 ===
+        if (req.query.pageNumber == 0) {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+            const fileName = `emoney_detail_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            // Avoid regeneration within 30 minutes
+            if (fs.existsSync(filePath)) {
+                const stat = fs.statSync(filePath);
+                const created = moment(stat.ctime);
+                if (moment().diff(created, 'minutes') < 30) {
+                    return res.status(200).json({
+                        success: true,
+                        downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                    });
+                }
+            }
+
+            // Generate Excel
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('E-Money Details');
+
+            if (lisResults.length > 0) {
+                worksheet.columns = Object.keys(lisResults[0]).map(key => ({
+                    header: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                    key,
+                    width: 25
+                }));
+                worksheet.getRow(1).font = { bold: true };
+                worksheet.addRows(lisResults);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+
+            // Auto-delete after 30 mins
+            setTimeout(() => {
+                fs.unlink(filePath, (err) => {
+                    if (err && err.code !== 'ENOENT') {
+                        console.error(`Failed to delete report ${fileName}:`, err.message);
+                    }
+                });
+            }, 30 * 60 * 1000);
+
+            return res.status(200).json({
+                success: true,
+                downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+            });
+        }
+
+        // === JSON paginated response ===
+        res.status(200).send({
+            reportList: lisResults,
+            totalRepords: intTotlaRecords,
+            pageCount: intPageCount,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit: Number(process.env.PER_PAGE_COUNT),
+            totalAmount: lisTotalRecords[0].totalAmount || 0,
+            totalCommAmount: lisTotalRecords[0].totalCommAmount || 0
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+};
     //function to search e-money details by date range or by operator
     getEmoneyReport = async(req, res, next) => {
         try {
@@ -393,6 +506,138 @@ class emoneyController {
             return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+
+
+    downloadEmoneyReport = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        // Build search filter
+        let searchKeyValue = {
+            active: 1,
+            IsIn: {
+                key: 'type',
+                value: '0,2'
+            }
+        };
+
+        if ((req.query.startDate && !req.query.endDate) || (!req.query.startDate && req.query.endDate)) {
+            return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+        }
+
+        if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+        if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+        if (req.query.operator_uuid) searchKeyValue.mno_uuid = req.query.operator_uuid;
+
+        if (Object.keys(searchKeyValue).length === 0) {
+            return res.status(400).json({ errors: [{ msg: "Use at least one search parameter" }] });
+        }
+
+        // Field definitions
+        const key = [
+            "CAST(emoney_uuid AS CHAR(16)) AS emoney_uuid",
+            "emoney_txn_id AS txnId",
+            "mno_name AS operator",
+            "amount_added AS amount",
+            "comm_amount AS commAmount",
+            "IF ( closing_balance > opening_balance, 'credit', 'debit' ) AS type",
+            "opening_balance AS openingBalance",
+            "closing_balance AS closingBalance",
+            "CAST(emoney_txn_date AS CHAR(16)) AS txnDate"
+        ];
+        const orderby = "emoney_id";
+        const ordertype = "DESC";
+
+        const lisTotalRecords = await sqlQueryReplica.searchQueryNoLimit(
+            this.tableName2,
+            searchKeyValue,
+            ['COUNT(1) AS count', 'SUM(amount_added) AS totalAmount', 'SUM(comm_amount) AS totalCommAmount'],
+            orderby,
+            ordertype
+        );
+
+        const intTotlaRecords = Number(lisTotalRecords[0].count);
+        const intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+        const offset = req.query.pageNumber > 0 ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+        const limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
+
+        const lisResult = await sqlQueryReplica.searchQuery(this.tableName2, searchKeyValue, key, orderby, ordertype, limit, offset);
+
+        // === Excel Export Mode ===
+        if (req.query.pageNumber == 0) {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+            const fileName = `emoney_report_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            // Avoid regenerating within 30 min
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                const createdTime = moment(stats.ctime);
+                if (moment().diff(createdTime, 'minutes') < 30) {
+                    return res.status(200).json({
+                        success: true,
+                        downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                    });
+                }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('E-Money Report');
+
+            if (lisResult.length > 0) {
+                worksheet.columns = Object.keys(lisResult[0]).map((key) => ({
+                    header: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    key,
+                    width: 25
+                }));
+                worksheet.getRow(1).font = { bold: true };
+                worksheet.addRows(lisResult);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+
+            // Auto-delete after 30 min
+            setTimeout(() => {
+                fs.unlink(filePath, (err) => {
+                    if (err && err.code !== 'ENOENT') {
+                        console.error(`Error deleting report ${fileName}:`, err.message);
+                    }
+                });
+            }, 30 * 60 * 1000); // 30 min
+
+            return res.status(200).json({
+                success: true,
+                downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+            });
+        }
+
+        // === Paginated JSON Response ===
+        return res.status(200).send({
+            reportList: lisResult,
+            totalRepords: intTotlaRecords,
+            pageCount: intPageCount,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit: Number(process.env.PER_PAGE_COUNT),
+            totalAmount: lisTotalRecords[0].totalAmount || 0,
+            totalCommAmount: lisTotalRecords[0].totalCommAmount || 0
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+};
+
+
+
+
 
     getOperatorBalance = async ( req, res, next) => {
         try{

@@ -16,6 +16,7 @@ const {
 
 // rollback transaction
 router.get('/transaction', rollbackTransaction, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [7,6], permission: apiMethod.view }}), awaitHandlerFactory(rollbackController.rollbackTransaction))
+router.get('/download-transaction', rollbackTransaction, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [7,6], permission: apiMethod.view }}), awaitHandlerFactory(rollbackController.downloadRollbackTransaction))
 
 // API to accept/reject rollback transaction
 router.put('/transaction/accept', acceptRollbackTransaction, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [7,6], permission: apiMethod.edit }}), awaitHandlerFactory(rollbackController.acceptRollbackTransaction))
@@ -23,6 +24,7 @@ router.put('/transaction/reject', rejectRollbackTransaction, auth(role.Admin,rol
 
 // API for complete rollback
 router.get('/complete', rollbackComplete, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [7,7], permission: apiMethod.view }}), awaitHandlerFactory(rollbackController.rollbackComplete))
+router.get('/download-complete', rollbackComplete, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [7,7], permission: apiMethod.view }}), awaitHandlerFactory(rollbackController.downloadRollbackComplete))
 
 // accept the request from rollback complete tab
 router.put('/pending/transfer', transferAmtForRollback, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [7,7], permission: apiMethod.edit }}), awaitHandlerFactory(rollbackController.transferAmtForRollback))
@@ -30,6 +32,7 @@ router.put('/pending/reject', rejectRollback, auth(role.Admin,role.SubAdmin),acc
 
 // API to get pending/telco accept/ telco reject rollback request 
 router.get('/pending', pendingRollback, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [7,5], permission: apiMethod.view }}), awaitHandlerFactory(rollbackController.pendingRollback))
+router.get('/download-pending', pendingRollback, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [7,5], permission: apiMethod.view }}), awaitHandlerFactory(rollbackController.downloadPendingRollback))
 router.get('/eitsalat/', etisalatPen, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [7,4], permission: apiMethod.view }}), awaitHandlerFactory(rollbackController.etisalatPen))
 
 // API to transfer amount to agent account

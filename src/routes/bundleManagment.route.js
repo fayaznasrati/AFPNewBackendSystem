@@ -21,10 +21,13 @@ router.delete('/delete', auth(role.Admin,role.SubAdmin), awaitHandlerFactory(Ebu
 
 // admin panel report
 router.get('/ebundl-report',   auth(role.Admin,role.SubAdmin), awaitHandlerFactory(EbundleController.getEbundleReports))
+router.get('/download-ebundl-report',   auth(role.Admin,role.SubAdmin), awaitHandlerFactory(EbundleController.downloadEbundleReports))
 
 // router.get('/summery-report',topUpSummeryReport, auth(role.Admin,role.SubAdmin), awaitHandlerFactory(EbundleController.getEbundleSummeryReport))
 router.get('/summery-report', auth(role.Admin,role.SubAdmin), awaitHandlerFactory(EbundleController.getEbundleSummeryReport))
+router.get('/download-summery-report', auth(role.Admin,role.SubAdmin), awaitHandlerFactory(EbundleController.downloadEbundleSummeryReport))
 router.get('/downline-report', auth(role.Admin,role.SubAdmin), awaitHandlerFactory(EbundleController.getAgentEbundleDownlineReport))
+router.get('/download-downline-report', auth(role.Admin,role.SubAdmin), awaitHandlerFactory(EbundleController.downloadAgentEbundleDownlineReport))
 // router.get('/admin-report/downline/top-up',agentDownlineTopUpReport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,8], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.agentDownlineTopUpReport))
 // router.get('/admin-report/telco/top-up',agentTelcoTopUpreport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,9], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.agentTelcoTopUpreport))
 

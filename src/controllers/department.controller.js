@@ -7,6 +7,10 @@ const sqlQueryReplica = require('../common/sqlQueryReplica.common')
 const redisMaster = require('../common/master/radisMaster.common')
 
 const { toIsoString } = require('../common/timeFunction.common')
+const fs = require('fs');
+const path = require('path');
+const ExcelJS = require('exceljs');
+const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
 
 class departmentController{
 
@@ -142,6 +146,119 @@ class departmentController{
             return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+
+
+    downloadDepartments = async (req, res, next) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+
+            if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+            const searchKeyValue = { active: 1 };
+            const key = [
+                "CAST(department_uuid AS CHAR(16)) AS department_uuid",
+                "department_name AS name"
+            ];
+            const orderby = "department_name";
+            const ordertype = "ASC";
+
+            const lisTotalRecords = await sqlQueryReplica.searchQueryNoLimit(
+                this.tableName1,
+                searchKeyValue,
+                key,
+                orderby,
+                ordertype
+            );
+
+            const intTotlaRecords = lisTotalRecords.length;
+            const intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+            const offset = req.query.pageNumber > 0
+                ? (req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT)
+                : 0;
+            const limit = req.query.pageNumber > 0
+                ? Number(process.env.PER_PAGE_COUNT)
+                : intTotlaRecords;
+
+            const lisResult = await sqlQueryReplica.searchQuery(
+                this.tableName1,
+                searchKeyValue,
+                key,
+                orderby,
+                ordertype,
+                limit,
+                offset
+            );
+
+            if (req.query.pageNumber == 0) {
+                const now = new Date();
+                const dateStr = now.toISOString().split('T')[0];
+                const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+                const fileName = `department_list_${dateStr}_${timeStr}.xlsx`;
+                const filePath = path.join(REPORT_DIR, fileName);
+
+                // If file exists and is recent, re-use it
+                if (fs.existsSync(filePath)) {
+                    const stats = fs.statSync(filePath);
+                    const createdTime = moment(stats.ctime);
+                    if (moment(now).diff(createdTime, 'minutes') < 30) {
+                        return res.status(200).json({
+                            success: true,
+                            downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                        });
+                    }
+                }
+
+                // Create Excel file
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Departments');
+
+                if (lisResult.length > 0) {
+                    const sample = lisResult[0];
+                    worksheet.columns = Object.keys(sample).map((key) => ({
+                        header: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                        key,
+                        width: 25
+                    }));
+                    worksheet.getRow(1).font = { bold: true };
+                    worksheet.addRows(lisResult);
+                }
+
+                await workbook.xlsx.writeFile(filePath);
+
+                // Auto-delete after 30 mins
+                setTimeout(() => {
+                    fs.unlink(filePath, (err) => {
+                        if (err && err.code !== 'ENOENT') {
+                            console.error(`Failed to delete report file ${fileName}:`, err.message);
+                        }
+                    });
+                }, 30 * 60 * 1000);
+
+                return res.status(200).json({
+                    success: true,
+                    downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                });
+            }
+
+            // Paginated JSON response
+            return res.status(200).json({
+                reportList: lisResult,
+                totalRecords: intTotlaRecords,
+                pageCount: intPageCount,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: Number(process.env.PER_PAGE_COUNT)
+            });
+
+        } catch (error) {
+            console.error('allDepartment', error);
+            return res.status(400).json({ errors: [{ msg: error.message }] });
+        }
+    };
+
+
 //function to update department name
     updateDepartment = async(req,res) => {
         try {

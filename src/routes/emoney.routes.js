@@ -17,7 +17,9 @@ const {
 //emoney APis
 router.post('/', addEmoneySchema, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [5,1], permission: apiMethod.add }}), awaitHandlerFactory(emoneyController.addEmoney))
 router.get('/', getEmoneyDetailByDateSchema, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [5,1], permission: apiMethod.view }}), awaitHandlerFactory(emoneyController.getEmoneyDetailByDate))
+router.get('/download', getEmoneyDetailByDateSchema, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [5,1], permission: apiMethod.view }}), awaitHandlerFactory(emoneyController.downloadEmoneyDetailByDate))
 router.get('/report', getEmoneyReportSchema, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [5,2], permission: apiMethod.view }}), awaitHandlerFactory(emoneyController.getEmoneyReport))
+router.get('/download-report', getEmoneyReportSchema, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [5,2], permission: apiMethod.view }}), awaitHandlerFactory(emoneyController.downloadEmoneyReport))
 
 //get balance info
 router.get('/balance',getOperatorBalance, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [5,1], permission: apiMethod.view }}), awaitHandlerFactory(emoneyController.getOperatorBalance))

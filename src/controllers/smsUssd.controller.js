@@ -8,7 +8,10 @@ const redisMaster = require('../common/master/radisMaster.common')
 const smsUssdModule = require('../models/smsUssd.moduel')
 
 const role = require('../utils/userRoles.utils')
-
+const fs = require('fs');
+const path = require('path');
+const ExcelJS = require('exceljs');
+const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
 // const { toIsoString } = require('../common/timeFunction.common')
 
 class smsUssdController {
@@ -240,6 +243,134 @@ class smsUssdController {
             return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+
+
+     downloadUssdActivityReport = async (req, res) => {
+    try {
+        // validate
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        const searchKeyValue = { Active: 1 };
+
+        // user region or child filtering
+        if (req.body.user_detials.type === role.Admin || req.body.user_detials.type === role.SubAdmin) {
+        if (req.body.user_detials.region_list.length !== 7) {
+            searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+        }
+        } else {
+        searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
+        }
+
+        // filter parameters
+        if (req.query.userType_uuid) {
+        const userTypeId = await commonQueryCommon.getAgentTypeId(req.query.userType_uuid);
+        if (userTypeId.length === 0) return res.status(400).json({ errors: [{ msg: 'user type not found' }] });
+        searchKeyValue.usertype_id = userTypeId[0].agent_type_id;
+        }
+        if (req.query.userid) searchKeyValue.username = req.query.userid;
+        if (req.query.userName) searchKeyValue.full_name = req.query.userName;
+        if (req.query.channel) searchKeyValue.channel = req.query.channel;
+
+        if (req.query.activity_uuid) {
+        const activityTypeId = await sqlQueryReplica.searchQuery(
+            this.tableName1,
+            { ussd_uuid: req.query.activity_uuid, active: 1 },
+            ['id'],
+            'id',
+            'ASC',
+            1,
+            0
+        );
+        if (activityTypeId.length === 0) return res.status(400).json({ errors: [{ msg: 'activity type not found' }] });
+        searchKeyValue.activityId = activityTypeId[0].id;
+        }
+
+        if (Object.keys(searchKeyValue).length === 0)
+        return res.status(400).json({ errors: [{ msg: 'Improper search param' }] });
+
+        const lisTotalRecords = await smsUssdModule.getUssdActivityReportCount(searchKeyValue);
+
+        const intTotalRecords = Number(lisTotalRecords[0].count);
+        const pageLimit = Number(process.env.PER_PAGE_COUNT);
+        const intPageCount =
+        intTotalRecords % pageLimit === 0
+            ? intTotalRecords / pageLimit
+            : Math.floor(intTotalRecords / pageLimit) + 1;
+
+        const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+        const limit = req.query.pageNumber > 0 ? pageLimit : intTotalRecords;
+
+        const activityReport = await smsUssdModule.getUssdActivityReport(searchKeyValue, limit, offset);
+
+        const agentTypeList = await commonQueryCommon.getAllAgentType();
+        if (!agentTypeList || agentTypeList.length === 0)
+        return res.status(204).send({ message: 'agent type list not found' });
+
+        const finalResult = activityReport.map((result) => {
+        const { usertype_id, ...other } = result;
+        other.agentType = agentTypeList[usertype_id - 1]?.agent_type_name || 'Unknown';
+        return other;
+        });
+
+        // ✅ For Excel download
+        if (req.query.pageNumber == 0) {
+         const now = new Date();
+        const dateStr = new Date().toISOString().split('T')[0];
+        const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+        const fileName = `ussd_activity_report_${dateStr}_${timeStr}.xlsx`;
+        const filePath = path.join(REPORT_DIR, fileName);
+
+        if (fs.existsSync(filePath)) {
+            const stats = fs.statSync(filePath);
+            if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+            return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+            }
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('USSD Activity Report');
+
+        if (finalResult.length > 0) {
+            sheet.columns = Object.keys(finalResult[0]).map((key) => ({
+            header: key,
+            key: key,
+            width: key.length < 20 ? 20 : key.length + 5
+            }));
+            sheet.addRows(finalResult);
+        }
+
+        await workbook.xlsx.writeFile(filePath);
+        fs.chmodSync(filePath, 0o644);
+
+        // Schedule file delete after 30 mins
+        setTimeout(() => {
+            fs.unlink(filePath, (err) => {
+            if (err) console.error('Error deleting file:', filePath);
+            else console.log('Deleted expired file:', fileName);
+            });
+        }, 30 * 60 * 1000);
+
+        return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+        }
+
+        // ✅ Standard paginated response
+        return res.status(200).json({
+        reportList: finalResult,
+        totalRepords: intTotalRecords,
+        pageCount: intPageCount,
+        currentPage: Number(req.query.pageNumber),
+        pageLimit: pageLimit
+        });
+
+    } catch (error) {
+        console.error('getUssdActivityReport', error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+};
+
 }
 
 module.exports = new smsUssdController()

@@ -29,6 +29,8 @@ const awsURL = process.env.AWS_path
 const fs = require('fs')
 const util = require('util')
 const unlinkFile = util.promisify(fs.unlink)
+const ExcelJS = require('exceljs');
+const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
 
 const awsCommon = require('../common/awsS3.common')
 
@@ -143,6 +145,136 @@ class stockController {
             return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+
+    downloadAgentDetials = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        let searchKeyValue = {
+            parent_id: req.body.user_detials.userid,
+            Active: 1
+        };
+
+        const isAdmin = req.body.user_detials.type == userList.Admin || req.body.user_detials.type == userList.SubAdmin;
+
+        if (isAdmin) {
+            if (req.body.user_detials.region_list.length !== 7) {
+                searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+            }
+        } else {
+            searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
+        }
+
+        if (req.query.user_id) searchKeyValue.username = req.query.user_id;
+        if (req.query.name) searchKeyValue.full_name = req.query.name;
+        if (req.query.number) searchKeyValue.mobile = req.query.number;
+
+        if (Object.keys(searchKeyValue).length === 0) {
+            searchKeyValue.parent_id = req.body.user_detials.userid;
+        }
+
+        const lisTotalRecords = await stockModule.getUserWithBalanceCount(searchKeyValue);
+        const intTotlaRecords = Number(lisTotalRecords[0].count);
+
+        const pageLimit = Number(process.env.PER_PAGE_COUNT);
+        const intPageCount = (intTotlaRecords % pageLimit === 0) ? intTotlaRecords / pageLimit : Math.floor(intTotlaRecords / pageLimit) + 1;
+
+        const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+        const limit = req.query.pageNumber > 0 ? pageLimit : intTotlaRecords;
+
+        const lisResult = await stockModule.getUserWithBalance(searchKeyValue, limit, offset);
+
+        const finalResult = lisResult.map(result => {
+            const { commission_value, balance, ...other } = result;
+            return {
+                ...other,
+                balance: balance || 0,
+                commPer: commission_value || 0
+            };
+        });
+
+        // 📥 Download report if pageNumber == 0
+        if (req.query.pageNumber == 0 && isAdmin) {
+              const now = new Date();
+            const dateStr = new Date().toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+            const fileName = `Stock_transfar_Agent_details_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+                    return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+                }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Agent Details');
+
+            if (finalResult.length > 0) {
+                worksheet.columns = Object.keys(finalResult[0]).map((key) => ({
+                    header: key,
+                    key: key,
+                    width: key.length < 20 ? 20 : key.length + 5
+                }));
+                worksheet.addRows(finalResult);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+            fs.chmodSync(filePath, 0o644);
+
+            setTimeout(() => {
+                fs.unlink(filePath, (err) => {
+                    if (err) console.error('Error deleting agent report file:', fileName);
+                    else console.log('Deleted report file:', fileName);
+                });
+            }, 30 * 60 * 1000); // 30 minutes
+
+            return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+        }
+
+        // 🔄 Paginated or non-admin response
+        if (isAdmin) {
+            return res.status(200).json(
+                req.query.pageNumber == 0
+                    ? finalResult
+                    : {
+                          reportList: finalResult,
+                          totalRepords: intTotlaRecords,
+                          pageCount: intPageCount,
+                          currentPage: Number(req.query.pageNumber),
+                          pageLimit: pageLimit
+                      }
+            );
+        } else {
+            const searchKeyValue = { userid: req.body.user_detials.userid };
+            const lisResponce2 = await sqlQueryReplica.searchQueryTran(
+                this.tableName1,
+                searchKeyValue,
+                ['ex_wallet AS wallet'],
+                'wallet_id',
+                'ASC',
+                1,
+                0
+            );
+
+            return res.status(200).json({
+                avaliableBalance: lisResponce2[0].wallet || 0,
+                agentDetails: finalResult,
+                totalRepords: intTotlaRecords,
+                pageCount: intPageCount,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: pageLimit
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+};
 
     //function to transfer storck 
     transferStock = async(req, res, next) => {
@@ -1024,6 +1156,112 @@ class stockController {
         }
     }
 
+
+    downloadPendingStocksRequests = async (req, res, next) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+            if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+            let searchKeyValue = { Active: 1 };
+
+            if (req.body.user_detials.type == userList.Admin || req.body.user_detials.type == userList.SubAdmin) {
+                if (req.body.user_detials.region_list.length !== 7) {
+                    searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+                }
+            } else {
+                searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
+            }
+
+            const lisTotalRecords = await stockModule.getPendingRequestCount(searchKeyValue);
+            const intTotlaRecords = Number(lisTotalRecords[0].count);
+
+            const pageLimit = Number(process.env.PER_PAGE_COUNT);
+            const intPageCount = (intTotlaRecords % pageLimit === 0)
+                ? intTotlaRecords / pageLimit
+                : Math.floor(intTotlaRecords / pageLimit) + 1;
+
+            const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+            const limit = req.query.pageNumber > 0 ? pageLimit : intTotlaRecords;
+
+            const results = await stockModule.getPendingRequest(searchKeyValue, limit, offset);
+            if (results.length === 0) return res.status(204).send({ message: "no pending requests" });
+
+            const awsURL = process.env.AWS_S3_URL || ''; // Optional env for URL cleanup
+
+            const changeResults = results.map((sinResult) => {
+                const { rcptUrl, payment_mode, ...other } = sinResult;
+                return {
+                    ...other,
+                    mode: payment_mode === 1 ? 'Cash' : 'Bank Transfer',
+                    rcptUrl: rcptUrl ? (rcptUrl.includes(awsURL) ? rcptUrl.replace(awsURL, '') : rcptUrl) : null,
+                };
+            });
+
+            // 📥 Download as report if pageNumber == 0
+            if (req.query.pageNumber == 0) {
+                    const now = new Date();
+                    const dateStr = new Date().toISOString().split('T')[0];
+                    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+                    const fileName = `stocks_requests_${dateStr}_${timeStr}.xlsx`;
+                const filePath = path.join(REPORT_DIR, fileName);
+
+                // Return existing report if already generated recently
+                if (fs.existsSync(filePath)) {
+                    const stats = fs.statSync(filePath);
+                    if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+                        return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+                    }
+                }
+
+                // Generate Excel report
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Pending Stock Requests');
+
+                if (changeResults.length > 0) {
+                    worksheet.columns = Object.keys(changeResults[0]).map(key => ({
+                        header: key,
+                        key: key,
+                        width: key.length < 20 ? 20 : key.length + 5
+                    }));
+                    worksheet.addRows(changeResults);
+                }
+
+                await workbook.xlsx.writeFile(filePath);
+                fs.chmodSync(filePath, 0o644);
+
+                // Schedule deletion after 30 minutes
+                setTimeout(() => {
+                    fs.unlink(filePath, (err) => {
+                        if (err) console.error('Error deleting report file:', fileName);
+                        else console.log('Deleted stock request report:', fileName);
+                    });
+                }, 30 * 60 * 1000);
+
+                return res.json({
+                    success: true,
+                    downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}`
+                });
+            }
+
+            // 🔄 Paginated response
+            res.status(200).json({
+                reportList: changeResults,
+                totalRepords: intTotlaRecords,
+                pageCount: intPageCount,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: pageLimit,
+                totalAmount: lisTotalRecords[0].totalAmount
+            });
+
+        } catch (error) {
+            console.log(error);
+            return res.status(400).json({ errors: [{ msg: error.message }] });
+        }
+    };
+
+
     acceptStockRequest = async(req,res, next) => {
         try {
             const errors = validationResult(req);
@@ -1536,6 +1774,130 @@ class stockController {
             return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+
+dwonloadStockRequestReport = async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        const searchKeyValue = { Active: 1 };
+
+        // Region/child filtering
+        if (req.body.user_detials.type === userList.Admin || req.body.user_detials.type === userList.SubAdmin) {
+            if (req.body.user_detials.region_list.length !== 7) {
+                searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+            }
+        } else {
+            searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
+        }
+
+        // Date range validation
+        if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+            return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+        }
+        if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+        if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+
+        // Optional filters
+        if (req.query.name) searchKeyValue.full_name = req.query.name;
+        if (req.query.user_id) searchKeyValue.username = req.query.user_id;
+        if (req.query.mobile) searchKeyValue.mobile = req.query.mobile;
+        if (req.query.stocktransferStatus !== undefined && req.query.stocktransferStatus !== null && req.query.stocktransferStatus !== "") {
+            searchKeyValue.status = req.query.stocktransferStatus;
+        }
+        if (req.query.user_type_uuid) {
+            const response = await commonQueryCommon.getAgentTypeId(req.query.user_type_uuid);
+            if (!response || response.length === 0) {
+                return res.status(400).json({ errors: [{ msg: "Agent Type not found" }] });
+            }
+            searchKeyValue.usertype_id = response[0].agent_type_id;
+        }
+
+        const lisTotalRecords = await stockModule.stockTransferReportCount(searchKeyValue);
+        const intTotlaRecords = Number(lisTotalRecords[0].count);
+        const pageLimit = Number(process.env.PER_PAGE_COUNT);
+        const intPageCount = (intTotlaRecords % pageLimit === 0) ? intTotlaRecords / pageLimit : Math.floor(intTotlaRecords / pageLimit) + 1;
+
+        const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+        const limit = req.query.pageNumber > 0 ? pageLimit : intTotlaRecords;
+
+        const lisResult = await stockModule.stockTransferReport(searchKeyValue, limit, offset);
+        if (lisResult.length === 0) return res.status(200).send([]);
+
+        const agentTypeLis = await commonQueryCommon.getAllAgentType();
+        const awsURL = process.env.AWS_S3_URL || '';
+
+        const changeResults = lisResult.map((sinResult) => {
+            const { rcptUrl, payment_mode, status, usertype_id, ...other } = sinResult;
+            return {
+                ...other,
+                mode: payment_mode === 1 ? "Cash" : "Bank Transfer",
+                status: status === 0 ? "Pending" : status === 1 ? "Confirmed" : "Rejected",
+                usertype: agentTypeLis[usertype_id - 1]?.agent_type_name || 'Unknown',
+                rcptUrl: rcptUrl ? (rcptUrl.includes(awsURL) ? rcptUrl.replace(awsURL, '') : rcptUrl) : null
+            };
+        });
+
+        // ✅ Excel Report Generation for pageNumber = 0
+        if (req.query.pageNumber == 0) {
+                 const now = new Date();
+                const dateStr = new Date().toISOString().split('T')[0];
+                const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+                const fileName = `stock_request_report_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+                    return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+                }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Stock Request Report');
+
+            if (changeResults.length > 0) {
+                worksheet.columns = Object.keys(changeResults[0]).map(key => ({
+                    header: key,
+                    key: key,
+                    width: key.length < 20 ? 20 : key.length + 5
+                }));
+                worksheet.addRows(changeResults);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+            fs.chmodSync(filePath, 0o644);
+
+            // Delete after 30 minutes
+            setTimeout(() => {
+                fs.unlink(filePath, err => {
+                    if (err) console.error("Failed to delete:", fileName);
+                });
+            }, 30 * 60 * 1000);
+
+            return res.json({
+                success: true,
+                downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}`
+            });
+        }
+
+        // 🔄 Paginated response
+        res.status(200).send({
+            reportList: changeResults,
+            totalRepords: intTotlaRecords,
+            pageCount: intPageCount,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit: pageLimit,
+            totalAmount: lisTotalRecords[0].totalAmount || 0
+        });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+}
 
     rejectStockRequest = async(req,res, next) => {
         try {

@@ -86,7 +86,7 @@ class walletModel {
     getAgentBalanceTotalReport = async (param, limit, offset) => {
 
         const {sevalues,seColumnSet} = await this.queryGen(param);
-        console.log(sevalues,seColumnSet);
+        // console.log(sevalues,seColumnSet);
 
         const sql = `SELECT /*+ MAX_EXECUTION_TIME(${process.env.SQL_QUERY_TIME_OUT}) */ ${this.tablename1}.username AS userid, ${this.tablename1}.full_name AS name, CAST(${this.tablename1}.user_uuid AS CHAR(16)) AS user_uuid, ${this.tablename1}.mobile,
                             ${this.tablename3}.ex_wallet AS balance,
@@ -98,7 +98,7 @@ class walletModel {
                     WHERE ${seColumnSet} AND not ${this.tablename1}.userid = 1 ORDER BY ${this.tablename1}.full_name`
 
         const result = await dbConnectionReplica.query(sql,[...sevalues]);
-        console.log(result);
+        // console.log(result);
         return result
     }
 

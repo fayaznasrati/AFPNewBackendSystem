@@ -13,6 +13,7 @@ const {allDepartment,createDepartment,updateDepartment,deleteDepartment} = requi
 
 //department apis
 router.get('/', allDepartment, awaitHandlerFactory(departmentController.allDepartment));
+router.get('/download', allDepartment, awaitHandlerFactory(departmentController.downloadDepartments));
 router.get('/id', allDepartment, awaitHandlerFactory(departmentController.getDepartmentById));
 router.post('/', createDepartment, auth(role.Admin), awaitHandlerFactory(departmentController.createDepartment));
 router.patch('/', updateDepartment, auth(role.Admin), awaitHandlerFactory(departmentController.updateDepartment));

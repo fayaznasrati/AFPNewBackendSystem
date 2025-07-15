@@ -16,6 +16,7 @@ router.post('/recharge',singlerecharge,validateCompanyAuth,awaitHandlerFactory(c
 router.get('/check-balance',checkBalance,validateCompanyAuthCheckBalance, awaitHandlerFactory(companyController.CompanyActivityStatus));
 
 //  routes to be used by Admin
+router.get('/download',  auth(role.Admin,role.SubAdmin), awaitHandlerFactory(companyController.downloadCompanies))
 router.post('/', createCompanyMiddleware, auth(role.Admin), awaitHandlerFactory(companyController.createCompany))
 router.get('/agents', getAgentsName, auth(role.Admin), awaitHandlerFactory(companyController.getAgentsName))
 router.get('/:id', auth(role.Admin,role.SubAdmin), awaitHandlerFactory(companyController.getCompanyById))

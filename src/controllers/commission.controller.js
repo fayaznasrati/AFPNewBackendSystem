@@ -14,6 +14,10 @@ const slabController = require('./slab.controller')
 
 const httpRequestMakerCommon = require('../common/httpRequestMaker.common');
 
+const fs = require('fs');
+const path = require('path');
+const ExcelJS = require('exceljs');
+const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
 
 class commisionController {
 
@@ -249,6 +253,106 @@ class commisionController {
         }
     }
 
+   downloadDirectAgentPrePaidCommissionReport =  async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        const param = {
+        parent_id: req.body.user_detials.userid
+        };
+
+        if (req.query.userid) {
+        const userid = req.query.userid;
+        param.userid = userid.startsWith('AFP-') ? userid : `AFP-${userid}`;
+        }
+
+        if (req.query.name) param.userName = req.query.name;
+
+        if (req.query.userType_uuid) {
+        const agentType = await commonQueryCommon.getAgentTypeId(req.query.userType_uuid);
+        if (agentType.length === 0) return res.status(400).json({ errors: [{ msg: 'Agent type not found' }] });
+        param.userType = agentType[0].agent_type_id;
+        }
+
+        if (req.body.user_detials.type === role.Admin || req.body.user_detials.type === role.SubAdmin) {
+        if (req.body.user_detials.region_list.length !== 7) {
+            param.region_ids = req.body.user_detials.region_list.join(',');
+        }
+        } else {
+        param.child_ids = req.body.user_detials.child_list.join(',');
+        }
+
+        if (Object.keys(param).length === 0) {
+        return res.status(400).json({ errors: [{ msg: 'Search parameters are not proper' }] });
+        }
+
+        const lisTotalRecords = await commissionModel.directAgentPrePaidCommissionReportCount(param);
+        const totalRecords = Number(lisTotalRecords[0].count);
+        const pageLimit = Number(process.env.PER_PAGE_COUNT);
+        const pageCount = totalRecords % pageLimit === 0 ? totalRecords / pageLimit : Math.floor(totalRecords / pageLimit) + 1;
+        const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+        const limit = req.query.pageNumber > 0 ? pageLimit : totalRecords;
+
+        const data = await commissionModel.directAgentPrePaidCommissionReport(param, limit, offset);
+
+        if (req.query.pageNumber > 0) {
+        return res.status(200).json({
+            reportList: data,
+            totalRepords: totalRecords,
+            pageCount: pageCount,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit: pageLimit
+        });
+        }
+
+          const now = new Date();
+    const dateStr = new Date().toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+    const fileName = `commission_slab_report_${dateStr}_${timeStr}.xlsx`;
+        const filePath = path.join(REPORT_DIR, fileName);
+
+        if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+            return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+        }
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Commission Slab Report');
+
+        if (data.length > 0) {
+        sheet.columns = Object.keys(data[0]).map(key => ({
+            header: key,
+            key,
+            width: key.length < 20 ? 20 : key.length + 5
+        }));
+        sheet.addRows(data);
+        }
+
+        await workbook.xlsx.writeFile(filePath);
+        fs.chmodSync(filePath, 0o644);
+
+        // Auto-delete after 30 minutes
+        setTimeout(() => {
+        fs.unlink(filePath, err => {
+            if (err) console.error('Error deleting file:', filePath, err);
+            else console.log('Deleted file:', fileName);
+        });
+        }, 30 * 60 * 1000);
+
+        return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+
+    } catch (error) {
+        console.error('directAgentPrePaidCommissionReport', error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+    };
+
+
     directAgentPostPaidCommissionReport = async (req,res) =>{
         try{
             // verify req body and query
@@ -440,7 +544,128 @@ class commisionController {
             return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+    downloadInDirectAgentPrePaidCommissionReport =  async (req, res) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
+            if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+            const param = {
+            'NOT parent_id': req.body.user_detials.userid
+            };
+
+            if (req.query.parent_uuid) {
+            const searchKey = {
+                user_uuid: req.query.parent_uuid,
+                parent_id: req.body.user_detials.userid,
+                Active: 1
+            };
+            if (req.body.user_detials.type === role.Admin || req.body.user_detials.type === role.SubAdmin) {
+                if (req.body.user_detials.region_list.length !== 7) {
+                searchKey.region_ids = req.body.user_detials.region_list.join(',');
+                }
+            } else {
+                searchKey.child_ids = req.body.user_detials.child_list.join(',');
+            }
+
+            const parentUserId = await sqlQueryReplica.searchQuery(
+                this.tableName2,
+                searchKey,
+                ['userid', 'child_id'],
+                'userid',
+                'asc',
+                1,
+                0
+            );
+            if (parentUserId.length === 0) return res.status(400).json({ errors: [{ msg: 'Parent id not found' }] });
+
+            param.child_ids = parentUserId[0].child_id;
+            } else {
+            if (req.body.user_detials.type === role.Admin || req.body.user_detials.type === role.SubAdmin) {
+                if (req.body.user_detials.region_list.length !== 7) {
+                param.region_ids = req.body.user_detials.region_list.join(',');
+                }
+            } else {
+                param.child_ids = req.body.user_detials.child_list.join(',');
+            }
+            }
+
+            if (req.query.userid) {
+            const userid = req.query.userid;
+            param.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+            }
+            if (req.query.name) param.userName = req.query.name;
+            if (req.query.userType_uuid) {
+            const intUserTypeId = await commonQueryCommon.getAgentTypeId(req.query.userType_uuid);
+            if (intUserTypeId.length === 0) return res.status(400).json({ errors: [{ msg: 'Agent type not found' }] });
+            param.userType = intUserTypeId[0].agent_type_id;
+            }
+
+            const totalRecordsRaw = await commissionModel.inDirectAgentPrePaidCommissionReportCount(param);
+            const totalRecords = Number(totalRecordsRaw[0].count);
+            const pageLimit = Number(process.env.PER_PAGE_COUNT);
+            const pageCount = totalRecords % pageLimit === 0 ? totalRecords / pageLimit : Math.floor(totalRecords / pageLimit) + 1;
+            const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+            const limit = req.query.pageNumber > 0 ? pageLimit : totalRecords;
+
+            const data = await commissionModel.inDirectAgentPrePaidCommissionReport(param, limit, offset);
+
+            if (req.query.pageNumber > 0) {
+            return res.status(200).json({
+                reportList: data,
+                totalRepords: totalRecords,
+                pageCount: pageCount,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: pageLimit
+            });
+            }
+
+            // Generate Excel Report for full download
+                const now = new Date();
+            const dateStr = new Date().toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+            const fileName = `indirect_agent_commission_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            if (fs.existsSync(filePath)) {
+            const stats = fs.statSync(filePath);
+            if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+                return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+            }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Indirect Agent Commission Report');
+
+            if (data.length > 0) {
+            sheet.columns = Object.keys(data[0]).map(key => ({
+                header: key,
+                key,
+                width: key.length < 20 ? 20 : key.length + 5
+            }));
+            sheet.addRows(data);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+            fs.chmodSync(filePath, 0o644);
+
+            setTimeout(() => {
+            fs.unlink(filePath, err => {
+                if (err) console.error('Error deleting file:', filePath, err);
+                else console.log('Deleted file:', fileName);
+            });
+            }, 30 * 60 * 1000);
+
+            return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+
+        } catch (error) {
+            console.error('inDirectAgentPrePaidCommissionReport', error);
+            return res.status(400).json({ errors: [{ msg: error.message }] });
+        }
+        };
+   
+   
     inDirectAgentPostPaidCommissionReport = async(req,res) => {
         try{
             // verify req body and query

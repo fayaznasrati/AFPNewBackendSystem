@@ -40,14 +40,20 @@ router.get('/report/group/top-up',groupTopUpReport, auth(1,2,3,4,5,6), accessMan
 router.get('/report/telco/top-up',telcoWiseTopUpReport, auth(1,2,3,4,5,6), accessManager({agent : { module: [5,6], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.telcoWiseTopUpReport))
 
 // admin panel report
+router.get('/admin-report/download-Agent-Topup-Report',agentTopupReport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,6], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.downloadAgentTopupReport))
 router.get('/admin-report/top-up',agentTopupReport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,6], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.agentTopupReport))
+router.get('/admin-report/download-top-up',agentTopupReport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,6], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.downloadAgentTopupReport))
 router.get('/admin-report/summery/top-up',topUpSummeryReport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,7], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.topUpSummeryReport))
+router.get('/admin-report/summery/download-top-up',topUpSummeryReport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,7], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.downloadTopUpSummeryReport))
 router.get('/admin-report/downline/top-up',agentDownlineTopUpReport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,8], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.agentDownlineTopUpReport))
+router.get('/admin-report/downline/download-top-up',agentDownlineTopUpReport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,8], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.agentDownloadDownlineTopUpReport))
 router.get('/admin-report/telco/top-up',agentTelcoTopUpreport, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,9], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.agentTelcoTopUpreport))
 
 // admin commission reports
 router.get('/admin/agent-commission/report',agentCommissionReport, auth(role.Admin,role.SubAdmin,1,2,3,4,5,6),accessManager({subAdmin : { module: [6,1], permission: apiMethod.view }, agent : { module: [8,3], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.agentCommissionReport))
+router.get('/admin/download-agent-commission/report',agentCommissionReport, auth(role.Admin,role.SubAdmin,1,2,3,4,5,6),accessManager({subAdmin : { module: [6,1], permission: apiMethod.view }, agent : { module: [8,3], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.downloadAgentCommissionReport))
 router.get('/admin/commission/report',adminCommissionReport, auth(role.Admin), awaitHandlerFactory(rechargeController.adminCommissionReport))
+router.get('/admin/download-commission/report',adminCommissionReport, auth(role.Admin), awaitHandlerFactory(rechargeController.adminDownloadCommissionReport))
 
 // agent commission reports
 router.get('/agent/my-commission/report',commissionReport,auth(1,2,3,4,5,6), accessManager({agent : { module: [8,2], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.commissionReport))
@@ -55,6 +61,7 @@ router.get('/agent/commission/report/weekly',commissionReportSum,auth(1,2,3,4,5,
 
 // top agent report
 router.get('/top-agent/report',topRankingReport, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [2,14], permission: apiMethod.add }}),awaitHandlerFactory(rechargeController.topRankingReport))
+router.get('/download-top-agent/report',topRankingReport, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [2,14], permission: apiMethod.add }}),awaitHandlerFactory(rechargeController.downloadTopRankingReport))
 
 // goup top up report for admin panel
 router.get('/group-top-up/report',groupTopUpReportByGroupId, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [2,13], permission: apiMethod.add }}),awaitHandlerFactory(rechargeController.groupTopUpReportByGroupId))

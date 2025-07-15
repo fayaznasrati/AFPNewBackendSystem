@@ -17,5 +17,6 @@ router.put('/activity', updateActivity, auth(), awaitHandlerFactory(smsUssdContr
 
 // ussd related report
 router.get('/ussd/activity-report', getUssdActivityReport, auth(), awaitHandlerFactory(smsUssdController.getUssdActivityReport))
+router.get('/ussd/download-activity-report', getUssdActivityReport, auth(), awaitHandlerFactory(smsUssdController.downloadUssdActivityReport))
 
 module.exports = router;

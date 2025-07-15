@@ -9,6 +9,10 @@ const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 dotenv.config()
+const fs = require('fs');
+const path = require('path');
+const ExcelJS = require('exceljs');
+const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
 
 const rechargeService = require('../controllers/recharge.controller');
 const { response } = require('express');
@@ -462,6 +466,158 @@ class companyController {
           }
       
     }
+
+
+    downloadCompanies = async (req, res) => {
+    try {
+
+        console.log('Company/downloadCompanies', JSON.stringify(req.body), JSON.stringify(req.query));
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        const orderby = "company_id";
+        const ordertype = "DESC";
+
+        const key = [
+            'company_id', 'company_name', 'allowed_ips', 'company_api_key',
+            'bcrypt_hash', 'active', 'account_username', 'account_userid',
+            'created_at', 'created_by', 'last_modified_by', 'last_modified_on'
+        ];
+
+        const lisTotalRecords = await sqlQuery.selectStar(this.tableName1, key);
+        const intTotlaRecords = lisTotalRecords.length;
+        const intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+
+        const offset = req.query.pageNumber > 0
+            ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT)
+            : 0;
+        const limit = req.query.pageNumber > 0
+            ? Number(process.env.PER_PAGE_COUNT)
+            : intTotlaRecords;
+
+        let rawCompanies = await sqlQuery.searchQueryNoCon(
+            this.tableName1,
+            [
+                'company_id AS id',
+                'company_name AS name',
+                'allowed_ips',
+                'company_api_key AS API_key',
+                'bcrypt_hash',
+                'active AS status',
+                'account_username AS belongs_to',
+                'account_userid AS belongs_to_id',
+                'created_at',
+                'created_by',
+                'last_modified_by',
+                'last_modified_on'
+            ],
+            orderby,
+            ordertype,
+            limit,
+            offset
+        );
+            rawCompanies = rawCompanies.map(company => ({
+            ...company,
+            status: company.status === 1 ? 'Active' : 'Inactive'
+            }));
+
+        if (!rawCompanies || rawCompanies.length === 0) {
+            return res.status(200).send({
+                reportList: [],
+                totalRepords: 0,
+                pageCount: 0,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: Number(process.env.PER_PAGE_COUNT)
+            });
+        }
+
+        const enrichedCompanyList = await Promise.all(
+            rawCompanies.map(async (company) => {
+                try {
+                    const reqClone = {
+                        ...req,
+                        body: {
+                            ...req.body,
+                            user_detials: { username: company.belongs_to }
+                        }
+                    };
+                    const status = await this.getCompanyActivity(reqClone);
+                    return { ...company, statusDetails: status };
+                } catch (err) {
+                    console.error(`Error for company ${company.name}:`, err.message);
+                    return { ...company, statusDetails: null };
+                }
+            })
+        );
+
+        if (req.query.pageNumber == 0) {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+            const fileName = `company_list_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            // If file exists and is recent, reuse it
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                const createdTime = moment(stats.ctime);
+                if (moment(now).diff(createdTime, 'minutes') < 30) {
+                    return res.status(200).json({
+                        success: true,
+                        downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                    });
+                }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Companies');
+
+            // Set columns from enriched keys
+            if (enrichedCompanyList.length > 0) {
+                const sample = enrichedCompanyList[0];
+                sheet.columns = Object.keys(sample).map((key) => ({
+                    header: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+                    key,
+                    width: 25
+                }));
+                sheet.getRow(1).font = { bold: true };
+                sheet.addRows(enrichedCompanyList);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+
+            // Auto-delete
+            setTimeout(() => {
+                fs.unlink(filePath, (err) => {
+                    if (err && err.code !== 'ENOENT') {
+                        console.error(`Failed to delete report file ${fileName}:`, err.message);
+                    }
+                });
+            }, 30 * 60 * 1000);
+
+            return res.status(200).json({
+                success: true,
+                downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+            });
+        }
+
+        return res.status(200).send({
+            reportList: enrichedCompanyList,
+            totalRepords: intTotlaRecords,
+            pageCount: intPageCount,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit: Number(process.env.PER_PAGE_COUNT)
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+};
   //################---Generate API Key for companies---################
     generateCompanyKeys = async (req, res, next) => {
     try {

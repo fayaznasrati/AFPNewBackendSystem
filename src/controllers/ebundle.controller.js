@@ -17,7 +17,11 @@ const commonQueryCommon = require("../common/commonQuery.common");
 const req = require("express/lib/request");
 const res = require("express/lib/response");
 const bundleRechargeModel = require("../models/bundleRecharge.model");
+const ExcelJS = require('exceljs');
+const fs = require('fs');
+const moment = require('moment');
 
+const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
 /******************************************************************************
  *                              ebundle Controller
  ******************************************************************************/
@@ -81,7 +85,99 @@ class EbundleController {
       return res.status(400).json({ errors: [{ msg: error.message }] });
     }
   };
+    downloadEbundle = async (req, res) => {
+      try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+          return res.status(400).json({ errors: errors.array() });
+        }
 
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        const searchKeyValue = {
+          status: 1,
+        };
+
+        if (req.query.operator_uuid) searchKeyValue.operator_uuid = req.query.operator_uuid;
+        if (req.query.status !== undefined) searchKeyValue.status = req.query.status;
+        if (req.query.ebundleType) searchKeyValue.ebundleType = req.query.ebundleType;
+
+        const key = ['*'];
+        const orderby = 'operatorType';
+        const ordertype = 'ASC';
+
+        // Get total record count
+        const allResults = await sqlQuery.searchQueryNoLimit(this.tableName1, searchKeyValue, key, orderby, ordertype);
+        const intTotalRecords = allResults.length;
+        const intPageCount = Math.ceil(intTotalRecords / Number(process.env.PER_PAGE_COUNT));
+
+        const offset = req.query.pageNumber > 0 ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+        const limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotalRecords;
+
+        const paginatedResult = allResults.slice(offset, offset + limit);
+
+        // ==== Generate Excel file if pageNumber = 0 ====
+        if (req.query.pageNumber == 0) {
+          const now = new Date();
+          const dateStr = now.toISOString().split('T')[0];
+          const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+          const fileName = `ebundle_report_${dateStr}_${timeStr}.xlsx`;
+          const filePath = path.join(REPORT_DIR, fileName);
+
+          if (fs.existsSync(filePath)) {
+            const stat = fs.statSync(filePath);
+            if (moment().diff(moment(stat.ctime), 'minutes') < 30) {
+              return res.status(200).json({
+                success: true,
+                downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+              });
+            }
+          }
+
+          const workbook = new ExcelJS.Workbook();
+          const worksheet = workbook.addWorksheet('E-Bundle Report');
+
+          if (paginatedResult.length > 0) {
+            worksheet.columns = Object.keys(paginatedResult[0]).map(key => ({
+              header: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+              key,
+              width: 25
+            }));
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.addRows(paginatedResult);
+          }
+
+          await workbook.xlsx.writeFile(filePath);
+
+          // Auto-delete after 30 minutes
+          setTimeout(() => {
+            fs.unlink(filePath, err => {
+              if (err && err.code !== 'ENOENT') {
+                console.error(`Failed to delete report ${fileName}:`, err.message);
+              }
+            });
+          }, 30 * 60 * 1000);
+
+          return res.status(200).json({
+            success: true,
+            downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+          });
+        }
+
+        // ==== Paginated JSON response ====
+        return res.status(200).json({
+          reportList: paginatedResult,
+          totalRecords: intTotalRecords,
+          pageCount: intPageCount,
+          currentPage: Number(req.query.pageNumber),
+          pageLimit: Number(process.env.PER_PAGE_COUNT)
+        });
+
+      } catch (error) {
+        console.log(error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+      }
+    };
 
   //function to get a ebundle by id
   getMNOsBundles = async (req, res, next) => {
@@ -559,6 +655,169 @@ class EbundleController {
     }
    };
 
+  downloadEbundleReports = async (req, res) => {
+      try {
+          const errors = validationResult(req);
+          if (!errors.isEmpty()) {
+              return res.status(400).json({ errors: errors.array() });
+          }
+
+          if (!req.query.pageNumber) req.query.pageNumber = 0;
+          const searchKeyValue = { Active: 1 };
+
+          // Filter: Region list
+          if (req.body.user_detials.region_list?.length !== 7) {
+              searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+          }
+
+          // Filter: Mobile / Trans number
+          if (req.query.mobile) {
+              if (req.query.mobile.length === 10) {
+                  searchKeyValue.mobile_number = req.query.mobile;
+              } else {
+                  searchKeyValue.trans_number = req.query.mobile;
+              }
+          }
+
+          // Filter: User ID
+          if (req.query.userId) {
+              const userId = req.query.userId.startsWith("AFP-") ? req.query.userId : `AFP-${req.query.userId}`;
+              searchKeyValue.username = userId;
+          }
+
+          // Filter: User Name
+          if (req.query.userName) {
+              if (Number(req.query.userName)) {
+                  const mobile = req.query.userName;
+                  const reqNum = (mobile.length === 10) ? [mobile, mobile.slice(1, 11)] : [mobile, '0' + mobile];
+                  searchKeyValue.request_mobile_no = reqNum;
+              } else {
+                  searchKeyValue.full_name = req.query.userName;
+              }
+          }
+
+          // Filter: Date Range
+          if (!searchKeyValue.trans_number && (req.query.startDate || req.query.endDate)) {
+              if (!req.query.startDate || !req.query.endDate) {
+                  return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+              }
+              searchKeyValue.start_date = req.query.startDate;
+              searchKeyValue.end_date = req.query.endDate;
+          }
+
+          // Filter: Operator UUID
+          if (req.query.operator_uuid) {
+              const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+              if (operator == 0) {
+                  return res.status(400).json({ errors: [{ msg: "Operator ID not found" }] });
+              }
+              searchKeyValue.operator_id = operator[0].operator_id;
+          }
+
+          // Filter: Status
+          if (req.query.status) {
+              searchKeyValue.status = req.query.status;
+          }
+
+          // Filter: eBundleTypes
+          if (req.query.eBundleTypes) {
+              searchKeyValue.bundle_type = req.query.eBundleTypes;
+          }
+
+          // Validate search
+          if (Object.keys(searchKeyValue).length === 0) {
+              return res.status(400).json({ errors: [{ msg: "Improper search parameters" }] });
+          }
+
+          const lisTotalRecords = await bundleRechargeModel.agentTopupSumCountReport(searchKeyValue);
+          if (lisTotalRecords.length === 0) {
+              return res.status(400).send({ message: "Calculation error" });
+          }
+
+          const intTotlaRecords = Number(lisTotalRecords[0].count);
+          const intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+          const sumRechargeAmount = Number(lisTotalRecords[0].amount) || 0;
+          const sumDebitedAmount = Number(lisTotalRecords[0].deductAmount) || 0;
+
+          const offset = req.query.pageNumber > 0 ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+          const limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
+
+          const lisResponse = await bundleRechargeModel.agentBundleTopupReport(searchKeyValue, limit, offset);
+
+          // === Excel Export ===
+          if (req.query.pageNumber == 0) {
+              const now = new Date();
+              const fileName = `ebundle_report_${moment(now).format("YYYY-MM-DD_HH-mm-ss")}.xlsx`;
+              const filePath = path.join(REPORT_DIR, fileName);
+
+              // Avoid regeneration if file already exists and is < 30 mins old
+              if (fs.existsSync(filePath)) {
+                  const stat = fs.statSync(filePath);
+                  if (moment().diff(moment(stat.ctime), 'minutes') < 30) {
+                      return res.status(200).json({
+                          success: true,
+                          downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                      });
+                  }
+              }
+
+              // Generate Excel
+              const workbook = new ExcelJS.Workbook();
+              const worksheet = workbook.addWorksheet('eBundle Report');
+
+              if (lisResponse.length > 0) {
+                  worksheet.columns = Object.keys(lisResponse[0]).map((key) => ({
+                      header: key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()),
+                      key,
+                      width: 25
+                  }));
+
+                  worksheet.getRow(1).font = { bold: true };
+                  worksheet.addRows(lisResponse);
+              }
+
+              await workbook.xlsx.writeFile(filePath);
+
+              // Auto delete after 30 minutes
+              setTimeout(() => {
+                  fs.unlink(filePath, (err) => {
+                      if (err && err.code !== 'ENOENT') {
+                          console.error(`Failed to delete ${fileName}:`, err.message);
+                      }
+                  });
+              }, 30 * 60 * 1000);
+
+              return res.status(200).json({
+                  success: true,
+                  downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+              });
+          }
+
+          // === JSON paginated response ===
+          return res.status(200).send({
+              reportList: lisResponse,
+              totalRepords: intTotlaRecords,
+              pageCount: intPageCount,
+              currentPage: Number(req.query.pageNumber),
+              totalRechargeAmount: sumRechargeAmount,
+              totalDebitedAmount: sumDebitedAmount,
+              pageLimit: Number(process.env.PER_PAGE_COUNT)
+          });
+
+      } catch (error) {
+          console.error('getEbundleReports error:', error.message);
+          return res.status(200).send({
+              reportList: [{}],
+              totalRepords: 0,
+              pageCount: 0,
+              currentPage: Number(req.query.pageNumber),
+              totalRechargeAmount: 0,
+              totalDebitedAmount: 0,
+              pageLimit: Number(process.env.PER_PAGE_COUNT)
+          });
+      }
+  };
+
    getEbundleSummeryReport = async (req, res) => {
       try {
           // body and query validators
@@ -700,6 +959,189 @@ class EbundleController {
       }
   }
 
+  downloadEbundleSummeryReport = async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+        const isExcel = req.query.pageNumber == 0;
+
+        let searchKeyValue = { Active: 1 };
+
+        // Region filter
+        if (req.body.user_detials.region_list.length != 7) {
+            searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+        }
+
+        // Parent UUID check
+        if (req.query.parent_uuid) {
+            const parentDetails = await sqlQueryReplica.searchQuery(this.tableName2, {
+                user_uuid: req.query.parent_uuid
+            }, ['userid'], 'userid', "ASC", 1, 0);
+            if (parentDetails.length === 0) {
+                return res.status(400).json({ errors: [{ msg: 'Parent id not found' }] });
+            }
+            searchKeyValue.parent_id = parentDetails[0].userid;
+        } else if (!req.query.userId) {
+            searchKeyValue.parent_id = 1;
+        }
+
+        // Username filter
+        if (req.query.userId) {
+            const userId = req.query.userId;
+            searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
+        }
+
+        if (req.query.userName) {
+            searchKeyValue.full_name = req.query.userName;
+        }
+
+        // Count total agents
+        const lisTotalRecords = await sqlQueryReplica.searchQueryNoLimitTimeout(
+            this.tableName2,
+            searchKeyValue,
+            ['COUNT(1) AS count'],
+            'userid',
+            'ASC'
+        );
+        const intTotlaRecords = Number(lisTotalRecords[0].count);
+        const intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+        const offset = req.query.pageNumber > 0 ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+        const limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
+
+        // Get agent list
+        const agentList = await sqlQueryReplica.searchQueryTimeout(
+            this.tableName2,
+            searchKeyValue,
+            ['username', 'full_name', 'child_id', 'userid', 'province_Name', 'region_name', "IF(usertype_id = 1,'Master Distributor',IF(usertype_id = 2,'Distributor',IF(usertype_id = 3,'Reseller','Retailer'))) as agentType"],
+            'userid',
+            'ASC',
+            limit,
+            offset
+        );
+
+        // Date range & status filter
+        searchKeyValue = {};
+        if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+            return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+        }
+
+        if (req.query.startDate && req.query.endDate) {
+            searchKeyValue.start_date = req.query.startDate;
+            searchKeyValue.end_date = req.query.endDate;
+        }
+
+        if (req.query.status) {
+            searchKeyValue[req.query.status == 4 ? 'rollback_status' : 'status'] = req.query.status == 4 ? 3 : req.query.status;
+        } else {
+            searchKeyValue.status = 2;
+        }
+
+        // Prepare data rows
+        const dataRows = [];
+        for (const agent of agentList) {
+            let { full_name, username, child_id, userid, region_name, province_Name, agentType } = agent;
+            const childIds = child_id ? `${child_id},${userid}` : userid;
+            const rechargeDetails = await bundleRechargeModel.ebundleSummeryReport(searchKeyValue, childIds);
+
+            dataRows.push({
+                userId: username,
+                userName: full_name,
+                regionName: region_name,
+                provinceName: province_Name,
+                agentType,
+                Salam_totalAmount: rechargeDetails?.Salam_totalAmount || 0,
+                Salam_ActivationCount: rechargeDetails?.Salam_ActivationCount || 0,
+                AWCC_totalAmount: rechargeDetails?.AWCC_totalAmount || 0,
+                AWCC_ActivationCount: rechargeDetails?.AWCC_ActivationCount || 0,
+                MTN_totalAmount: rechargeDetails?.MTN_totalAmount || 0,
+                MTN_ActivationCount: rechargeDetails?.MTN_ActivationCount || 0,
+                Etisalat_totalAmount: rechargeDetails?.Etisalat_totalAmount || 0,
+                Etisalat_ActivationCount: rechargeDetails?.Etisalat_ActivationCount || 0,
+                Roshan_totalAmount: rechargeDetails?.Roshan_totalAmount || 0,
+                Roshan_ActivationCount: rechargeDetails?.Roshan_ActivationCount || 0,
+                TotalTopUpBundleAmount: rechargeDetails?.TotalTopUpBundleAmount || 0,
+                TotalActivationCount: rechargeDetails?.TotalActivationCount || 0
+            });
+        }
+
+        // Return Excel if pageNumber == 0
+        if (isExcel) {
+            const filename = `ebundle_summary_${moment().format("YYYY-MM-DD_HH-mm-ss")}.xlsx`;
+            const filePath = path.join(REPORT_DIR, filename);
+
+            if (fs.existsSync(filePath)) {
+                const stat = fs.statSync(filePath);
+                if (moment().diff(moment(stat.ctime), 'minutes') < 30) {
+                    return res.status(200).json({
+                        success: true,
+                        downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`
+                    });
+                }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('eBundle Summary');
+
+            if (dataRows.length > 0) {
+                worksheet.columns = Object.keys(dataRows[0]).map((key) => ({
+                    header: key.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()),
+                    key,
+                    width: 25
+                }));
+                worksheet.getRow(1).font = { bold: true };
+                worksheet.addRows(dataRows);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+            setTimeout(() => {
+                fs.unlink(filePath, err => {
+                    if (err && err.code !== 'ENOENT') {
+                        console.error(`Error deleting ${filename}:`, err.message);
+                    }
+                });
+            }, 30 * 60 * 1000); // delete after 30 mins
+
+            return res.status(200).json({
+                success: true,
+                downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`
+            });
+        }
+
+        // Return JSON chunked if pageNumber > 0
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Transfer-Encoding', 'chunked');
+
+        res.write(`{ "reportList": `);
+        res.write(JSON.stringify(dataRows));
+        res.write(`,
+            "totalRepords": ${intTotlaRecords},
+            "pageCount": ${intPageCount},
+            "currentPage": ${Number(req.query.pageNumber)},
+            "pageLimit": ${Number(process.env.PER_PAGE_COUNT)}
+        }`);
+        res.end();
+
+    } catch (error) {
+        console.error('getEbundleSummeryReport error:', error);
+        if (req.query.pageNumber == 0) {
+            res.status(200).send([{}]);
+        } else {
+            res.status(200).send({
+                reportList: [{}],
+                totalRepords: 0,
+                pageCount: 0,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: Number(process.env.PER_PAGE_COUNT)
+            });
+        }
+    }
+}; 
+
+
   getAgentEbundleDownlineReport = async (req, res) => {
           try {
               // body and query validators
@@ -830,6 +1272,166 @@ class EbundleController {
           }
   }
 
+  downloadAgentEbundleDownlineReport =async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    if (!req.query.pageNumber) req.query.pageNumber = 0;
+    const isExcel = req.query.pageNumber == 0;
+
+    console.log('recharge/agentDownlineTopUpReport', JSON.stringify(req.body), JSON.stringify(req.query));
+
+    let searchKeyValue = { Active: 1 };
+
+    // Parent user lookup
+    if (req.query.parent_uuid) {
+      let searchKeyValue1 = {
+        user_uuid: req.query.parent_uuid,
+        Active: 1,
+      };
+      if (req.body.user_detials.region_list.length != 7) {
+        searchKeyValue1.region_ids = req.body.user_detials.region_list.join(',');
+      }
+      const lisResponce1 = await sqlQueryReplica.searchQuery(
+        this.tableName2,
+        searchKeyValue1,
+        ['userid', 'child_id'],
+        'userid',
+        'ASC',
+        1,
+        0
+      );
+      if (lisResponce1.length === 0) return res.status(400).json({ errors: [{ msg: "Parent ID not found" }] });
+      searchKeyValue.child_ids = lisResponce1[0].child_id || '0';
+    } else {
+      if (req.body.user_detials.region_list.length != 7) {
+        searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+      }
+    }
+
+    // Optional filters (safely ignore undefined)
+    if (req.query.agentId) searchKeyValue.username = req.query.agentId;
+    if (req.query.agentName) searchKeyValue.full_name = req.query.agentName;
+    if (req.query.agentMobile) searchKeyValue.mobile = req.query.agentMobile;
+    if (req.query.agentEmail) searchKeyValue.emailid = req.query.agentEmail;
+
+    // Validate date range
+    if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+      return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+    }
+    if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+    if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+
+    // Operator ID validation
+    if (req.query.operator_uuid) {
+      const operatorResponse = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+      if (!operatorResponse || operatorResponse.length === 0 || operatorResponse == 0) {
+        return res.status(400).json({ errors: [{ msg: "Operator ID not found" }] });
+      }
+      searchKeyValue.operator_id = operatorResponse[0].operator_id;
+    }
+
+    // Status filter, with rollback mapping
+    if (req.query.status) {
+      searchKeyValue[req.query.status == 4 ? 'rollback_status' : 'status'] = req.query.status == 4 ? 3 : req.query.status;
+    }
+
+    // Prevent empty search params
+    if (Object.keys(searchKeyValue).length === 0) {
+      return res.status(400).json({ errors: [{ msg: "Improper search key parameters" }] });
+    }
+
+    // Total record count
+    const lisTotalRecords = await bundleRechargeModel.getAgentEbundleDownlineReportCount(searchKeyValue);
+    let intTotlaRecords = Number(lisTotalRecords[0].count);
+    let intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+    let offset = req.query.pageNumber > 0 ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+    let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
+
+    // Get data rows
+    const lisResponce2 = await bundleRechargeModel.getAgentEbundleDownlineReport(searchKeyValue, limit, offset);
+
+    if (isExcel) {
+      // Prepare file name & path
+      const filename = `agent_ebundle_downline_report_${moment().format('YYYY-MM-DD_HH-mm-ss')}.xlsx`;
+      const filePath = path.join(REPORT_DIR, filename);
+
+      // Reuse file if created in last 30 mins
+      if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        if (moment().diff(moment(stats.ctime), 'minutes') < 30) {
+          return res.status(200).json({
+            success: true,
+            downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
+          });
+        }
+      }
+
+      // Create workbook & worksheet
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Agent eBundle Downline Report');
+
+      if (lisResponce2.length > 0) {
+        // Define columns based on keys of first item
+        worksheet.columns = Object.keys(lisResponce2[0]).map((key) => ({
+          header: key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()),
+          key,
+          width: 25,
+        }));
+
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.addRows(lisResponce2);
+      }
+
+      // Write file to disk
+      await workbook.xlsx.writeFile(filePath);
+
+      // Schedule file deletion in 30 minutes
+      setTimeout(() => {
+        fs.unlink(filePath, (err) => {
+          if (err && err.code !== 'ENOENT') {
+            console.error(`Error deleting ${filename}:`, err.message);
+          }
+        });
+      }, 30 * 60 * 1000);
+
+      return res.status(200).json({
+        success: true,
+        downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
+      });
+    }
+
+    // If no Excel export, return JSON paginated response
+    res.status(200).json({
+      reportList: lisResponce2,
+      totalRepords: intTotlaRecords,
+      pageCount: intPageCount,
+      currentPage: Number(req.query.pageNumber),
+      pageLimit: Number(process.env.PER_PAGE_COUNT),
+      totalAmount: lisTotalRecords[0].totalAmount || 0,
+      totalDeductAdmount: lisTotalRecords[0].totalDeductAmount || 0,
+    });
+
+  } catch (error) {
+    console.error('getAgentEbundleDownlineReport error:', error);
+    if (req.query.pageNumber == 0) {
+      return res.status(200).send([{}]);
+    } else {
+      return res.status(200).json({
+        reportList: [{}],
+        totalRepords: 0,
+        pageCount: 0,
+        currentPage: Number(req.query.pageNumber),
+        pageLimit: Number(process.env.PER_PAGE_COUNT),
+        totalAmount: 0,
+        totalDeductAdmount: 0,
+      });
+    }
+  }
+};
 }
 
 module.exports = new EbundleController();

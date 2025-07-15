@@ -31,6 +31,9 @@ const agentPerModule = require('../models/agentModule.model');
 const redisMaster = require('../common/master/radisMaster.common');
 
 // const userLists = require('../utils/userRoles.utils')
+const fs = require('fs');
+const ExcelJS = require('exceljs');
+const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
 
 let moduleList =  [
     {
@@ -1110,7 +1113,151 @@ class loginController {
         }
     }
 
-    // function to update user details
+
+    downloadDwonlineAgent = async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        let searchKeyValue = {
+            'NOT parent_id': req.body.user_detials.userid,
+            Active: 1
+        };
+
+        const userType = req.body.user_detials.type;
+        const isAdmin = userType == userList.Admin || userType == userList.SubAdmin;
+
+           if (req.body.user_detials.type == userList.Admin || req.body.user_detials.type == userList.SubAdmin) {
+                if (req.body.user_detials.region_list.length !== 7) {
+                    searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+                }
+            } else {
+                searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
+            }
+
+        if (req.query.parentAgentUuid) {
+            let searchKeyValue1 = {
+                user_uuid: req.query.parentAgentUuid,
+                Active: 1
+            };
+
+               if (req.body.user_detials.type == userList.Admin || req.body.user_detials.type == userList.SubAdmin) {
+                if (req.body.user_detials.region_list.length !== 7) {
+                    searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+                }
+            } else {
+                searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
+            }
+
+            const lisResponce = await sqlQueryReplica.searchQuery(
+                this.tableName1,
+                searchKeyValue1,
+                ["child_id", "userid"],
+                "userid",
+                "ASC",
+                1,
+                0
+            );
+
+            if (lisResponce.length === 0) {
+                return res.status(400).json({ errors: [{ msg: 'Selected Parent not found' }] });
+            }
+
+            searchKeyValue.parent_id = lisResponce[0].userid;
+        }
+
+        if (req.query.userType_uuid) {
+            const resUserType = await this.checkAgentType(req.query.userType_uuid);
+            if (resUserType.length === 0) return res.status(400).json({ errors: [{ msg: 'User type UUID not found' }] });
+            searchKeyValue.usertype_id = resUserType[0].agent_type_id;
+        }
+
+        if (req.query.id) searchKeyValue.username = req.query.id;
+        if (req.query.name) {
+            if (Number(req.query.name)) searchKeyValue.mobile = req.query.name;
+            else searchKeyValue.full_name = req.query.name;
+        }
+        if (req.query.province_uuid) searchKeyValue.province_uuid = req.query.province_uuid;
+        if (req.query.region_uuid) searchKeyValue.region_uuid = req.query.region_uuid;
+        if (req.query.status) searchKeyValue.Active = req.query.status;
+        if (req.query.mobileNumber) searchKeyValue.mobile = req.query.mobileNumber;
+
+        if (Object.keys(searchKeyValue).length === 2) {
+            if ((req.query.start_date && !req.query.end_date) || (req.query.end_date && !req.query.start_date))
+                return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+
+            if (req.query.start_date) searchKeyValue.start_date = req.query.start_date;
+            if (req.query.end_date) searchKeyValue.end_date = req.query.end_date;
+        }
+
+        const lisTotalRecords = await agentModule.searchAgentCount(searchKeyValue);
+        let totalRecords = lisTotalRecords.length;
+
+        const pageLimit = Number(process.env.PER_PAGE_COUNT);
+        const pageCount = totalRecords % pageLimit === 0 ? totalRecords / pageLimit : Math.floor(totalRecords / pageLimit) + 1;
+
+        const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+        const limit = req.query.pageNumber > 0 ? pageLimit : totalRecords;
+
+        const lisResults = await agentModule.searchAgent(searchKeyValue, limit, offset);
+
+        // Handle Download
+        if (req.query.pageNumber == 0) {
+               const now = new Date();
+                const dateStr = new Date().toISOString().split('T')[0];
+                const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+                const fileName = `downline_agent_list_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+                    return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+                }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Agents');
+
+            if (lisResults.length > 0) {
+                worksheet.columns = Object.keys(lisResults[0]).map((key) => ({
+                    header: key,
+                    key: key,
+                    width: key.length < 20 ? 20 : key.length + 5
+                }));
+                worksheet.addRows(lisResults);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+            fs.chmodSync(filePath, 0o644);
+
+            // Delete file after 30 minutes
+            setTimeout(() => {
+                fs.unlink(filePath, (err) => {
+                    if (err) console.error('Error deleting file:', fileName);
+                    else console.log('Deleted agent report file:', fileName);
+                });
+            }, 30 * 60 * 1000); // 30 min
+
+            return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+        }
+
+        return res.status(200).json({
+            reportList: lisResults,
+            totalRepords: totalRecords,
+            pageCount: pageCount,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit: pageLimit
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+    };
+
     updateAgentDetials = async(req, res, next) => {
         try {
             const errors = validationResult(req);

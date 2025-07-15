@@ -25,7 +25,9 @@ const commonQueryCommon = require('../common/commonQuery.common');
 const httpRequestMakerCommon = require('../common/httpRequestMaker.common');
 
 const redisFunction = require('../common/master/radisMaster.common')
-
+const fs = require('fs');
+const ExcelJS = require('exceljs');
+const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
 // const { toIsoString } = require('../common/timeFunction.common')
 
 
@@ -1239,6 +1241,140 @@ class AdminController {
             return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+
+
+    downloadSubAdminList = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        const searchKeyValue = {
+            usertype: roles.SubAdmin,
+            active: 1
+        };
+
+        const key = [
+            "full_name AS name",
+            "username AS userid",
+            "usertype_id",
+            "mobile",
+            "CAST(created_on AS CHAR(20)) AS createdOn",
+            "status"
+        ];
+
+        const orderby = "full_name";
+        const ordertype = "ASC";
+
+        const lisTotalRecords = await sqlQueryReplica.searchQueryNoLimit(
+            this.tableName1,
+            searchKeyValue,
+            ['COUNT(1) AS count'],
+            orderby,
+            ordertype
+        );
+
+        const intTotlaRecords = Number(lisTotalRecords[0].count);
+        const intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+        const offset = req.query.pageNumber > 0
+            ? (req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT)
+            : 0;
+        const limit = req.query.pageNumber > 0
+            ? Number(process.env.PER_PAGE_COUNT)
+            : intTotlaRecords;
+
+        const lisResult = await sqlQueryReplica.searchQuery(
+            this.tableName1,
+            searchKeyValue,
+            key,
+            orderby,
+            ordertype,
+            limit,
+            offset
+        );
+
+        const lisDepart = await commonQueryCommon.getAllDepartment();
+        if (!lisDepart) {
+            return res.status(400).json({ errors: [{ msg: "department list error" }] });
+        }
+
+        const finalResult = lisResult.map((result) => {
+            const { status, usertype_id, ...other } = result;
+            return {
+                ...other,
+                status: status ? "Active" : "In-Active",
+                departmentName: "Admin Assistant"
+            };
+        });
+
+        // Excel download if pageNumber == 0
+        if (req.query.pageNumber == 0) {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+            const fileName = `sub_admin_list_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                const createdTime = moment(stats.ctime);
+                if (moment(now).diff(createdTime, 'minutes') < 30) {
+                    return res.status(200).json({
+                        success: true,
+                        downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                    });
+                }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Sub Admin List');
+
+            if (finalResult.length > 0) {
+                const sample = finalResult[0];
+                sheet.columns = Object.keys(sample).map((key) => ({
+                    header: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                    key,
+                    width: 20
+                }));
+                sheet.getRow(1).font = { bold: true };
+                sheet.addRows(finalResult);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+
+            // Auto-delete after 30 minutes
+            setTimeout(() => {
+                fs.unlink(filePath, (err) => {
+                    if (err && err.code !== 'ENOENT') {
+                        console.error(`Failed to delete report file ${fileName}:`, err.message);
+                    }
+                });
+            }, 30 * 60 * 1000);
+
+            return res.status(200).json({
+                success: true,
+                downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+            });
+        }
+
+        // Else, paginated JSON
+        return res.status(200).json({
+            reportList: finalResult,
+            totalRepords: intTotlaRecords,
+            pageCount: intPageCount,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit: Number(process.env.PER_PAGE_COUNT)
+        });
+
+    } catch (error) {
+        console.error('getSubAdminList', error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+    };
+
 
     // admin update sub admin details
     updateSubadminDetails = async (req,res,next) =>{

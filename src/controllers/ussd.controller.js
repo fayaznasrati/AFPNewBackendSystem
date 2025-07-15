@@ -49,7 +49,7 @@ class ussdController {
 
             // console.log('req.body',req.body)
             let checkUser = await this.verifyUser(reqDetails.userNumber, reqDetails.userApplicationType)
-            // console.log('user details : ',checkUser)
+            console.log('user details : ',checkUser)
             if(checkUser.error) return ({error})
             // console.log(checkUser == 0 , checkUser == 1)
             if( checkUser == 0 || checkUser == 1 ) return ({userState : checkUser})
