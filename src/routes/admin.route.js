@@ -54,6 +54,7 @@ router.post('/force-logout',verifyAgentId,auth(role.Admin,role.SubAdmin,1,2,3,4,
 //api related to sub admin
 router.post('/sub-admin/',addSubAdmin,auth(role.Admin), awaitHandlerFactory(adminController.addSubAdmin)) // create sub admin
 router.get('/sub-admin',getSubAdminList,auth(role.Admin), awaitHandlerFactory(adminController.getSubAdminList)) //get allsub admin
+router.get('/sub-admin/download',getSubAdminList,auth(role.Admin), awaitHandlerFactory(adminController.downloadSubAdminList)) //get allsub admin
 router.put('/sub-admin',updateSubadminDetails, auth(role.Admin), awaitHandlerFactory(adminController.updateSubadminDetails)) // update sub admin details
 router.get('/sub-admin/id',getPerSubAdminDetails,auth(role.Admin), awaitHandlerFactory(adminController.getPerSubAdminDetails)) // get singel adimn details
 

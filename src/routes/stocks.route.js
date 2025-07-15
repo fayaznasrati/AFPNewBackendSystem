@@ -45,6 +45,7 @@ const upload = multer({
 
 
 router.get('/', getAgentDetialsSchema, auth(role.Admin,role.SubAdmin,1,2,3,4,5,6), accessManager({subAdmin : { module: [3,1], permission: apiMethod.view } , agent: { module: [6,1], permission: apiMethod.view }}), awaitHandlerFactory(stocksController.getAgentDetials))
+router.get('/download', getAgentDetialsSchema, auth(role.Admin,role.SubAdmin,1,2,3,4,5,6), accessManager({subAdmin : { module: [3,1], permission: apiMethod.view } , agent: { module: [6,1], permission: apiMethod.view }}), awaitHandlerFactory(stocksController.downloadAgentDetials))
 router.post('/', transferStockSchema, auth(role.Admin,role.SubAdmin,1,2,3,4,5,6), accessManager({subAdmin : { module: [3,1], permission: apiMethod.add } , agent: { module: [6,1], permission: apiMethod.add }}), awaitHandlerFactory(stocksController.transferStock))
 
 router.get('/admin-transaction',StockTransferReport,auth(role.Admin,role.SubAdmin,1,2,3,4,5,6), accessManager({subAdmin : { module: [3,2], permission: apiMethod.view } , agent: { module: [6,2], permission: apiMethod.view }}), awaitHandlerFactory(stocksController.adminStockTransferReport))
@@ -52,9 +53,11 @@ router.get('/admin-recieved',StockTransferReport,auth(1,2,3,4,5,6), accessManage
 router.get('/agent-transaction',downlineStockTransferReport,auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [3,3], permission: apiMethod.view }}), awaitHandlerFactory(stocksController.downlineStockTransferReport))
 
 router.get('/pending-request',StockTransferReport,auth(role.Admin,role.SubAdmin,1,2,3,4,5,6), accessManager({subAdmin : { module: [3,4], permission: apiMethod.view } , agent: { module: [6,3], permission: apiMethod.view }}), awaitHandlerFactory(stocksController.stocksRequests))
+router.get('/download-pending-request',StockTransferReport,auth(role.Admin,role.SubAdmin,1,2,3,4,5,6), accessManager({subAdmin : { module: [3,4], permission: apiMethod.view } , agent: { module: [6,3], permission: apiMethod.view }}), awaitHandlerFactory(stocksController.downloadPendingStocksRequests))
 router.post('/accept-request',modifyStockRequest, auth(role.Admin,role.SubAdmin,1,2,3,4,5,6), accessManager({subAdmin : { module: [3,4], permission: apiMethod.edit } , agent: { module: [6,3], permission: apiMethod.edit }}), awaitHandlerFactory(stocksController.acceptStockRequest))
 router.post('/reject-request',rejectStockRequest, auth(role.Admin,role.SubAdmin,1,2,3,4,5,6), accessManager({subAdmin : { module: [3,4], permission: apiMethod.edit } , agent: { module: [6,3], permission: apiMethod.edit }}), awaitHandlerFactory(stocksController.rejectStockRequest))
 router.get('/request-report',StockTransferReport, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [3,5], permission: apiMethod.view }}), awaitHandlerFactory(stocksController.stockRequestReport))
+router.get('/download-request-report',StockTransferReport, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [3,5], permission: apiMethod.view }}), awaitHandlerFactory(stocksController.dwonloadStockRequestReport))
 
 router.post('/request', createStockRequest, auth(1,2,3,4,5,6), accessManager({agent: { module: [7,1], permission: apiMethod.add }}), awaitHandlerFactory(stocksController.createStockRequest))
 router.get('/request', getRequestStatus, auth(1,2,3,4,5,6), accessManager({agent: { module: [7,2], permission: apiMethod.view }}), awaitHandlerFactory(stocksController.getRequestStatus))

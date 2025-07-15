@@ -14,6 +14,11 @@ dotenv.config()
 // const ds = require("node-dataset");
 
 // const { toIsoString } = require('../common/timeFunction.common')
+const ExcelJS = require('exceljs');
+const path = require('path');
+const fs = require('fs');
+const moment = require('moment');
+const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
 
 const smsFunction = require('../common/smsFunction.common')
 
@@ -329,6 +334,97 @@ class smsController {
             return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+
+    downloadSmsTemplate = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        const struserid = req.body.user_detials.id;
+
+        const lisTotalRecords = await marketingSmsModel.allSmsTemplateCount(struserid);
+        const intTotlaRecords = Number(lisTotalRecords[0].count);
+        const intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+
+        const offset = req.query.pageNumber > 0
+            ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT)
+            : 0;
+        const limit = req.query.pageNumber > 0
+            ? Number(process.env.PER_PAGE_COUNT)
+            : intTotlaRecords;
+
+        const lisResult = await marketingSmsModel.allSmsTemplate(struserid, limit, offset);
+
+        // === Export Excel if pageNumber == 0 ===
+        if (req.query.pageNumber == 0) {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+            const fileName = `sms_templates_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            // Skip generation if already exists and fresh
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                const createdTime = moment(stats.ctime);
+                if (moment().diff(createdTime, 'minutes') < 30) {
+                    return res.status(200).send({
+                        success: true,
+                        downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                    });
+                }
+            }
+
+            // Generate Excel
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('SMS Templates');
+
+            if (lisResult.length > 0) {
+                const sample = lisResult[0];
+                worksheet.columns = Object.keys(sample).map((key) => ({
+                    header: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    key: key,
+                    width: 25
+                }));
+                worksheet.getRow(1).font = { bold: true };
+            }
+
+            worksheet.addRows(lisResult);
+            await workbook.xlsx.writeFile(filePath);
+
+            // Auto-delete after 30 minutes
+            setTimeout(() => {
+                fs.unlink(filePath, err => {
+                    if (err && err.code !== 'ENOENT') {
+                        console.error(`Failed to delete report file ${fileName}:`, err.message);
+                    }
+                });
+            }, 30 * 60 * 1000);
+
+            return res.status(200).json({
+                success: true,
+                downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+            });
+        }
+
+        // === Paginated JSON Response ===
+        return res.status(200).send({
+            reportList: lisResult,
+            totalRepords: intTotlaRecords,
+            pageCount: intPageCount,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit: Number(process.env.PER_PAGE_COUNT)
+        });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+};
 
     // function to get message form the sms template by template uuid
     findMessageSmsTemplate = async(req, res, next) => {
@@ -802,6 +898,116 @@ class smsController {
             return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+
+
+
+
+    downloadSmsGroupDateRange = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        const start = req.query.start_date;
+        const end = req.query.end_date;
+
+        const lisTotalRecords = await marketingSmsModel.allSmsGroupDateRangeCount(start, end);
+        const intTotlaRecords = Number(lisTotalRecords[0].count);
+        const intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+
+        const offset = req.query.pageNumber > 0
+            ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT)
+            : 0;
+        const limit = req.query.pageNumber > 0
+            ? Number(process.env.PER_PAGE_COUNT)
+            : intTotlaRecords;
+
+        const lisResult = await marketingSmsModel.allSmsGroupDateRange(start, end, limit, offset);
+
+        if (!lisResult) {
+            throw new Error('Something went wrong while fetching SMS group data.');
+        }
+        if (lisResult.length === 0) {
+            return res.status(204).send({ message: 'No SMS group is available!' });
+        }
+
+        const formattedResult = lisResult.map(result => {
+            const { send_group_sms_uuid, group_name, message_type, created_on, template_name, sms_message } = result;
+            return {
+                send_group_sms_uuid,
+                name: group_name,
+                type: message_type,
+                date: created_on,
+                template: template_name,
+                message: sms_message
+            };
+        });
+
+        // === Excel Export Mode ===
+        if (req.query.pageNumber == 0) {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+            const fileName = `sms_group_report_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                const createdTime = moment(stats.ctime);
+                if (moment().diff(createdTime, 'minutes') < 30) {
+                    return res.status(200).json({
+                        success: true,
+                        downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                    });
+                }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('SMS Group Report');
+
+            if (formattedResult.length > 0) {
+                worksheet.columns = Object.keys(formattedResult[0]).map((key) => ({
+                    header: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    key,
+                    width: 25
+                }));
+                worksheet.getRow(1).font = { bold: true };
+            }
+
+            worksheet.addRows(formattedResult);
+            await workbook.xlsx.writeFile(filePath);
+
+            setTimeout(() => {
+                fs.unlink(filePath, (err) => {
+                    if (err && err.code !== 'ENOENT') {
+                        console.error(`Failed to delete report file ${fileName}:`, err.message);
+                    }
+                });
+            }, 30 * 60 * 1000); // 30 minutes
+
+            return res.status(200).json({
+                success: true,
+                downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+            });
+        }
+
+        // === Normal JSON Paginated Response ===
+        return res.status(200).send({
+            reportList: formattedResult,
+            totalRepords: intTotlaRecords,
+            pageCount: intPageCount,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit: Number(process.env.PER_PAGE_COUNT)
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+};
 
     //function to get sms group message by id
     findMessageSmsgroup = async(req, res, next) => {

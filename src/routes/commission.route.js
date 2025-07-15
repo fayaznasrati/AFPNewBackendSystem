@@ -19,8 +19,10 @@ router.get('/',getCommision,auth(role.Admin,1,2,3,4,5,6), accessManager({agent: 
 router.put('/',updateCommision,auth(role.Admin), awaitHandlerFactory(commissionController.updateCommision))
 
 router.get('/direct-agent/pre-paid', directAgentPrePaidCommissionReport, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [2,18], permission: apiMethod.view }}), awaitHandlerFactory(commissionController.directAgentPrePaidCommissionReport))
+router.get('/download-direct-agent/pre-paid', directAgentPrePaidCommissionReport, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [2,18], permission: apiMethod.view }}), awaitHandlerFactory(commissionController.downloadDirectAgentPrePaidCommissionReport))
 router.get('/direct-agent/post-paid', directAgentPostPaidCommissionReport, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [2,19], permission: apiMethod.view }}), awaitHandlerFactory(commissionController.directAgentPostPaidCommissionReport))
 router.get('/indirect-agent/pre-paid', inDirectAgentPrePaidCommissionReport, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [2,20], permission: apiMethod.view }}), awaitHandlerFactory(commissionController.inDirectAgentPrePaidCommissionReport))
+router.get('/download-indirect-agent/pre-paid', inDirectAgentPrePaidCommissionReport, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [2,20], permission: apiMethod.view }}), awaitHandlerFactory(commissionController.downloadInDirectAgentPrePaidCommissionReport))
 router.get('/indirect-agent/post-paid', inDirectAgentPostPaidCommissionReport, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [2,21], permission: apiMethod.view }}), awaitHandlerFactory(commissionController.inDirectAgentPostPaidCommissionReport))
 
 module.exports = router;

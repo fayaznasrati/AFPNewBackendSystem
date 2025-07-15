@@ -10,7 +10,7 @@ const errorMiddleware = require('./middleware/error. middleware');
 
 const rString = require('./utils/randomString.utils');
 const algEncryptDecrypt = require('./utils/encryption.utils');
-
+const cleanOldReportFiles = require('./utils/delete_report_files_after_30_minuts'); // adjust path as needed
 //cron
 const cron = require('./common/node-cron')
 
@@ -73,12 +73,17 @@ app.get("/api", (req, res) => {
     res.json({ message: "Welcome to AFP application." });
 });
 
+// Static file path serving for reports 
+app.use('/api/v1/recharge/admin-report/files', express.static('/var/www/html/AFPNewBackendSystem/the_topup_reports'));
+app.use('/api/v1/recharge/agent-report/files', express.static('/var/www/html/AFPNewBackendSystem/the_topup_reports'));
+// call to clean old report files every 30 minutes
+setInterval(cleanOldReportFiles, 30 * 60 * 1000);
+
+
 // 404 error
 app.all('*', (req, res, next) => {
     console.error("Unknown URL HIT : ",req.url)
     res.status(404).json({ errors: [ {msg : 'Endpoint Not Found'}] });
-    // const err = new HttpException(404, 'Endpoint Not Found');
-    // next(err);
 });
 
 app.listen(port, () =>{

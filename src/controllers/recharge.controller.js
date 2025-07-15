@@ -29,6 +29,10 @@ const { type, send, sendStatus } = require('express/lib/response');
 
 const redisMaster = require('../common/master/radisMaster.common')
 const { format } = require('fast-csv');
+const ExcelJS = require('exceljs');
+const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
+const { env } = require('process');
 
 // configer env
 dotenv.config()
@@ -37,6 +41,7 @@ let failedRechargeCount = {
     1: 0,
     2: 0
 }
+const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
 
 class rechargeController {
 
@@ -3243,268 +3248,163 @@ class rechargeController {
     }
 
 
+
 downloadAgentTopupReport = async (req, res) => {
   try {
-    // const searchKeyValue = this.buildSearchKeyFrom(req); // Extracted from your logic
-    // body and query validators
-            const errors = validationResult(req);
-            if (!errors.isEmpty()) {
-                return res.status(400).json({ errors: errors.array() });
-            }
-            console.log('recharge/agentTopUpReport',JSON.stringify(req.body), JSON.stringify(req.query))
-            if (!req.query.pageNumber) req.query.pageNumber = 0
-            // optional search paremeters
-            var searchKeyValue = {
-                Active: 1,
-                // region_ids : req.body.user_detials.region_list.join(',')
-            }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-            if (req.body.user_detials.region_list.length != 7) {
-                searchKeyValue.region_ids = req.body.user_detials.region_list.join(',')
-            }
+    const searchKeyValue = { Active: 1 };
+    const filters = [];
 
-            if (req.query.contactNumber) {
-                if (req.query.contactNumber.length == 10) searchKeyValue.mobile_number = req.query.contactNumber;
-                else searchKeyValue.trans_number = req.query.contactNumber;
-            }
+    if (req.body.user_detials?.region_list?.length !== 7) {
+      searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+      filters.push(`region_ids=${searchKeyValue.region_ids}`);
+    }
 
-                 if (req.query.userId) {
-                const userId = req.query.userId;
-                searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
-              }
-            if (req.query.userName) {
-                if (Number(req.query.userName)) {
-                    let reqNum = []
-                    if (req.query.userName.length == 10) {
-                        reqNum = [req.query.userName, req.query.userName.slice(1, 11)]
-                    } else {
-                        reqNum = [req.query.userName, 0 + req.query.userName]
-                    }
-                    searchKeyValue.request_mobile_no = reqNum
-                } else {
-                    searchKeyValue.full_name = req.query.userName;
-                }
-            }
-            if (req.query.region_uuid) searchKeyValue.region_uuid = req.query.region_uuid;
-            if (req.query.province_uuid) searchKeyValue.province_uuid = req.query.province_uuid;
-            if (req.query.district_uuid) searchKeyValue.district_uuid = req.query.district_uuid;
-            // transaction search parem
-            // check date for start and end 
-            if (!searchKeyValue.trans_number) {
-                if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+    if (req.query.contactNumber) {
+      if (req.query.contactNumber.length === 10) {
+        searchKeyValue.mobile_number = req.query.contactNumber;
+        filters.push(`mobile=${req.query.contactNumber}`);
+      } else {
+        searchKeyValue.trans_number = req.query.contactNumber;
+        filters.push(`txn=${req.query.contactNumber}`);
+      }
+    }
 
-                if (req.query.startDate) {
-                    searchKeyValue.start_date = req.query.startDate //dt start date
-                }
-                if (req.query.endDate) {
-                    searchKeyValue.end_date = req.query.endDate //dt end date
-                }
-            }
+    if (req.query.userId) {
+      const userId = req.query.userId.startsWith("AFP-") ? req.query.userId : `AFP-${req.query.userId}`;
+      searchKeyValue.username = userId;
+      filters.push(`userId=${userId}`);
+    }
 
-            if (req.query.operator_uuid) {
-                const lisResponce1 = await commonQueryCommon.getOperatorById(req.query.operator_uuid)
-                if (lisResponce1 == 0) return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
-                searchKeyValue.operator_id = lisResponce1[0].operator_id
-            }
-            if (req.query.status) {
-                if (req.query.status == 4) {
-                    searchKeyValue.rollback_status = 3
-                } else {
-                    if (req.query.status == 2) {
-                        searchKeyValue.isIn = {
-                            key: 'rollback_status',
-                            value: ' 0,1,2,4 '
-                        }
-                    }
-                    searchKeyValue.status = req.query.status
-                }
-            }
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", "attachment; filename=agent_report.csv");
+    if (req.query.userName) {
+      if (!isNaN(req.query.userName)) {
+        searchKeyValue.request_mobile_no = [req.query.userName, "0" + req.query.userName];
+        filters.push(`userPhone=${req.query.userName}`);
+      } else {
+        searchKeyValue.full_name = req.query.userName;
+        filters.push(`userName=${req.query.userName}`);
+      }
+    }
 
-    const csvStream = format({ headers: true });
-    csvStream.pipe(res);
+    if (req.query.region_uuid) {
+      searchKeyValue.region_uuid = req.query.region_uuid;
+      filters.push(`region=${req.query.region_uuid}`);
+    }
 
-    const perPage = 1000; // Number of records per page
+    if (req.query.province_uuid) {
+      searchKeyValue.province_uuid = req.query.province_uuid;
+      filters.push(`province=${req.query.province_uuid}`);
+    }
+
+    if (req.query.district_uuid) {
+      searchKeyValue.district_uuid = req.query.district_uuid;
+      filters.push(`district=${req.query.district_uuid}`);
+    }
+
+    if (!searchKeyValue.trans_number) {
+      if ((req.query.startDate && !req.query.endDate) || (!req.query.startDate && req.query.endDate)) {
+        return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+      }
+      if (req.query.startDate) {
+        searchKeyValue.start_date = req.query.startDate;
+        filters.push(`from=${req.query.startDate}`);
+      }
+      if (req.query.endDate) {
+        searchKeyValue.end_date = req.query.endDate;
+        filters.push(`to=${req.query.endDate}`);
+      }
+    }
+
+    if (req.query.operator_uuid) {
+      const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+      if (!operator || operator.length === 0) {
+        return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
+      }
+      searchKeyValue.operator_id = operator[0].operator_id;
+      filters.push(`op=${req.query.operator_uuid}`);
+    }
+
+    if (req.query.status) {
+      if (req.query.status == 4) {
+        searchKeyValue.rollback_status = 3;
+      } else {
+        if (req.query.status == 2) {
+          searchKeyValue.isIn = {
+            key: 'rollback_status',
+            value: '0,1,2,4'
+          };
+        }
+        searchKeyValue.status = req.query.status;
+      }
+      filters.push(`status=${req.query.status}`);
+    }
+  // Generate timestamp for filename
+    const now = new Date();
+    const dateStr = new Date().toISOString().split('T')[0];
+    // const filterHash = Buffer.from(filters.sort().join('&')).toString('base64').replace(/[+/=]/g, '');
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+    const fileName = `topup_report_${dateStr}_${timeStr}.xlsx`;
+    const filePath = path.join(REPORT_DIR, fileName);
+
+    // ✅ Reuse file if created within last 30 minutes
+    if (fs.existsSync(filePath)) {
+      const stats = fs.statSync(filePath);
+      const ageMinutes = (Date.now() - stats.mtimeMs) / (60 * 1000);
+      if (ageMinutes < 30) {
+        console.log("Reusing cached report:", fileName);
+        return res.json({
+          success: true,
+          downloadUrl: `${process.env.THE_DOMAIN_NAME}/api/v1/recharge/admin-report/files/${fileName}`,
+          reused: true
+        });
+      }
+    }
+
+    // ✅ Otherwise, generate new file
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('TopUp Report');
+    const perPage = 1000;
     let page = 1;
-    let hasMore = true;
+    let isFirstBatch = true;
 
-    while (hasMore) {
+    while (true) {
       const offset = (page - 1) * perPage;
       const chunk = await rechargeModel.agentTopupReport(searchKeyValue, perPage, offset);
-        console.log("chunk", chunk.length, "page", page, "offset", offset, "perPage", perPage);
-      if (chunk.length === 0) {
-        hasMore = false;
-        break;
+      if (!chunk.length) break;
+
+      if (isFirstBatch) {
+        sheet.columns = Object.keys(chunk[0]).map(key => ({ header: key, key }));
+        isFirstBatch = false;
       }
 
-      chunk.forEach(row => {
-        csvStream.write(row);
-      });
-
-      if (chunk.length < perPage) {
-        hasMore = false;
-      }
-
+      sheet.addRows(chunk);
+      if (chunk.length < perPage) break;
       page++;
     }
 
-    csvStream.end(); // Ends the stream (also ends the response)
+    await workbook.xlsx.writeFile(filePath);
+    fs.chmodSync(filePath, 0o644);
+
+    // ⏱ Delete file after 30 minutes
+    setTimeout(() => {
+      fs.unlink(filePath, err => {
+        if (err) console.error('Error deleting file:', filePath, err);
+        else console.log('Deleted expired report file:', fileName);
+      });
+    }, 30 * 60 * 1000);
+
+    const downloadUrl = `${process.env.THE_DOMAIN_NAME}/api/v1/recharge/admin-report/files/${fileName}`;
+    res.json({ success: true, downloadUrl, reused: false });
 
   } catch (err) {
     console.error("Export error:", err);
-    res.status(500).send("Internal Server Error while exporting.");
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
-
-
-
-
-
-
-// downloadAgentTopupReport = async (req, res) => {
-//   try {
-//     const errors = validationResult(req);
-//     if (!errors.isEmpty()) {
-//       return res.status(400).json({ errors: errors.array() });
-//     }
-
-//     console.log('recharge/agentTopUpReport', JSON.stringify(req.body), JSON.stringify(req.query));
-
-//     if (!req.query.pageNumber) req.query.pageNumber = 0;
-
-//     let searchKeyValue = { Active: 1 };
-
-//     if (req.body.user_detials.region_list.length !== 7) {
-//       searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
-//     }
-
-//     if (req.query.contactNumber) {
-//       if (req.query.contactNumber.length === 10) {
-//         searchKeyValue.mobile_number = req.query.contactNumber;
-//       } else {
-//         searchKeyValue.trans_number = req.query.contactNumber;
-//       }
-//     }
-
-//     if (req.query.userId) {
-//       const userId = req.query.userId;
-//       searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
-//     }
-
-//     if (req.query.userName) {
-//       if (!isNaN(req.query.userName)) {
-//         const num = req.query.userName;
-//         const formatted = num.length === 10 ? [num, num.slice(1, 11)] : [num, '0' + num];
-//         searchKeyValue.request_mobile_no = formatted;
-//       } else {
-//         searchKeyValue.full_name = req.query.userName;
-//       }
-//     }
-
-//     if (req.query.region_uuid) searchKeyValue.region_uuid = req.query.region_uuid;
-//     if (req.query.province_uuid) searchKeyValue.province_uuid = req.query.province_uuid;
-//     if (req.query.district_uuid) searchKeyValue.district_uuid = req.query.district_uuid;
-
-//     if (!searchKeyValue.trans_number) {
-//       if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
-//         return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
-//       }
-//       if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
-//       if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
-//     }
-
-//     if (req.query.operator_uuid) {
-//       const operatorInfo = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
-//       if (!operatorInfo || operatorInfo.length === 0) {
-//         return res.status(400).json({ errors: [{ msg: 'Operator ID not found' }] });
-//       }
-//       searchKeyValue.operator_id = operatorInfo[0].operator_id;
-//     }
-
-//     if (req.query.status) {
-//       if (req.query.status == 4) {
-//         searchKeyValue.rollback_status = 3;
-//       } else {
-//         if (req.query.status == 2) {
-//           searchKeyValue.isIn = { key: 'rollback_status', value: '0,1,2,4' };
-//         }
-//         searchKeyValue.status = req.query.status;
-//       }
-//     }
-
-//     // ✅ Excel compatibility: UTF-8 BOM
-//     res.setHeader("Content-Type", "text/csv");
-//     res.setHeader("Content-Disposition", "attachment; filename=agent_report.csv");
-//     res.write('\uFEFF'); // Excel needs BOM for UTF-8 support
-
-//     const csvStream = format({ headers: true });
-//     csvStream.pipe(res);
-
-//     const perPage = 1000;
-//     let page = 1;
-//     let hasMore = true;
-
-//     while (hasMore) {
-//       const offset = (page - 1) * perPage;
-//       const chunk = await rechargeModel.agentTopupReport(searchKeyValue, perPage, offset);
-
-//       console.log("chunk", chunk.length, "page", page, "offset", offset);
-
-//       if (chunk.length === 0) {
-//         hasMore = false;
-//         break;
-//       }
-
-//       chunk.forEach(row => {
-//         // 🧹 Optional: truncate large 'apiResponce' fields for better Excel experience
-//         if (row.apiResponce && typeof row.apiResponce === 'string' && row.apiResponce.length > 200) {
-//           row.apiResponce = row.apiResponce.slice(0, 200) + '...';
-//         }
-//         // ✅ Make sure we write a flat object
-//         csvStream.write(row);
-//       });
-
-//       if (chunk.length < perPage) {
-//         hasMore = false;
-//       }
-
-//       page++;
-//     }
-
-//     csvStream.end(); // Ends the stream (and response)
-
-//   } catch (err) {
-//     console.error("Export error:", err);
-//     res.status(500).send("Internal Server Error while exporting.");
-//   }
-// };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3537,7 +3437,7 @@ downloadAgentTopupReport = async (req, res) => {
             // if(req.query.agent_type_uuid){
             //     const lisResponce1 = await commonQueryCommon.getAgentTypeId(req.query.agent_type_uuid)
             //     if(lisResponce1.length == 0) return res.status(400).json({ errors: "Agent type id not found" }); 
-            //     searchKeyValue.usertype_id = lisResponce1[0].agent_type_id
+            //     searchKeyValue.usertype_id = lisResponce1[0].agent_type_idf
             // }
             if (req.query.parent_uuid) {
                 let parentDetails = await sqlQueryReplica.searchQuery(this.tableName2, {
@@ -3708,6 +3608,115 @@ downloadAgentTopupReport = async (req, res) => {
         }
     }
 
+    downloadTopUpSummeryReport = async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+        }
+
+        let searchKeyValue = { Active: 1 };
+        if (req.body.user_detials.region_list.length !== 7) {
+        searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+        }
+        if (req.query.parent_uuid) {
+        const parentDetails = await sqlQueryReplica.searchQuery(this.tableName2, { user_uuid: req.query.parent_uuid }, ['userid'], 'userid', 'ASC', 1, 0);
+        if (!parentDetails.length) return res.status(400).json({ errors: [{ msg: 'Parent id not found' }] });
+        searchKeyValue.parent_id = parentDetails[0].userid;
+        } else if (!req.query.userId) {
+        searchKeyValue.parent_id = 1;
+        }
+        if (req.query.userId) {
+        const userId = req.query.userId;
+        searchKeyValue.username = userId.startsWith('AFP-') ? userId : `AFP-${userId}`;
+        }
+        if (req.query.userName) searchKeyValue.full_name = req.query.userName;
+
+        const agentList = await sqlQueryReplica.searchQueryTimeout(
+        this.tableName2,
+        searchKeyValue,
+        ['username', 'full_name', 'child_id', 'userid', 'province_Name', 'region_name', "IF(usertype_id = 1,'Master Distributor',IF(usertype_id = 2,'Distributor',IF(usertype_id = 3,'Reseller','Retailer'))) as agentType"],
+        'userid',
+        'ASC',
+        10000,
+        0
+        );
+
+        const rechargeSearch = {};
+        if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+        return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+        }
+        if (req.query.startDate && req.query.endDate) {
+        rechargeSearch.start_date = req.query.startDate;
+        rechargeSearch.end_date = req.query.endDate;
+        }
+        rechargeSearch.status = req.query.status == 4 ? 3 : (req.query.status || 2);
+
+         // Generate timestamp for filename
+    const now = new Date();
+    const dateStr = new Date().toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+    const fileName = `Topup_Summary_Report_${dateStr}_${timeStr}.xlsx`;
+        const filePath = path.join(REPORT_DIR, fileName);
+
+        if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+            return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+        }
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('TopUp Summary Report');
+        const rows = [];
+
+        for (const agent of agentList) {
+        const { full_name, username, child_id, userid, region_name, province_Name, agentType } = agent;
+        const allChildIds = child_id ? `${child_id},${userid}` : `${userid}`;
+        const rechargeDetails = await rechargeModel.topUpSummeryReport(rechargeSearch, allChildIds);
+        rows.push({
+            userId: username,
+            userName: full_name,
+            regionName: region_name,
+            provicneName: province_Name,
+            agentType,
+            Salam: rechargeDetails?.Salam || 0,
+            AWCC: rechargeDetails?.AWCC || 0,
+            MTN: rechargeDetails?.MTN || 0,
+            Etisalat: rechargeDetails?.Etisalat || 0,
+            Roshan: rechargeDetails?.Roshan || 0,
+            topUpAmount: rechargeDetails?.topUpAmount || 0,
+            topUpCount: rechargeDetails?.topUpCount || 0
+        });
+        }
+
+        sheet.columns = Object.keys(rows[0] || {}).map(key => ({ header: key, key }));
+        sheet.addRows(rows);
+        await workbook.xlsx.writeFile(filePath);
+        fs.chmodSync(filePath, 0o644);
+
+        setTimeout(() => {
+        fs.access(filePath, fs.constants.F_OK, (err) => {
+            if (!err) {
+            fs.unlink(filePath, err => {
+                if (err) console.error('Error deleting file:', filePath, err);
+                else console.log('Deleted file:', fileName);
+            });
+            } else {
+            console.warn('File already deleted or missing:', filePath);
+            }
+        });
+        }, 30 * 60 * 1000);
+
+        res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+
+    } catch (error) {
+        console.error('downloadTopUpSummeryReport', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+    };
+
+
     agentDownlineTopUpReport = async (req, res) => {
         try {
             // body and query validators
@@ -3838,6 +3847,127 @@ downloadAgentTopupReport = async (req, res) => {
             // return res.status(400).json({ errors: [ {msg : error.message}] }); 
         }
     }
+
+ agentDownloadDownlineTopUpReport = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const searchKeyValue = { Active: 1 };
+
+    if (req.query.parent_uuid) {
+      const searchKeyValue1 = {
+        user_uuid: req.query.parent_uuid,
+        Active: 1
+      };
+      if (req.body.user_detials.region_list.length !== 7) {
+        searchKeyValue1.region_ids = req.body.user_detials.region_list.join(',');
+      }
+      const parentResult = await sqlQueryReplica.searchQuery(
+        this.tableName2,
+        searchKeyValue1,
+        ['userid', 'child_id'],
+        'userid',
+        'ASC',
+        1,
+        0
+      );
+      if (!parentResult.length) return res.status(400).json({ errors: 'parent id not found' });
+      searchKeyValue.child_ids = parentResult[0].child_id || '0';
+    } else if (req.body.user_detials.region_list.length !== 7) {
+      searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+    }
+
+    if (req.query.agentId) searchKeyValue.username = req.query.agentId;
+    if (req.query.agentName) searchKeyValue.full_name = req.query.agentName;
+    if (req.query.agentMobile) searchKeyValue.mobile = req.query.agentMobile;
+    if (req.query.agentEmail) searchKeyValue.emailid = req.query.agentEmail;
+
+    if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+      return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+    }
+
+    if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+    if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+
+    if (req.query.operator_uuid) {
+      const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+      if (!operator || operator.length === 0) {
+        return res.status(400).json({ errors: [{ msg: 'operator id not found' }] });
+      }
+      searchKeyValue.operator_id = operator[0].operator_id;
+    }
+
+    if (req.query.status) {
+      if (req.query.status == 4) {
+        searchKeyValue.rollback_status = 3;
+      } else {
+        searchKeyValue.status = req.query.status;
+      }
+    }
+
+   const now = new Date();
+    const dateStr = new Date().toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+    const fileName = `Downline_topup_report_${dateStr}_${timeStr}.xlsx`;
+    const filePath = path.join(REPORT_DIR, fileName);
+
+    if (fs.existsSync(filePath)) {
+      const stats = fs.statSync(filePath);
+      const fileAgeMs = Date.now() - stats.mtimeMs;
+      if (fileAgeMs < 30 * 60 * 1000) {
+        return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+      }
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Downline TopUp Report');
+    const perPage = 1000;
+    let page = 1;
+    let isFirstBatch = true;
+
+    while (true) {
+      const offset = (page - 1) * perPage;
+      const chunk = await rechargeModel.agentDownlineTopUpReport(searchKeyValue, perPage, offset);
+      if (!chunk.length) break;
+
+      if (isFirstBatch) {
+        sheet.columns = Object.keys(chunk[0]).map(key => ({ header: key, key }));
+        isFirstBatch = false;
+      }
+
+      sheet.addRows(chunk);
+      if (chunk.length < perPage) break;
+      page++;
+    }
+
+    await workbook.xlsx.writeFile(filePath);
+    fs.chmodSync(filePath, 0o644);
+
+    setTimeout(() => {
+      fs.access(filePath, fs.constants.F_OK, (err) => {
+        if (!err) {
+          fs.unlink(filePath, err => {
+            if (err) console.error('Error deleting file:', filePath, err);
+            else console.log('Deleted file:', fileName);
+          });
+        } else {
+          console.warn('File already deleted or missing:', filePath);
+        }
+      });
+    }, 30 * 60 * 1000);
+
+    const downloadUrl = `/api/v1/recharge/admin-report/files/${fileName}`;
+    res.json({ success: true, downloadUrl });
+
+  } catch (error) {
+    console.error('agentDownlineTopUpReport', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 
     agentTelcoTopUpreport = async (req, res) => {
         try {
@@ -4090,6 +4220,153 @@ downloadAgentTopupReport = async (req, res) => {
         }
     }
 
+    downloadAgentCommissionReport = async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        const listAgentType = await commonQueryCommon.getAllAgentType();
+        if (listAgentType.length === 0) return res.status(400).json({ errors: "Agent type list not found" });
+
+        const agentTypeMap = listAgentType.map(item => item.agent_type_name);
+
+        let searchKeyValue = { Active: 1 };
+
+        if (req.body.user_detials.type == roles.Admin || req.body.user_detials.type == roles.SubAdmin) {
+            if (req.body.user_detials.region_list.length !== 7) {
+                searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+            }
+        } else {
+            searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
+        }
+
+        if (req.query.userId) {
+            const userId = req.query.userId;
+            searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
+        }
+
+        if (req.query.userName) searchKeyValue.full_name = req.query.userName;
+
+        if (req.query.agent_type_uuid) {
+            const agentTypeRes = await commonQueryCommon.getAgentTypeId(req.query.agent_type_uuid);
+            if (!agentTypeRes || agentTypeRes.length === 0) return res.status(400).json({ errors: "Agent type not found" });
+            searchKeyValue.usertype_id = agentTypeRes[0].agent_type_id;
+        }
+
+        if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+            return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+        }
+
+        if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+        if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+
+        if (req.query.operator_uuid) {
+            const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+            if (!operator || operator.length === 0) return res.status(400).json({ errors: [{ msg: "Operator not found" }] });
+            searchKeyValue.operator_id = operator[0].operator_id;
+        }
+
+        if (Object.keys(searchKeyValue).length === 0) return res.status(400).json({ errors: [{ msg: "Improper search parameters" }] });
+
+        const lisTotalRecords = await rechargeModel.agentCommissionReportCount(searchKeyValue);
+        const totalRecords = Number(lisTotalRecords[0].count);
+        const pageLimit = Number(process.env.PER_PAGE_COUNT);
+        const totalPages = totalRecords % pageLimit === 0 ? totalRecords / pageLimit : Math.floor(totalRecords / pageLimit) + 1;
+
+        const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+        const limit = req.query.pageNumber > 0 ? pageLimit : totalRecords;
+
+        const resultData = await rechargeModel.agentCommissionReport(searchKeyValue, limit, offset);
+
+        const finalResult = resultData.map((row) => {
+            const { usertype_id, ...rest } = row;
+            return {
+                ...rest,
+                userType: agentTypeMap[usertype_id - 1] || 'Unknown'
+            };
+        });
+
+        // ✅ Report Download Logic
+        if (req.query.pageNumber == 0) {
+            const now = new Date();
+            const dateStr = new Date().toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+            const fileName = `agent_commission_report_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+                    return res.status(200).json({ success: true, downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}` });
+                }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Agent Commission Report');
+
+            if (finalResult.length > 0) {
+                worksheet.columns = Object.keys(finalResult[0]).map(key => ({
+                    header: key,
+                    key: key,
+                    width: key.length < 20 ? 20 : key.length + 5
+                }));
+                worksheet.addRows(finalResult);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+            fs.chmodSync(filePath, 0o644);
+
+            setTimeout(() => {
+                fs.unlink(filePath, (err) => {
+                    if (err) console.error('Failed to delete report:', fileName);
+                });
+            }, 30 * 60 * 1000);
+
+            return res.status(200).json({
+                success: true,
+                downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+            });
+        }
+
+        // ✅ Paginated JSON Response
+        return res.status(200).json({
+            reportList: finalResult,
+            totalRepords: totalRecords,
+            pageCount: totalPages,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit: pageLimit,
+            totalAmount: lisTotalRecords[0].totalAmount || 0,
+            totalDeductAmount: lisTotalRecords[0].totalDeductAmount || 0,
+            totalCommissionAmount: lisTotalRecords[0].totalCommissionAmount || 0
+        });
+
+    } catch (error) {
+        console.error('agentCommissionReport error:', error);
+
+        if (req.query.pageNumber == 0) {
+            return res.status(200).send([{}]);
+        } else {
+            return res.status(200).send({
+                reportList: [{}],
+                totalRepords: 0,
+                pageCount: 0,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: Number(process.env.PER_PAGE_COUNT),
+                totalAmount: 0,
+                totalDeductAmount: 0,
+                totalCommissionAmount: 0
+            });
+        }
+    }
+};
+
+
+
+
     adminCommissionReport = async (req, res) => {
         try {
             // verify req body and query
@@ -4199,6 +4476,135 @@ downloadAgentTopupReport = async (req, res) => {
         }
     }
 
+
+    adminDownloadCommissionReport = async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        const searchKeyValue = {};
+        if (req.query.agentId) searchKeyValue.username = req.query.agentId;
+        if (req.query.agnetName) searchKeyValue.full_name = req.query.agnetName;
+
+        if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+            return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+        }
+        if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+        if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+
+        if (req.query.operator_uuid) {
+            const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+            if (!operator || operator.length === 0) return res.status(400).json({ errors: [{ msg: "Operator not found" }] });
+            searchKeyValue.operator_id = operator[0].operator_id;
+        }
+
+        if (req.query.agent_type_uuid) {
+            const agentType = await commonQueryCommon.getAgentTypeId(req.query.agent_type_uuid);
+            if (!agentType || agentType.length === 0) return res.status(400).json({ errors: [{ msg: "Agent type not found" }] });
+            searchKeyValue.usertype_id = agentType[0].agent_type_id;
+        }
+
+        if (Object.keys(searchKeyValue).length === 0) {
+            return res.status(400).json({ errors: [{ msg: "Improper search parameters" }] });
+        }
+
+        const userId = req.body.user_detials.userid;
+        const lisTotalRecords = await rechargeModel.adminCommissionReportCount(searchKeyValue, userId);
+        const totalRecords = Number(lisTotalRecords[0].count);
+        const pageLimit = Number(process.env.PER_PAGE_COUNT);
+        const totalPages = totalRecords % pageLimit === 0 ? totalRecords / pageLimit : Math.floor(totalRecords / pageLimit) + 1;
+
+        const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+        const limit = req.query.pageNumber > 0 ? pageLimit : totalRecords;
+
+        const results = await rechargeModel.adminCommissionReport(searchKeyValue, userId, limit, offset);
+        const agentTypes = await commonQueryCommon.getAllAgentType();
+
+        const finalResult = results.map(row => {
+            const { usertype_id, ...rest } = row;
+            return {
+                ...rest,
+                userType: agentTypes[usertype_id - 1]?.agent_type_name || "Unknown"
+            };
+        });
+
+        // ✅ Download Report Generation
+        if (req.query.pageNumber == 0) {
+               const now = new Date();
+                const dateStr = new Date().toISOString().split('T')[0];
+                const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+                const fileName = `admin_commission_report_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            // Use cached file if exists and not expired
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+                    return res.status(200).json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+                }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Admin Commission Report');
+
+            if (finalResult.length > 0) {
+                worksheet.columns = Object.keys(finalResult[0]).map(key => ({
+                    header: key,
+                    key: key,
+                    width: key.length < 20 ? 20 : key.length + 5
+                }));
+                worksheet.addRows(finalResult);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+            fs.chmodSync(filePath, 0o644);
+
+            // Delete after 30 minutes
+            setTimeout(() => {
+                fs.unlink(filePath, (err) => {
+                    if (err) console.error('Failed to delete report:', fileName);
+                });
+            }, 30 * 60 * 1000);
+
+            return res.status(200).json({
+                success: true,
+                downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}`
+            });
+        }
+
+        // ✅ Paginated Response
+        return res.status(200).json({
+            reportList: finalResult,
+            totalRepords: totalRecords,
+            pageCount: totalPages,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit: pageLimit,
+            totalRechargeAmount: lisTotalRecords[0].totalRechargeAmount || 0,
+            totalCommAmount: lisTotalRecords[0].totalCommAmount || 0
+        });
+
+    } catch (error) {
+        console.error('adminCommissionReport error:', error);
+
+        if (req.query.pageNumber == 0) {
+            return res.status(200).send([{}]);
+        } else {
+            return res.status(200).json({
+                reportList: [{}],
+                totalRepords: 0,
+                pageCount: 0,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: Number(process.env.PER_PAGE_COUNT),
+                totalRechargeAmount: 0,
+                totalCommAmount: 0
+            });
+        }
+    }
+};
     // agent panel commission report
     commissionReport = async (req, res) => {
         try {
@@ -4416,6 +4822,125 @@ downloadAgentTopupReport = async (req, res) => {
             // return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+
+
+    downloadTopRankingReport = async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        let searchKeyValue = {
+        status: 2,
+        isIn: {
+            key: 'operator_id',
+            value: [1, 2, 3, 4, 5]
+        }
+        };
+
+        let operatorName = 'All operator';
+
+        if (req.query.operator_uuid) {
+        const operatorInfo = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+        if (!operatorInfo || operatorInfo.length === 0)
+            return res.status(400).json({ errors: [{ msg: 'Operator ID not found' }] });
+
+        searchKeyValue.isIn.value = [operatorInfo[0].operator_id];
+        operatorName = operatorInfo[0].operator_name;
+        }
+
+        if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+        return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+        }
+
+        if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+        if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+
+        const user = req.body.user_detials;
+        if (user.type === roles.Admin || user.type === roles.SubAdmin) {
+        if (user.region_list.length !== 7) {
+            searchKeyValue.region_ids = user.region_list.join(',');
+        }
+        } else {
+        searchKeyValue.child_ids = user.child_list.join(',');
+        }
+
+        const totalRecordsList = await rechargeModel.topRankingReportCount(searchKeyValue);
+        const intTotlaRecords = totalRecordsList.length;
+        const pageLimit = Number(process.env.PER_PAGE_COUNT);
+        const intPageCount = intTotlaRecords % pageLimit === 0
+        ? intTotlaRecords / pageLimit
+        : Math.floor(intTotlaRecords / pageLimit) + 1;
+
+        const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+        const limit = req.query.pageNumber > 0 ? pageLimit : intTotlaRecords;
+
+        let finalResult = await rechargeModel.topRankingReport(searchKeyValue, limit, offset);
+        finalResult = finalResult.map(row => ({
+        ...row,
+        operatorName
+        }));
+
+        // ✅ Paginated response
+        if (req.query.pageNumber > 0) {
+        return res.status(200).json({
+            reportList: finalResult,
+            totalRepords: intTotlaRecords,
+            pageCount: intPageCount,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit
+        });
+        }
+
+        // ✅ Downloadable Excel report
+          const now = new Date();
+        const dateStr = new Date().toISOString().split('T')[0];
+        const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+        const fileName = `Top_Ranking_Agent_topup_report_${dateStr}_${timeStr}.xlsx`;
+        const filePath = path.join(REPORT_DIR, fileName);
+
+        if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+            return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+        }
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Top Ranking Report');
+
+        if (finalResult.length > 0) {
+        sheet.columns = Object.keys(finalResult[0]).map(key => ({
+            header: key,
+            key,
+            width: key.length < 20 ? 20 : key.length + 5
+        }));
+        sheet.addRows(finalResult);
+        }
+
+        await workbook.xlsx.writeFile(filePath);
+        fs.chmodSync(filePath, 0o644);
+
+        setTimeout(() => {
+        fs.access(filePath, fs.constants.F_OK, (err) => {
+            if (!err) {
+            fs.unlink(filePath, err => {
+                if (err) console.error('Error deleting file:', filePath, err);
+                else console.log('Deleted file:', fileName);
+            });
+            }
+        });
+        }, 30 * 60 * 1000); // 30 minutes
+
+        return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+
+    } catch (error) {
+        console.error('topRankingReport error:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+    };
+
 
     // group top up report
     groupTopUpReportByGroupId = async (req, res) => {

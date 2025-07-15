@@ -25,6 +25,9 @@ const redisMaster = require('../common/master/radisMaster.common')
 dotenv.config()
 
 // const { toIsoString } = require('../common/timeFunction.common')
+const fs = require('fs');
+const ExcelJS = require('exceljs');
+const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
 
 const varRandomString = require('../utils/randomString.utils');
 
@@ -154,6 +157,143 @@ class rollbackController {
         }
     }
 
+
+    downloadRollbackTransaction = async (req, res, next) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+
+            if (!req.query.page) req.query.page = 0;
+
+            let searchKeyValue = {
+                region_ids: req.body.user_detials.region_list.join(',')
+            };
+
+            if (req.body.user_detials.region_list.length !== 7) {
+                searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+            }
+
+            if (req.query.status) searchKeyValue.rollback_status = req.query.status;
+            if (req.query.userid) {
+                const userid = req.query.userid;
+                searchKeyValue.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+            }
+            if (req.query.name) searchKeyValue.userName = req.query.name;
+            if (req.query.mobile) searchKeyValue.mobile_number = req.query.mobile;
+            if (req.query.txnNumber) searchKeyValue.trans_number = req.query.txnNumber;
+
+            if (req.query.operator_uuid) {
+                const operatorList = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+                if (operatorList.length === 0) {
+                    return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
+                }
+                searchKeyValue.operator_id = operatorList[0].operator_id;
+            }
+
+            if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+                return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+            }
+
+            if (req.query.startDate) {
+                searchKeyValue.between = {
+                    key: 'rollback_confirm_on',
+                    value: [req.query.startDate, req.query.endDate]
+                };
+            }
+
+            if (Object.keys(searchKeyValue).length === 0) {
+                return res.status(400).json({ errors: [{ msg: 'Improper search param' }] });
+            }
+
+            const lisTotalRecords = await rollbackModule.rollbackTransactionCount(searchKeyValue);
+            const intTotlaRecords = Number(lisTotalRecords[0].count);
+            const intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+            const offset = req.query.page > 0 ? (req.query.page - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+            const limit = req.query.page > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
+
+            let rollbackList = await rollbackModule.rollbackTransaction(searchKeyValue, limit, offset);
+
+            // Excel generation if page == 0
+            if (req.query.page == 0) {
+                const now = new Date();
+                const dateStr = now.toISOString().split('T')[0];
+                const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+                const fileName = `rollback_transaction_report_${dateStr}_${timeStr}.xlsx`;
+                const filePath = path.join(REPORT_DIR, fileName);
+
+                // Avoid regenerating if file exists and is recent
+                if (fs.existsSync(filePath)) {
+                    const stats = fs.statSync(filePath);
+                    const createdTime = moment(stats.ctime);
+                    if (moment(now).diff(createdTime, 'minutes') < 30) {
+                        return res.status(200).json({
+                            success: true,
+                            downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                        });
+                    }
+                }
+
+                // Create Excel
+                const workbook = new ExcelJS.Workbook();
+                const sheet = workbook.addWorksheet('Rollback Transactions');
+                const statusMap = {
+                    1: 'Pending',
+                    2: 'Accepted',
+                    3: 'Completed',
+                    4: 'Rejected',
+                    5: 'MNO Rejected'
+                };
+
+                rollbackList = rollbackList.map(row => ({
+                    ...row,
+                    status: statusMap[row.status] || row.status // fallback in case of unknown
+                }));
+
+                if (rollbackList.length > 0) {
+                    sheet.columns = Object.keys(rollbackList[0]).map(key => ({
+                        header: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                        key,
+                        width: 20
+                    }));
+                    sheet.getRow(1).font = { bold: true };
+                    sheet.addRows(rollbackList);
+                }
+
+                await workbook.xlsx.writeFile(filePath);
+
+                // Auto-delete after 30 minutes
+                setTimeout(() => {
+                    fs.unlink(filePath, (err) => {
+                        if (err && err.code !== 'ENOENT') {
+                            console.error(`Failed to delete file ${fileName}:`, err.message);
+                        }
+                    });
+                }, 30 * 60 * 1000);
+
+                return res.status(200).json({
+                    success: true,
+                    downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                });
+            }
+
+            // Paginated JSON response
+            return res.status(200).send({
+                reportList: rollbackList,
+                totalRepords: intTotlaRecords,
+                pageCount: intPageCount,
+                currentPage: Number(req.query.page),
+                pageLimit: Number(process.env.PER_PAGE_COUNT),
+                totalRechargeAmount: lisTotalRecords[0].totalRechargeAmount || 0,
+                totalDeductedAmt: lisTotalRecords[0].totalDeductedAmt || 0
+            });
+
+        } catch (error) {
+            console.error('rollbackTransaction', error);
+            return res.status(400).json({ errors: [{ msg: error.message }] });
+        }
+    };
     acceptRollbackTransaction = async (req,res) => {
         try{
             // check body and query
@@ -452,6 +592,147 @@ class rollbackController {
             return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+
+
+
+
+    downloadPendingRollback = async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        if (!req.query.page) req.query.page = 0;
+
+        let searchKeyValue = { Active: 1 };
+
+        if (req.body.user_detials.region_list.length !== 7) {
+            searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+        }
+
+        if (req.query.userid) {
+            const userid = req.query.userid;
+            searchKeyValue.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+        }
+
+        if (req.query.name) searchKeyValue.userName = req.query.name;
+        if (req.query.mobile) searchKeyValue.mobile_number = req.query.mobile;
+
+        if (req.query.operator_uuid) {
+            const operatorList = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+            if (operatorList.length === 0) {
+                return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
+            }
+            searchKeyValue.operator_id = operatorList[0].operator_id;
+        }
+
+        if(req.query.status){
+                    searchKeyValue.status = req.query.status
+                }else{
+                    searchKeyValue.status = ' 1 '
+                }
+
+        if ((req.query.startDate && !req.query.endDate) || (!req.query.startDate && req.query.endDate)) {
+            return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+        }
+
+        if (req.query.startDate) {
+            searchKeyValue.between = {
+                key: 'rollback_confirm_on',
+                value: [req.query.startDate, req.query.endDate]
+            };
+        }
+
+        if (Object.keys(searchKeyValue).length === 0) {
+            return res.status(400).json({ errors: [{ msg: 'Improper search param' }] });
+        }
+
+        const lisTotalRecords = await rollbackModule.pendingRollbackCount(searchKeyValue);
+        const intTotlaRecords = Number(lisTotalRecords[0].count);
+        const intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+        const offset = req.query.page > 0 ? (req.query.page - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+        const limit = req.query.page > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
+
+        const rollbackList = await rollbackModule.pendingRollback(searchKeyValue, limit, offset);
+
+        // Excel report when page = 0
+        if (req.query.page == 0) {
+               const now = new Date();
+    const dateStr = new Date().toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+    const fileName = `pending_rollback_report_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            // Avoid regenerating if same file exists and is recent
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                const createdTime = moment(stats.ctime);
+                if (moment(now).diff(createdTime, 'minutes') < 30) {
+                    return res.status(200).json({
+                        success: true,
+                        downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                    });
+                }
+            }
+
+            // Create Excel file
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Pending Rollbacks');
+
+            if (rollbackList.length > 0) {
+                sheet.columns = Object.keys(rollbackList[0]).map((key) => ({
+                    header: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    key,
+                    width: 20
+                }));
+                sheet.getRow(1).font = { bold: true };
+                sheet.addRows(rollbackList);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+
+            // Auto-delete after 30 minutes
+            setTimeout(() => {
+                fs.unlink(filePath, (err) => {
+                    if (err && err.code !== 'ENOENT') {
+                        console.error(`Failed to delete report file ${fileName}:`, err.message);
+                    }
+                });
+            }, 30 * 60 * 1000);
+
+            return res.status(200).json({
+                success: true,
+                downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+            });
+        }
+
+        // Normal paginated response
+        return res.status(200).send({
+            reportList: rollbackList,
+            totalRepords: intTotlaRecords,
+            pageCount: intPageCount,
+            currentPage: Number(req.query.page),
+            pageLimit: Number(process.env.PER_PAGE_COUNT),
+            totalRechargeAmt: lisTotalRecords[0].totalRechargeAmt || 0,
+            totalDeductedAmt: lisTotalRecords[0].totalDeductedAmt || 0,
+            totalRollbackAmt: lisTotalRecords[0].totalRollbackAmt || 0
+        });
+
+    } catch (error) {
+        console.error('pendingRollback', error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+};
+
+
+
+
+
+
+
+
+
 
     etisalatPen = async (req,res) =>{
         try{
@@ -1314,6 +1595,146 @@ class rollbackController {
             return res.status(400).json({ errors: [ {msg : error.message}] }); 
         }
     }
+
+
+
+    downloadRollbackComplete = async (req, res, next) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+
+            if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+            const searchKeyValue = {
+                rollback_status: 2
+            };
+
+            if (req.body.user_detials.region_list.length !== 7) {
+                searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+            }
+
+            if (req.query.userid) {
+                const userid = req.query.userid;
+                searchKeyValue.userid = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+            }
+            if (req.query.name) searchKeyValue.userName = req.query.name;
+            if (req.query.mobile) searchKeyValue.mobile_number = req.query.mobile;
+            if (req.query.txnNumber) searchKeyValue.trans_number = req.query.txnNumber;
+
+            if (req.query.operator_uuid) {
+                const operatorList = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+                if (operatorList.length === 0) {
+                    return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
+                }
+                searchKeyValue.operator_id = operatorList[0].operator_id;
+            }
+
+            if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+                return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+            }
+
+            if (req.query.startDate) {
+                searchKeyValue.between = {
+                    key: 'rollback_confirm_on',
+                    value: [req.query.startDate, req.query.endDate]
+                };
+            }
+
+            if (Object.keys(searchKeyValue).length === 0) {
+                return res.status(400).json({ errors: [{ msg: 'Improper search param' }] });
+            }
+
+            const lisTotalRecords = await rollbackModule.rollbackTransactionCount(searchKeyValue);
+            const intTotlaRecords = Number(lisTotalRecords[0].count);
+            const intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+            const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+            const limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
+
+            let rollbackList = await rollbackModule.rollbackTransaction(searchKeyValue, limit, offset);
+
+            // Excel Download
+            if (req.query.pageNumber == 0) {
+                const now = new Date();
+                const dateStr = now.toISOString().split('T')[0];
+                const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+                const fileName = `rollback_complete_report_${dateStr}_${timeStr}.xlsx`;
+                const filePath = path.join(REPORT_DIR, fileName);
+
+                // Skip if already generated in last 30 minutes
+                if (fs.existsSync(filePath)) {
+                    const stats = fs.statSync(filePath);
+                    const createdTime = moment(stats.ctime);
+                    if (moment(now).diff(createdTime, 'minutes') < 30) {
+                        return res.status(200).json({
+                            success: true,
+                            downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                        });
+                    }
+                }
+
+                // Generate Excel
+                const workbook = new ExcelJS.Workbook();
+                const sheet = workbook.addWorksheet('Completed Rollbacks');
+
+                const statusMap = {
+                        1: 'Pending',
+                        2: 'Accepted',
+                        3: 'Completed',
+                        4: 'Rejected',
+                        5: 'MNO Rejected'
+                    };
+
+                    rollbackList = rollbackList.map(row => ({
+                        ...row,
+                        status: statusMap[row.status] || row.status // fallback in case of unknown
+                    }));
+
+                if (rollbackList.length > 0) {
+                    const sample = rollbackList[0];
+                    sheet.columns = Object.keys(sample).map(key => ({
+                        header: key.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()),
+                        key,
+                        width: 20
+                    }));
+                    sheet.getRow(1).font = { bold: true };
+                    sheet.addRows(rollbackList);
+                }
+
+                await workbook.xlsx.writeFile(filePath);
+
+                // Auto-delete in 30 minutes
+                setTimeout(() => {
+                    fs.unlink(filePath, err => {
+                        if (err && err.code !== 'ENOENT') {
+                            console.error(`Failed to delete file ${fileName}:`, err.message);
+                        }
+                    });
+                }, 30 * 60 * 1000);
+
+                return res.status(200).json({
+                    success: true,
+                    downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
+                });
+            }
+
+            // Paginated JSON
+            return res.status(200).json({
+                reportList: rollbackList,
+                totalRepords: intTotlaRecords,
+                pageCount: intPageCount,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: Number(process.env.PER_PAGE_COUNT),
+                totalRechargeAmount: lisTotalRecords[0].totalRechargeAmount || 0,
+                totalDeductedAmt: lisTotalRecords[0].totalDeductedAmt || 0
+            });
+
+        } catch (error) {
+            console.error('rollbackComplete', error);
+            return res.status(400).json({ errors: [{ msg: error.message }] });
+        }
+    };
 
     // agent self rollback report
     agentRollbackReport = async (req, res) => {

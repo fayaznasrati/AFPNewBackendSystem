@@ -86,6 +86,7 @@ router.get('/profile_image/', getDetails, auth(), awaitHandlerFactory(agentLogin
 
 // router.get('/ebundle-topup/bundles-package/id',getDetails, auth(1,2,3,4,5,6), awaitHandlerFactory(EbundleController.getMNOsBundles))
 router.get('/bundles',EbundleController.getEbundle);
+router.get('/download-bundles',EbundleController.downloadEbundle);
 // router.get('/ebundle-topup/bundles-package/id',EbundleController.getMNOsBundles);
 router.get('/ebundle-topup/bundles-filter/id',EbundleController.getMNOsBundles);
 

@@ -7,6 +7,10 @@ const sqlQueryReplica = require('../common/sqlQueryReplica.common')
 const commonQueryCommon = require('../common/commonQuery.common')
 const memberModule = require('../models/topupMember.module')
 const roles = require('../utils/userRoles.utils')
+const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
+const fs = require('fs');
+const path = require('path');
+const ExcelJS = require('exceljs');
 
 class membersController {
 
@@ -487,6 +491,104 @@ class membersController {
             res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+
+downloadUserGroupList = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const param = {
+      region_ids: req.body.user_detials.region_list
+    };
+
+    if (req.query.userid) {
+      const userid = req.query.userid;
+      param.username = userid.startsWith('AFP-') ? userid : `AFP-${userid}`;
+    }
+
+    if (req.query.name) param.full_name = req.query.name;
+
+    if (req.query.agent_type_uuid) {
+      const lisAgentTypeId = await commonQueryCommon.getAgentTypeId(req.query.agent_type_uuid);
+      if (lisAgentTypeId.length === 0) return res.status(400).json({ errors: [{ msg: 'Agent type not found' }] });
+      param.agent_type_id = lisAgentTypeId[0].agent_type_id;
+    }
+
+    if (Object.keys(param).length === 0) {
+      return res.status(400).json({ errors: [{ msg: 'Improper search parameter' }] });
+    }
+
+    const totalRecordsResult = await memberModule.getUserGroupListCount(param);
+    const totalRecords = Number(totalRecordsResult[0]?.count || 0);
+    const pageLimit = Number(process.env.PER_PAGE_COUNT);
+    const pageCount = totalRecords % pageLimit === 0 ? totalRecords / pageLimit : Math.floor(totalRecords / pageLimit) + 1;
+
+    const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+    const limit = req.query.pageNumber > 0 ? pageLimit : totalRecords;
+
+    const data = await memberModule.getUserGroupList(param, limit, offset);
+
+    // if pageNumber > 0, send paginated result
+    if (req.query.pageNumber > 0) {
+      return res.status(200).json({
+        reportList: data,
+        totalRepords: totalRecords,
+        pageCount,
+        currentPage: Number(req.query.pageNumber),
+        pageLimit,
+      });
+    }
+
+   const now = new Date();
+    const dateStr = new Date().toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+    const fileName = `User_Group_List_${dateStr}_${timeStr}.xlsx`;
+    const filePath = path.join(REPORT_DIR, fileName);
+
+    if (fs.existsSync(filePath)) {
+      const stats = fs.statSync(filePath);
+      if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+        return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+      }
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('User Group List');
+
+    if (data.length > 0) {
+      sheet.columns = Object.keys(data[0]).map(key => ({
+        header: key,
+        key,
+        width: key.length < 20 ? 20 : key.length + 5
+      }));
+      sheet.addRows(data);
+    }
+
+    await workbook.xlsx.writeFile(filePath);
+    fs.chmodSync(filePath, 0o644);
+
+    // Delete after 30 minutes
+    setTimeout(() => {
+      fs.access(filePath, fs.constants.F_OK, err => {
+        if (!err) {
+          fs.unlink(filePath, err => {
+            if (err) console.error('Failed to delete:', filePath, err);
+            else console.log('Deleted file:', fileName);
+          });
+        }
+      });
+    }, 30 * 60 * 1000);
+
+    return res.json({
+      success: true,
+      downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}`,
+    });
+
+  } catch (error) {
+    console.error('downloadUserGroupList error:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
 
     // admin create agent group 
     addAgentGroup = async (req,res) => {

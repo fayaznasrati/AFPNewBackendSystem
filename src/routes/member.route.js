@@ -34,6 +34,7 @@ router.delete('/', deleteMember, auth(1,2,3,4,5,6), accessManager({agent: { modu
 
 // route for admin to get all group list
 router.get('/agent-group', getUserGroupList, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,13], permission: apiMethod.view }}), awaitHandlerFactory(membersController.getUserGroupList))
+router.get('/download-agent-group', getUserGroupList, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [2,13], permission: apiMethod.view }}), awaitHandlerFactory(membersController.downloadUserGroupList))
 
 // group related function by admin
 router.post('/admin/group',addAgentGroup, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [2,13], permission: apiMethod.add }}), awaitHandlerFactory(membersController.addAgentGroup))

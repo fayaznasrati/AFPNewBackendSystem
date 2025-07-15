@@ -26,6 +26,7 @@ router.delete('/sms-templete-category', deleteSmsTemplateCategorySchema, auth(ro
 
 // sms-templete APIs getTemplateDetails
 router.get('/sms-templete', allSmsTemplateSchema, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [10,2], permission: apiMethod.view }}), awaitHandlerFactory(smsController.allSmsTemplate))
+router.get('/download-sms-templete', allSmsTemplateSchema, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [10,2], permission: apiMethod.view }}), awaitHandlerFactory(smsController.downloadSmsTemplate))
 router.get('/sms-templete/details', getTemplateDetails, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [10,2], permission: apiMethod.edit }}), awaitHandlerFactory(smsController.getTemplateDetails))
 router.get('/sms-templete/id', findMessageSmsTemplateschema, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [10,2], permission: apiMethod.view }}), awaitHandlerFactory(smsController.findMessageSmsTemplate))
 router.post('/sms-templete', createSmsTemplateSchemaa, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [10,2], permission: apiMethod.add }}), awaitHandlerFactory(smsController.createSmsTemplate))
@@ -35,6 +36,7 @@ router.delete('/sms-templete', deleteSmsTemplateSchemaa, auth(role.Admin,role.Su
 //group-sms
 router.get('/sms-group', allSmsGroupSchema, auth(role.Admin), awaitHandlerFactory(smsController.allSmsGroup))
 router.get('/sms-group/date', allSmsGroupDateRangeschema, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [10,3], permission: apiMethod.view }}), awaitHandlerFactory(smsController.allSmsGroupDateRange))
+router.get('/download-sms-group/date', allSmsGroupDateRangeschema, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [10,3], permission: apiMethod.view }}), awaitHandlerFactory(smsController.downloadSmsGroupDateRange))
 router.get('/sms-group/id', findMessageSmsgroupSchema, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [10,3], permission: apiMethod.view }}), awaitHandlerFactory(smsController.findMessageSmsgroup))
 router.post('/sms-group-template', createcreateSmsGroupWithTemplate, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [10,1], permission: apiMethod.add }}), awaitHandlerFactory(smsController.createSmsGroupWithTemplate))
 router.post('/sms-group', createcreateSmsGroup, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [10,1], permission: apiMethod.add }}), awaitHandlerFactory(smsController.createSmsGroup))
