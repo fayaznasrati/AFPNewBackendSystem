@@ -35,7 +35,9 @@ router.post('/success-to-failed',successToFailedRecharge,awaitHandlerFactory(rec
 
 // reports
 router.get('/report/top-up',topUpreports, auth(1,2,3,4,5,6), accessManager({agent : { module: [5,1], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.topUpreports))
+router.get('/download-report/top-up',topUpreports, auth(1,2,3,4,5,6), accessManager({agent : { module: [5,1], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.downloadtopUpreports))
 router.get('/report/downline/top-up',downlineTopUpReport, auth(1,2,3,4,5,6), accessManager({agent : { module: [5,2], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.downlineTopUpReport))
+router.get('/download-report/downline/top-up',downlineTopUpReport, auth(1,2,3,4,5,6), accessManager({agent : { module: [5,2], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.downlineDownlineTopUpReport))
 router.get('/report/group/top-up',groupTopUpReport, auth(1,2,3,4,5,6), accessManager({agent : { module: [5,3], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.groupTopUpReport))
 router.get('/report/telco/top-up',telcoWiseTopUpReport, auth(1,2,3,4,5,6), accessManager({agent : { module: [5,6], permission: apiMethod.view }}), awaitHandlerFactory(rechargeController.telcoWiseTopUpReport))
 
