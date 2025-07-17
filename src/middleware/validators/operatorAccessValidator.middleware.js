@@ -110,6 +110,27 @@ exports.updateOperatorAccess = [
     }).withMessage('wrong request')
 ]
 
+exports.updateOperatorAccessMinMax = [
+    query('username')
+    .exists()
+    .withMessage('Username is required')
+    .notEmpty()
+    .withMessage('Username must be filled')
+    .trim().isLength({ min: 1, max: 50 })
+    .withMessage('Username maximum lengh is 50 words'),
+    body('operator_uuid')
+    .exists().withMessage('operator_uuid is required')
+    .trim().isLength({max:16,min:16}).withMessage('access_uuid is of 16 characters'),
+
+    body('user_detials')
+    .custom(value => {
+        if (value === undefined) {
+            return true
+        }
+        return false
+    }).withMessage('wrong request')
+]
+
 exports.delteOperatorAccess = [
     query('username')
     .exists()

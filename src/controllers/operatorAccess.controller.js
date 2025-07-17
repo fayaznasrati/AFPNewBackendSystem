@@ -171,6 +171,8 @@ class operatorAccessController {
                         operator_id : operatorId[0].operator_id,
                         mno_id : mnoDetails[0].id, 
                         queue_name : req.body.queueName, // rabbitMQ queue name
+                        max_amount : req.body.max_amount, // rabbitMQ queue name
+                        min_amount : req.body.min_amount, // rabbitMQ queue name
                         status : 1,
                         active : 1,
                         update_on : isodate, //dt current date time
@@ -182,7 +184,9 @@ class operatorAccessController {
                     redisMaster.delete('RECHARGE_OPERATOR_'+operatorId[0].operator_id)
 
                 // send responce to front end
-                    res.status(200).send({ message : " operator access created successfully "})
+                    res.status(200).send({ 
+                        response: response,
+                        message : " operator access created successfully "})
 
             }catch(error){
                 console.log(error);
@@ -232,6 +236,52 @@ class operatorAccessController {
                 console.log(error);
                 return res.status(400).json({ errors: [ {msg : error.message}] });
             }
+        }
+        updateOperatorAccessMAXMAIN  = async (req, res) => {
+                    try{
+                        // check body and query
+                            const errors = validationResult(req);
+                            if (!errors.isEmpty()) {
+                                return res.status(400).json({ errors: errors.array() });
+                            }
+                            console.log('operatorAccess/updateOperatorAccess',JSON.stringify(req.body), JSON.stringify(req.query))
+                             const { min_amount, max_amount, } = req.body;;
+
+                            var date = new Date();
+                            date.setHours(date.getHours() + 4, date.getMinutes() + 30);
+                            var isodate = date.toISOString();
+
+                        // get old status
+                            var searchKey = {
+                                operator_access_uuid : req.body.operator_uuid,
+                                active : 1
+                            }
+                            let operatorStatus = await sqlQueryReplica.searchQuery(this.tableName2, searchKey, ['status','max_amount', 'min_amount','operator_id'], 'operator_access_id','ASC', 1, 0)
+                            if( operatorStatus.length == 0 ) return res.status(400).json({ errors: [ {msg : 'Operator not found'}] });
+
+                        // update the operator access level
+                            var key = {
+                                min_amount : min_amount || operatorStatus[0].min_amount,
+                                max_amount : max_amount || operatorStatus[0].max_amount,
+                                // status : ['0','1'].includes(String(topupStatus)) ? String(topupStatus) : 0,
+                                update_on : isodate, //dt current date time
+                                updated_by : req.body.user_detials.id, //str user id
+                            }
+                            const lisResponce1 = await sqlQuery.updateQuery(this.tableName2,key,searchKey)
+
+                            redisMaster.delete('RECHARGE_OPERATOR_'+operatorStatus[0].operator_id)
+
+                        // send responce to front end
+                            const { affectedRows, changedRows, info } = lisResponce1;
+                            const message = !affectedRows ? 'operator access not found' :
+                                affectedRows && changedRows ? 'operator access updated successfully' : 'Update status Min and Max is same';
+                            
+                            res.send({ message, info });
+                        
+                    }catch(error){
+                        console.log(error);
+                        return res.status(400).json({ errors: [ {msg : error.message}] });
+                    }
         }
 
         delteOperatorAccess = async (req, res) => {
