@@ -2768,7 +2768,153 @@ class rechargeController {
         }
     }
 
-    // downlaine top-up report
+    downloadtopUpreports = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    if (!req.query.pageNumber) req.query.pageNumber = 0;
+    const isExcel = req.query.pageNumber == 0;
+
+    let childList = req.body.user_detials.child_list.join(',');
+    let searchKeyValue = {
+      userid: req.body.user_detials.userid,
+    };
+
+    if (req.query.mobile) searchKeyValue.mobile_number = req.query.mobile;
+
+    if (req.query.operator_uuid) {
+      const lisResponce1 = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+      if (lisResponce1 == 0) {
+        return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
+      }
+      searchKeyValue.operator_id = lisResponce1[0].operator_id;
+    }
+
+    if (req.query.status) searchKeyValue.status = req.query.status;
+
+    if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+      return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+    }
+
+    if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+    if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+
+    if (Object.keys(searchKeyValue).length == 0) {
+      return res.status(400).json({ errors: [{ msg: "Im proper search paremeters" }] });
+    }
+
+    const totalTopUpAmount = await sqlQueryReplica.searchQueryNoLimitTimeout(
+      this.tableName1,
+      searchKeyValue,
+      ['SUM(amount) AS totalAmount', 'count(1) AS count'],
+      "id",
+      "DESC"
+    );
+
+    let intTotlaRecords = Number(totalTopUpAmount[0].count);
+    let intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+
+    let offset = req.query.pageNumber > 0 ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+    let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
+
+    let key = [
+      'trans_number AS transactionId',
+      'operator_name AS operatorName',
+      'mobile_number as mobile',
+      'amount',
+      'comm_amt AS commissionAmount',
+      "IF(status = 1,'Pending',IF(status = 2,'Success',IF(status = 3,'Failed','NA'))) as status",
+      'CAST(created_on AS CHAR(20)) AS rechargeDate'
+    ];
+
+    const lisResponce2 = await sqlQueryReplica.searchQueryTimeout(
+      this.tableName1,
+      searchKeyValue,
+      key,
+      "id",
+      "DESC",
+      limit,
+      offset
+    );
+
+    if (isExcel) {
+    const now = new Date();
+    const dateStr = new Date().toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+    const filename = `topup_report_${dateStr}_${timeStr}.xlsx`;
+      const filePath = path.join(REPORT_DIR, filename);
+
+      if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        if (moment().diff(moment(stats.ctime), 'minutes') < 30) {
+          return res.status(200).json({
+            success: true,
+            downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
+          });
+        }
+      }
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Top-Up Report');
+
+      if (lisResponce2.length > 0) {
+        worksheet.columns = Object.keys(lisResponce2[0]).map((key) => ({
+          header: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+          key,
+          width: 25,
+        }));
+
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.addRows(lisResponce2);
+      }
+
+      await workbook.xlsx.writeFile(filePath);
+
+      setTimeout(() => {
+        fs.unlink(filePath, (err) => {
+          if (err && err.code !== 'ENOENT') {
+            console.error(`Error deleting ${filename}:`, err.message);
+          }
+        });
+      }, 30 * 60 * 1000);
+
+      return res.status(200).json({
+        success: true,
+        downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
+      });
+    }
+
+    return res.status(200).send({
+      totalTopUpAmount: totalTopUpAmount[0].totalAmount || 0,
+      finalResult: lisResponce2,
+      totalRepords: intTotlaRecords,
+      pageCount: intPageCount,
+      currentPage: Number(req.query.pageNumber),
+      pageLimit: Number(process.env.PER_PAGE_COUNT)
+    });
+
+  } catch (error) {
+    console.error('topUpreports', error);
+    if (req.query.pageNumber == 0) {
+      return res.status(200).send([{}]);
+    } else {
+      return res.status(200).send({
+        totalTopUpAmount: 0,
+        finalResult: [{}],
+        totalRepords: 0,
+        pageCount: 0,
+        currentPage: Number(req.query.pageNumber),
+        pageLimit: Number(process.env.PER_PAGE_COUNT)
+      });
+    }
+  }
+};
+    
+    
+        // downlaine top-up report
     downlineTopUpReport = async (req, res) => {
         try {
             // body and query validators
@@ -2888,6 +3034,175 @@ class rechargeController {
         }
     }
 
+    downlineDownlineTopUpReport =   async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    if (!req.query.pageNumber) req.query.pageNumber = 0;
+    const isExcel = req.query.pageNumber == 0;
+
+    let searchkeyval1 = {};
+
+    if (req.query.filterType && req.query.filterValue) {
+      if (req.query.filterType == 1 || req.query.filterType == 2) {
+        let searchKeyValue = {
+          child_ids: req.body.user_detials.child_list.join(','),
+          Active: 1
+        };
+
+        if (req.query.filterType == 1) searchKeyValue.username = req.query.filterValue;
+        if (req.query.filterType == 2) searchKeyValue.mobile = req.query.filterValue;
+
+        if (Object.keys(searchKeyValue).length == 2)
+          return res.status(400).json({ errors: [{ msg: "Impoper search parementer" }] });
+
+        const lisResponce1 = await sqlQueryReplica.searchQuery(
+          this.tableName2,
+          searchKeyValue,
+          ['userid', 'child_id'],
+          'userid',
+          'ASC',
+          1,
+          0
+        );
+        if (lisResponce1.length == 0)
+          return res.status(400).json({ errors: [{ msg: "user not found" }] });
+
+        searchkeyval1.child_ids = lisResponce1[0].child_id != ''
+          ? lisResponce1[0].child_id + "," + lisResponce1[0].userid
+          : lisResponce1[0].userid;
+      }
+
+      if (req.query.filterType == 3) {
+        searchkeyval1.mobile_number = req.query.filterValue;
+        searchkeyval1.child_ids = req.body.user_detials.child_list.join(',');
+      }
+    } else {
+      searchkeyval1.child_ids = req.body.user_detials.child_list.join(',');
+    }
+
+    if (Object.keys(searchkeyval1).length == 0)
+      return res.status(400).json({ errors: [{ msg: "Improper search parameter" }] });
+
+    if (req.query.operator_uuid) {
+      const lisResponce1 = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+      if (lisResponce1 == 0)
+        return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
+      searchkeyval1.operator_id = lisResponce1[0].operator_id;
+    }
+
+    if (req.query.status) searchkeyval1.status = req.query.status;
+
+    if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+      return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+    }
+
+    if (req.query.startDate) {
+      searchkeyval1.between = {
+        key: 'created_on',
+        value: [req.query.startDate, req.query.startDate]
+      };
+    }
+
+    if (req.query.endDate) {
+      searchkeyval1.between.value[1] = req.query.endDate;
+    }
+
+    const lisTotalRecords = await rechargeModel.downlineTopUpReportCount(searchkeyval1);
+
+    let intTotlaRecords = Number(lisTotalRecords[0].count);
+    let intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+    let offset = req.query.pageNumber > 0
+      ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT)
+      : 0;
+    let limit = req.query.pageNumber > 0
+      ? Number(process.env.PER_PAGE_COUNT)
+      : intTotlaRecords;
+
+    const lisResponce2 = await rechargeModel.downlineTopUpReport(searchkeyval1, limit, offset);
+
+    if (lisResponce2.length == 0) {
+      return res.status(204).send({ message: 'no recharge found' });
+    }
+
+    if (isExcel) {
+    const now = new Date();
+    const dateStr = new Date().toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+    const filename = `downline_topup_report_${dateStr}_${timeStr}.xlsx`;
+      const filePath = path.join(REPORT_DIR, filename);
+
+      if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        if (moment().diff(moment(stats.ctime), 'minutes') < 30) {
+          return res.status(200).json({
+            success: true,
+            downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
+          });
+        }
+      }
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Downline Top-Up Report');
+
+      if (lisResponce2.length > 0) {
+        worksheet.columns = Object.keys(lisResponce2[0]).map((key) => ({
+          header: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+          key,
+          width: 25,
+        }));
+
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.addRows(lisResponce2);
+      }
+
+      await workbook.xlsx.writeFile(filePath);
+
+      setTimeout(() => {
+        fs.unlink(filePath, (err) => {
+          if (err && err.code !== 'ENOENT') {
+            console.error(`Error deleting ${filename}:`, err.message);
+          }
+        });
+      }, 30 * 60 * 1000);
+
+      return res.status(200).json({
+        success: true,
+        downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
+      });
+    }
+
+    res.status(200).send({
+      reportList: lisResponce2,
+      totalRepords: intTotlaRecords,
+      pageCount: intPageCount,
+      currentPage: Number(req.query.pageNumber),
+      pageLimit: Number(process.env.PER_PAGE_COUNT),
+      totalAmount: lisTotalRecords[0].totalAmount || 0,
+      totalCommissionAmount: lisTotalRecords[0].totalCommissionAmount || 0
+    });
+
+  } catch (error) {
+    console.error('downlineTopUpReport', error);
+
+    if (req.query.pageNumber == 0) {
+      res.status(200).send([{}]);
+    } else {
+      res.status(200).send({
+        reportList: [{}],
+        totalRepords: 0,
+        pageCount: 0,
+        currentPage: Number(req.query.pageNumber),
+        pageLimit: Number(process.env.PER_PAGE_COUNT),
+        totalAmount: 0,
+        totalCommissionAmount: 0
+      });
+    }
+  }
+};
     // group topup report
     groupTopUpReport = async (req, res) => {
         try {
