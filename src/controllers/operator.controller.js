@@ -52,6 +52,48 @@ class operatorController {
         }
     }
 
+
+    createMNOoperator = async(req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+        console.log('operator/createOperator',JSON.stringify(req.body), JSON.stringify(req.query))
+        var date = new Date();
+        date.setHours(date.getHours() + 4, date.getMinutes() + 30);
+        var isodate = date.toISOString();
+
+        //varable for sql query to create operator
+        var param = {
+            mno_uuid: "uuid()",
+            mno_name: req.body.name, //str operator_name
+            balance_url: req.body.balance_url, //str operator_name
+            current_balance: req.body.current_balance, //str operator_name
+            rollback_amount: req.body.rollback_amount || 0, //str operator_name
+            status: req.body.status || 1, //dt current date time
+            updated_on: isodate, //dt current date time
+            updated_by: req.body.user_detials.id, // str user id
+        }
+
+        //fire sql query to create operator
+        const objResult = await sqlQuery.createQuery(this.tableName2, param)
+
+        // check if the result is there and responce accordingly
+        if (!objResult) {
+            throw new HttpException(500, 'Something went wrong');
+        }
+        res.status(201).send({ message: 'Operator successfully created!' });
+
+        // delete data from redis
+        // redisMaster.delete('operator')
+
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json({ errors: [ {msg : error.message}] });
+    }
+    }
+
     //function to get all operators
     allMasterOperator = async(req, res) => {
         try {
