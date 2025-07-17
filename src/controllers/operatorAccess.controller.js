@@ -114,7 +114,7 @@ class operatorAccessController {
                 }
                 var orderby = "operator_access_id"
                 var ordertype = "desc"
-                        let key = [ "cast( operator_access_uuid AS CHAR(16) ) AS operator_uuid", "display_name AS operatorName", "status AS topupStatus"]
+                        let key = [ "cast( operator_access_uuid AS CHAR(16) ) AS operator_uuid", "display_name AS operatorName", "status AS topupStatus", "max_amount", "min_amount" ]
 
                  let lisTotalRecords = await sqlQueryReplica.searchQueryNoLimit(this.tableName2, searchKeyValue, ['COUNT(1) AS count'], orderby, ordertype)
                 // const lisTotalRecords = await sqlQueryReplica.searchQueryNoLimit(this.tableName1,searchKeyValue, ['COUNT(1) AS count'], orderby, ordertype)
