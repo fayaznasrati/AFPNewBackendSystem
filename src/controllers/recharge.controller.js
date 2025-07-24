@@ -4801,7 +4801,7 @@ downloadAgentTopupReport = async (req, res) => {
 
         if (!req.query.pageNumber) req.query.pageNumber = 0;
 
-        const searchKeyValue = {};
+       let searchKeyValue = { Active: 1 };
         if (req.query.agentId) searchKeyValue.username = req.query.agentId;
         if (req.query.agnetName) searchKeyValue.full_name = req.query.agnetName;
 
@@ -4905,19 +4905,19 @@ downloadAgentTopupReport = async (req, res) => {
     } catch (error) {
         console.error('adminCommissionReport error:', error);
 
-        if (req.query.pageNumber == 0) {
-            return res.status(200).send([{}]);
-        } else {
-            return res.status(200).json({
-                reportList: [{}],
-                totalRepords: 0,
-                pageCount: 0,
-                currentPage: Number(req.query.pageNumber),
-                pageLimit: Number(process.env.PER_PAGE_COUNT),
-                totalRechargeAmount: 0,
-                totalCommAmount: 0
-            });
-        }
+        // if (req.query.pageNumber == 0) {
+        //     return res.status(200).send([{}]);
+        // } else {
+        //     return res.status(200).json({
+        //         reportList: [{}],
+        //         totalRepords: 0,
+        //         pageCount: 0,
+        //         currentPage: Number(req.query.pageNumber),
+        //         pageLimit: Number(process.env.PER_PAGE_COUNT),
+        //         totalRechargeAmount: 0,
+        //         totalCommAmount: 0
+        //     });
+        // }
     }
 };
     // agent panel commission report
