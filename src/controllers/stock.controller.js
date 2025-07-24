@@ -917,6 +917,129 @@ class stockController {
         }
     }
 
+    downloadAdminStockTransferReport = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+    const searchKeyValue = {
+      sender_id: req.body.user_detials.userid,
+      rollback: 0
+    };
+
+    if (
+      req.body.user_detials.type == userList.Admin ||
+      req.body.user_detials.type == userList.SubAdmin
+    ) {
+      if (req.body.user_detials.region_list.length != 7) {
+        searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+      }
+    }
+
+    if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+      return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+    }
+
+    if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+    if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+    if (req.query.name) searchKeyValue.full_name = req.query.name;
+    if (req.query.user_id) searchKeyValue.username = req.query.user_id;
+
+    if (req.query.user_type_uuid) {
+      const response = await commonQueryCommon.getAgentTypeId(req.query.user_type_uuid);
+      if (!response) return res.status(400).json({ errors: [{ msg: 'Agent Type not found' }] });
+      searchKeyValue.usertype_id = response[0].agent_type_id;
+    }
+
+    if (req.query.mobile) searchKeyValue.mobile = req.query.mobile;
+    if (req.query.amount) searchKeyValue.transfer_amt = req.query.amount;
+
+    if (Object.keys(searchKeyValue).length === 0) {
+      return res.status(400).json({ errors: [{ msg: 'Search Parameter are not proper' }] });
+    }
+
+    const lisTotalRecords = await stockModule.adminStocksDetialsCount(searchKeyValue);
+    const intTotlaRecords = Number(lisTotalRecords[0].count);
+    const intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+    const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+    const limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
+
+    const lisResult = await stockModule.adminStocksDetials(searchKeyValue, limit, offset);
+
+    if (req.query.pageNumber == 0) {
+      if (lisResult.length === 0) return res.status(204).send({ message: 'No data found' });
+
+     const now = new Date();
+    const dateStr = new Date().toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+    const filename = `admin_stock_transfer_report_${dateStr}_${timeStr}.xlsx`;
+      const filepath = path.join(REPORT_DIR, filename);
+
+      // Check for recent file
+      const existingFile = fs
+        .readdirSync(REPORT_DIR)
+        .filter(f => f.startsWith('admin_stock_transfer_report_') && f.endsWith('.xlsx'))
+        .map(f => ({
+          name: f,
+          time: fs.statSync(path.join(REPORT_DIR, f)).mtime.getTime()
+        }))
+        .sort((a, b) => b.time - a.time)[0];
+
+      if (existingFile && Date.now() - existingFile.time < 30 * 60 * 1000) {
+        return res.status(200).json({
+          status: true,
+          message: 'Download Excel',
+          downloadUrl: `/api/v1/recharge/agent-report/files/${existingFile.name}`
+        });
+      }
+
+      // Create Excel file
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Stock Transfer Report');
+
+      const keys = Object.keys(lisResult[0]);
+      worksheet.columns = keys.map(key => ({
+        header: key,
+        key: key,
+        width: 20
+      }));
+
+      lisResult.forEach(row => worksheet.addRow(row));
+      await workbook.xlsx.writeFile(filepath);
+
+      // Auto-delete after 30 mins
+      setTimeout(() => {
+        if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
+      }, 30 * 60 * 1000);
+
+      return res.status(200).json({
+        status: true,
+        message: 'Download Excel',
+        downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`
+      });
+    }
+
+    // Paginated response
+    return res.status(200).send({
+      reportList: lisResult,
+      totalTransactionAmount: lisTotalRecords[0].transactionAmount || 0,
+      totalCommissionAmount: lisTotalRecords[0].commissionAmount || 0,
+      totalRepords: intTotlaRecords,
+      pageCount: intPageCount,
+      currentPage: Number(req.query.pageNumber),
+      pageLimit: Number(process.env.PER_PAGE_COUNT)
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(400).json({ errors: [{ msg: error.message }] });
+  }
+};
+
     stockRecievedReport = async (req,res) =>{ 
         try{
 
@@ -1090,6 +1213,141 @@ class stockController {
             return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+
+    downloadDownlineStockTransferReport = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        let searchQkeys = Object.keys(req.query);
+        searchQkeys.forEach((key) => {
+            if (key.includes('user_id')) req.query.userId = key.slice(7);
+        });
+
+        let searchKeyValue = {
+            Active: 1,
+            rollback: 0,
+            "NOT sender_id": req.body.user_detials.userid,
+        };
+
+        if (req.query.parentAgentUuid) {
+            let agentList = await sqlQueryReplica.searchQuery(this.tableName4, {
+                user_uuid: req.query.parentAgentUuid,
+                Active: 1,
+            }, ['child_id'], 'userid', 'asc', 1, 0);
+            if (agentList.length == 0) return res.status(400).json({ errors: [{ msg: 'Parent Id not found' }] });
+            searchKeyValue.child_ids = agentList[0].child_id;
+        } else {
+            if (req.body.user_detials.region_list.length != 7) {
+                searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+            }
+        }
+
+        if ((req.query.start_date && !req.query.end_date) || (req.query.end_date && !req.query.start_date))
+            return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+
+        if (req.query.userType_uuid) {
+            const lisResponce = await commonQueryCommon.checkAgentType(req.query.userType_uuid);
+            if (lisResponce == 0) return res.status(400).json({ errors: [{ msg: 'user type uuid not found' }] });
+            searchKeyValue.usertype_id = lisResponce[0].agent_type_id;
+        }
+
+        if (req.query.userid) {
+            const userid = req.query.userid;
+            searchKeyValue.sender_username = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+        }
+
+        if (req.query.name) searchKeyValue.reciever_username = req.query.name;
+        if (req.query.start_date) searchKeyValue.start_date = req.query.start_date;
+        if (req.query.end_date) searchKeyValue.end_date = req.query.end_date;
+        if (req.query.province_uuid) searchKeyValue.province_uuid = req.query.province_uuid;
+        if (req.query.status) searchKeyValue.Active = req.query.status;
+
+        if (Object.keys(searchKeyValue).length == 0)
+            return res.status(400).json({ errors: [{ msg: "Search Parameter are not proper" }] });
+
+        const lisTotalRecords = await stockModule.agentStocksDetialsCount(searchKeyValue);
+        const intTotlaRecords = Number(lisTotalRecords[0].count);
+        const intPageCount = (intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0)
+            ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT)
+            : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1;
+
+        const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+        const limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
+
+        const lisResult = await stockModule.agentStocksDetials(searchKeyValue, limit, offset);
+
+        // ✅ If Excel report requested (pageNumber == 0)
+        if (req.query.pageNumber == 0) {
+            if (lisResult.length === 0) return res.status(200).send([]);
+
+            // generate safe filename
+            const now = new Date();
+            const dateStr = new Date().toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+            const fileName = `downline_stock_transfer_report_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            // check for existing recent file
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                const fileAgeMinutes = (Date.now() - stats.mtimeMs) / (1000 * 60);
+                if (fileAgeMinutes < 30) {
+                    return res.status(200).send({
+                        downloadLink: `/api/v1/recharge/agent-report/files/${fileName}`
+                    });
+                }
+            }
+
+            // generate workbook
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Stock Transfers');
+
+            // dynamically create columns
+            const columns = Object.keys(lisResult[0]).map(key => ({
+                header: key,
+                key: key,
+                width: 20
+            }));
+            worksheet.columns = columns;
+
+            lisResult.forEach(row => {
+                worksheet.addRow(row);
+            });
+
+            await workbook.xlsx.writeFile(filePath);
+
+            // auto delete after 30 mins
+            setTimeout(() => {
+                fs.unlink(filePath, err => {
+                    if (err) console.error("File deletion error:", err.message);
+                });
+            }, 30 * 60 * 1000); // 30 mins
+
+            return res.status(200).send({
+                 success: true,
+                downloadLink: `/api/v1/recharge/agent-report/files/${fileName}`
+            });
+        }
+
+        // 🔁 Paginated API Response
+        return res.status(200).send({
+            reportList: lisResult,
+            totalRepords: intTotlaRecords,
+            pageCount: intPageCount,
+            currentPage: Number(req.query.pageNumber),
+            pageLimit: Number(process.env.PER_PAGE_COUNT),
+            totalAmount: lisTotalRecords[0].totalAmount || 0,
+            totalCommission: lisTotalRecords[0].totalCommission || 0
+        });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+};
 
     stocksRequests = async ( req, res, next) => {
         try{
