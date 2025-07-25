@@ -11,6 +11,8 @@ const errorMiddleware = require('./middleware/error. middleware');
 const rString = require('./utils/randomString.utils');
 const algEncryptDecrypt = require('./utils/encryption.utils');
 const cleanOldReportFiles = require('./utils/delete_report_files_after_30_minuts'); // adjust path as needed
+const multer = require('multer') ;
+// const upload = multer({ dest: 'uploads/' }); // temp folder
 //cron
 const cron = require('./common/node-cron')
 

@@ -2,6 +2,11 @@ const HttpException = require('../utils/HttpException.utils');
 const { validationResult } = require('express-validator');
 const varRandomString = require('../utils/randomString.utils');
 
+const multer = require('multer') ;
+const upload = multer({ dest: 'bulk_topup_files/' }); // temp folder
+const xlsx = require('xlsx'); // ✅ CommonJS syntax
+
+
 const sqlQuery = require('../common/sqlQuery.common')
 const sqlQueryReplica = require('../common/sqlQueryReplica.common')
 
@@ -25,7 +30,7 @@ const httpRequestMakerCommon = require('../common/httpRequestMaker.common');
 
 const dotenv = require('dotenv');
 const path = require('path');
-const { type, send, sendStatus } = require('express/lib/response');
+const { type, send, sendStatus, status } = require('express/lib/response');
 
 const redisMaster = require('../common/master/radisMaster.common')
 const { format } = require('fast-csv');
@@ -33,6 +38,7 @@ const ExcelJS = require('exceljs');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { env } = require('process');
+
 
 // configer env
 dotenv.config()
@@ -300,7 +306,7 @@ class rechargeController {
                     userid: req.body.user_detials.userid,
                     user_uuid: req.body.user_detials.user_uuid,
                     user_mobile: req.body.user_detials.mobile,
-                    channelType: ['Mobile', 'SMS', 'USSD', 'Web'].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
+                    channelType: ['Mobile', 'SMS', 'USSD', 'Web', 'Company'].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
                     userType: req.body.user_detials.type,
                     group_topup_id: lisResponce4[i].group_id,
                     full_name: req.body.user_detials.name,
@@ -314,6 +320,8 @@ class rechargeController {
                     userAppVersion: req.body.userAppVersion ? req.body.userAppVersion : null, //str
                     userApplicationType: req.body.userApplicationType == "Web" ? 1 : req.body.userApplicationType == 'Mobile' ? 2 : 0,
                 }
+                console.log('data', data)
+
                 responce = await this.processRecharge(data)
                 status.push(responce.status)
                 message.push(responce.message)
@@ -329,6 +337,151 @@ class rechargeController {
             res.status(400).json({ errors: [{ msg: error.message }] });
         }
     }
+
+    bulkTopupRecharge = async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ msg: 'Excel file is required' });
+
+        const workbook = xlsx.readFile(req.file.path);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = xlsx.utils.sheet_to_json(sheet);
+
+        if (!rows.length) return res.status(400).json({ msg: 'Excel sheet is empty' });
+
+        let statusList = [], messageList = [];
+
+        for (let i = 0; i < rows.length; i++) {
+            const mobile = String(rows[i].mobile).trim();
+            const amount = Number(rows[i].amount);
+            // const amount = Number(rows[i].amount);;
+            // const mobile = 730720003;
+             console.log('Amount:', amount, 'Type:', typeof amount);
+            console.log('Mobile:', mobile, 'Type:', typeof mobile);
+            if (!mobile || !amount || isNaN(amount)) {
+                statusList.push(400);
+                messageList.push(`Row ${i + 2}: Invalid mobile or amount`);
+                continue;
+            }
+
+        //     // Determine operator
+        //    console.log('recharge/BulkTopupRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
+            let operator_uuid = '', operatorName = ''
+            let normalized = String(mobile).trim();
+
+            if (normalized.startsWith('+93') && normalized.length === 12) {
+                normalized = '0' + normalized.slice(3);  // +9373... => 073...
+                console.log("no",)
+            } else if (normalized.startsWith('93') && normalized.length === 11) {
+                normalized = '0' + normalized.slice(2);  // 9373...  => 073...
+            } else if (!normalized.startsWith('0') && normalized.length === 9) {
+                normalized = '0' + normalized;           // 731234567 => 0731234567
+            }
+            // Use switch on first 3 digits
+            console.log("normalized",normalized)
+                 switch (normalized.slice(0, 3)) {
+                    case "078":
+                    case "073":
+                        // Etisalat
+                        operator_uuid = "70b9906d-c2ba-11"
+                        operatorName = "Etisalat"
+                        break;
+                    case "079":
+                    case "072":
+                        // Roshan
+                        operator_uuid = "9edb602c-c2ba-11"
+                        operatorName = "Roshan"
+                        break;
+                    case "077":
+                    case "076":
+                        // MTN
+                        operator_uuid = "456a6b47-c2ba-11",
+                            operatorName = "MTN"
+                        break;
+                    case "074":
+                        // Salaam
+                        operator_uuid = "1e0e1eeb-c2a6-11"
+                        operatorName = "Salaam"
+                        break;
+                    case "070":
+                    case "071":
+                        // AWCC
+                        operator_uuid = "6a904d84-c2a6-11"
+                        operatorName = "AWCC"
+                        break;
+                }
+
+            if (!operator_uuid) {
+                statusList.push(400);
+                messageList.push(`Row ${i + 2}: Unknown operator`);
+                continue;
+            }
+
+            // console.log('Amount:', amount, 'Type:', typeof amount);
+            // console.log('Mobile:', normalized, 'Type:', typeof normalized);
+            
+            // Safe conversion and fallback
+            const safeAmount = amount ? String(amount).trim() : '0';
+            const safeMobile = normalized ? String(normalized).trim() : '0000000000'; // fallback value
+
+            let data = {
+                operatorName: operatorName,
+                operator_uuid: operator_uuid,
+                amount: safeAmount, // now always a string
+                mobile: safeMobile, // now always a string
+                userid: req.body.user_detials.userid,
+                user_uuid: req.body.user_detials.user_uuid,
+                user_mobile: req.body.user_detials.mobile,
+                userType: req.body.user_detials.type,
+                channelType: ['Mobile', 'SMS', 'USSD', 'Web',"Company"].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
+                group_topup_id: 0,
+                full_name: req.body.user_detials.name,
+                username: req.body.user_detials.username,
+                region_id: req.body.user_detials.region_id,
+                userIpAddress: req.body.userIpAddress ? req.body.userIpAddress : 0,
+                userMacAddress: req.body.userMacAddress ? req.body.userMacAddress : 0, //str
+                userOsDetails: req.body.userOsDetails ? req.body.userOsDetails : 0, //str
+                userImeiNumber: req.body.userImeiNumber ? req.body.userImeiNumber : 0, //str
+                userGcmId: req.body.userGcmId ? req.body.userGcmId : 0, //str
+                userAppVersion: req.body.userAppVersion ? req.body.userAppVersion : null, //str
+                userApplicationType: req.body.userApplicationType == "Web" ? 1 : req.body.userApplicationType == 'Mobile' ? 2 : 0,
+            }
+          // console.log('data', data)
+            const response = await this.processRecharge(data);
+            // console.log('response', response);
+            statusList.push(response.status);
+            messageList.push(`Row ${i + 2}: ${response.message}`);
+            
+        }
+
+        // Delete file after processing
+        fs.unlinkSync(req.file.path);;
+        // deleteUploadedFile(req.file.path);
+        return res.json({
+             status: 'success',
+             results: messageList
+             });
+
+    } catch (err) {
+        console.error(err);
+        //  deleteUploadedFile(req.file.path);
+            // Try to delete file even on error
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+        return res.status(500).json({ msg: 'Server error', error: err.message });
+    }
+    }
+
+     deleteUploadedFile = (fileId) => {
+    const filePath = path.join(__dirname, 'src/uploads', fileId);
+    fs.unlink(filePath, (err) => {
+        if (err) {
+        console.error(`❌ Failed to delete file ${filePath}:`, err.message);
+        } else {
+        console.log(`✅ File deleted: ${filePath}`);
+        }
+    });
+    };
 
     #checkStockTransferStatus = async () => {
         let strStockTransferStatus = await redisMaster.asyncGet('STOCK_TRANSFER_STATUS')
@@ -396,7 +549,7 @@ class rechargeController {
                 user_uuid: req.body.user_detials.user_uuid,
                 user_mobile: req.body.user_detials.mobile,
                 userType: req.body.user_detials.type,
-                channelType: ['Mobile', 'SMS', 'USSD', 'Web'].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
+                channelType: ['Mobile', 'SMS', 'USSD', 'Web',"Company"].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
                 group_topup_id: 0,
                 full_name: req.body.user_detials.name,
                 username: req.body.user_detials.username,
