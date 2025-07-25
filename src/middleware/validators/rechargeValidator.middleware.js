@@ -74,6 +74,42 @@ exports.groupRecharge = [
     .withMessage('wrong request')
 ]
 
+exports.groupRecharge = [
+    query('username')
+    .exists()
+    .withMessage('username is required')
+    .isString()
+    .withMessage('should be a string')
+    .isLength({ min: 1, max: 50 })
+    .withMessage('usernamemaximum limit is 50 words'),
+    body('group_uuid')
+    .exists().withMessage('group_uuid is required')
+    .trim().isLength({ min: 16, max: 16 }).withMessage('Please select group'),
+    body('amount')
+    .isLength({ min: 1, max: 20 }).withMessage('Please Enter Amount')
+    .custom(value => {
+        if (Number(value) && Number(value) >= 1) {
+            return true
+        }
+        return false
+    }).withMessage('enter proper amount')
+    .isNumeric().withMessage('should be numeric'),
+    // body('operator_uuid')
+    // .exists().withMessage('operator_uuid is required')
+    // .isLength({ min: 16, max: 16 }).withMessage('Please select operator'),
+    // body("operatorName")
+    // .exists().withMessage('operator name is required')
+    // .isLength({ min: 3,max: 50}).withMessage('can bo of 50 character'),
+    body('user_detials')
+    .custom(value => {
+        if (value === undefined) {
+            return true
+        }
+        return false
+    })
+    .withMessage('wrong request')
+]
+
 exports.acceptRecharge = [
     body('transNumber')
     .exists().withMessage('transNumber is required')

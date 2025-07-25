@@ -8,6 +8,8 @@ const rechargeController = require('../controllers/recharge.controller');
 const apiMethod = require('../utils/apiMethod.utils');
 const role = require('../utils/userRoles.utils');
 const accessManager = require('../middleware/acessManager.middleware');
+const multer = require('multer') ;
+const upload = multer({ dest: 'bulk_topup_files/' }); // temp folder
 
 const {
     singlerecharge,groupRecharge,acceptRecharge,rejectRecharge,getPendingRechargeList,topUpreports,downlineTopUpReport,
@@ -19,6 +21,11 @@ const {
 // recharge oprions
 router.post('/single',singlerecharge,auth(1,2,3,4,5,6), accessManager({agent : { module: [2,1], permission: apiMethod.add }}), awaitHandlerFactory(rechargeController.singlerecharge));
 router.post('/group',groupRecharge,auth(1,2,3,4,5,6), accessManager({agent : { module: [3,1], permission: apiMethod.add }}), awaitHandlerFactory(rechargeController.groupRecharge));
+
+
+router.post('/bulk-topup', upload.single('excelFile'),auth(1,2,3,4,5,6), accessManager({agent : { module: [3,1], permission: apiMethod.add }}), awaitHandlerFactory(rechargeController.bulkTopupRecharge));
+
+
 
 // api for recharge 
 router.get('/pending',getPendingRechargeList,awaitHandlerFactory(rechargeController.getPendingRechargeList));
