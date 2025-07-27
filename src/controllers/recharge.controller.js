@@ -2,7 +2,7 @@ const HttpException = require('../utils/HttpException.utils');
 const { validationResult } = require('express-validator');
 const varRandomString = require('../utils/randomString.utils');
 
-const multer = require('multer') ;
+const multer = require('multer');
 const upload = multer({ dest: 'bulk_topup_files/' }); // temp folder
 const xlsx = require('xlsx'); // ✅ CommonJS syntax
 
@@ -234,7 +234,7 @@ class rechargeController {
             // if (lisResponce1 == 0) return res.status(400).json({ errors: [ {msg : 'operator id not found'}] });
 
             // get the contact list 
-            const lisResponce4 = await sqlQueryReplica.searchQueryNoLimit(this.tableName7, { group_uuid: req.body.group_uuid, active: 1 }, ["mobile", "group_id"], 'name', "ASC")
+            const lisResponce4 = await sqlQueryReplica.searchQueryNoLimit(this.tableName7, { group_uuid: req.body.group_uuid, active: 1 }, ["mobile", "group_id","amount"], 'name', "ASC")
             // console.log(lisResponce4)
             if (lisResponce4.length == 0) {
                 // var lisresponce = await sqlQuery.specialCMD('rollback')
@@ -301,7 +301,7 @@ class rechargeController {
                 data = {
                     operatorName: operatorName,
                     operator_uuid: operator_uuid,
-                    amount: req.body.amount,
+                    amount: lisResponce4[i].amount,
                     mobile: lisResponce4[i].mobile,
                     userid: req.body.user_detials.userid,
                     user_uuid: req.body.user_detials.user_uuid,
@@ -327,8 +327,19 @@ class rechargeController {
                 message.push(responce.message)
             }
             if (status.includes(200)) {
-                if (status.includes(400)) return res.status(responce.status).send({ message: "Some recharge request added successfully" })
-                else return res.status(responce.status).send({ message: "All recharge request added successfully" })
+                if (status.includes(400)) {
+                    // return res.status(responce.status).send({ message: "Some recharge request added successfully" })
+                    return res.json({
+                        status: responce.status,
+                        message: "Some recharge request added successfully",
+                        results: message
+                    });
+                }
+                else return res.json({
+                    status: responce.status,
+                    message: "All recharge request added successfully",
+                    results: message
+                });
             }
             res.status(400).json({ errors: [{ msg: message[status.indexOf(400)] }] });
 
@@ -339,46 +350,46 @@ class rechargeController {
     }
 
     bulkTopupRecharge = async (req, res) => {
-    try {
-        if (!req.file) return res.status(400).json({ msg: 'Excel file is required' });
+        try {
+            if (!req.file) return res.status(400).json({ msg: 'Excel file is required' });
 
-        const workbook = xlsx.readFile(req.file.path);
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = xlsx.utils.sheet_to_json(sheet);
+            const workbook = xlsx.readFile(req.file.path);
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = xlsx.utils.sheet_to_json(sheet);
 
-        if (!rows.length) return res.status(400).json({ msg: 'Excel sheet is empty' });
+            if (!rows.length) return res.status(400).json({ msg: 'Excel sheet is empty' });
 
-        let statusList = [], messageList = [];
+            let statusList = [], messageList = [];
 
-        for (let i = 0; i < rows.length; i++) {
-            const mobile = String(rows[i].mobile).trim();
-            const amount = Number(rows[i].amount);
-            // const amount = Number(rows[i].amount);;
-            // const mobile = 730720003;
-             console.log('Amount:', amount, 'Type:', typeof amount);
-            console.log('Mobile:', mobile, 'Type:', typeof mobile);
-            if (!mobile || !amount || isNaN(amount)) {
-                statusList.push(400);
-                messageList.push(`Row ${i + 2}: Invalid mobile or amount`);
-                continue;
-            }
+            for (let i = 0; i < rows.length; i++) {
+                const mobile = String(rows[i].mobile).trim();
+                const amount = Number(rows[i].amount);
+                // const amount = Number(rows[i].amount);;
+                // const mobile = 730720003;
+                console.log('Amount:', amount, 'Type:', typeof amount);
+                console.log('Mobile:', mobile, 'Type:', typeof mobile);
+                if (!mobile || !amount || isNaN(amount)) {
+                    statusList.push(400);
+                    messageList.push(`Row ${i + 2}: Invalid mobile or amount`);
+                    continue;
+                }
 
-        //     // Determine operator
-        //    console.log('recharge/BulkTopupRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
-            let operator_uuid = '', operatorName = ''
-            let normalized = String(mobile).trim();
+                //     // Determine operator
+                //    console.log('recharge/BulkTopupRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
+                let operator_uuid = '', operatorName = ''
+                let normalized = String(mobile).trim();
 
-            if (normalized.startsWith('+93') && normalized.length === 12) {
-                normalized = '0' + normalized.slice(3);  // +9373... => 073...
-                console.log("no",)
-            } else if (normalized.startsWith('93') && normalized.length === 11) {
-                normalized = '0' + normalized.slice(2);  // 9373...  => 073...
-            } else if (!normalized.startsWith('0') && normalized.length === 9) {
-                normalized = '0' + normalized;           // 731234567 => 0731234567
-            }
-            // Use switch on first 3 digits
-            console.log("normalized",normalized)
-                 switch (normalized.slice(0, 3)) {
+                if (normalized.startsWith('+93') && normalized.length === 12) {
+                    normalized = '0' + normalized.slice(3);  // +9373... => 073...
+                    console.log("no",)
+                } else if (normalized.startsWith('93') && normalized.length === 11) {
+                    normalized = '0' + normalized.slice(2);  // 9373...  => 073...
+                } else if (!normalized.startsWith('0') && normalized.length === 9) {
+                    normalized = '0' + normalized;           // 731234567 => 0731234567
+                }
+                // Use switch on first 3 digits
+                console.log("normalized", normalized)
+                switch (normalized.slice(0, 3)) {
                     case "078":
                     case "073":
                         // Etisalat
@@ -410,77 +421,77 @@ class rechargeController {
                         break;
                 }
 
-            if (!operator_uuid) {
-                statusList.push(400);
-                messageList.push(`Row ${i + 2}: Unknown operator`);
-                continue;
+                if (!operator_uuid) {
+                    statusList.push(400);
+                    messageList.push(`Row ${i + 2}: Unknown operator`);
+                    continue;
+                }
+
+                // console.log('Amount:', amount, 'Type:', typeof amount);
+                // console.log('Mobile:', normalized, 'Type:', typeof normalized);
+
+                // Safe conversion and fallback
+                const safeAmount = amount ? String(amount).trim() : '0';
+                const safeMobile = normalized ? String(normalized).trim() : '0000000000'; // fallback value
+
+                let data = {
+                    operatorName: operatorName,
+                    operator_uuid: operator_uuid,
+                    amount: safeAmount, // now always a string
+                    mobile: safeMobile, // now always a string
+                    userid: req.body.user_detials.userid,
+                    user_uuid: req.body.user_detials.user_uuid,
+                    user_mobile: req.body.user_detials.mobile,
+                    userType: req.body.user_detials.type,
+                    channelType: ['Mobile', 'SMS', 'USSD', 'Web', "Company"].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
+                    group_topup_id: 0,
+                    full_name: req.body.user_detials.name,
+                    username: req.body.user_detials.username,
+                    region_id: req.body.user_detials.region_id,
+                    userIpAddress: req.body.userIpAddress ? req.body.userIpAddress : 0,
+                    userMacAddress: req.body.userMacAddress ? req.body.userMacAddress : 0, //str
+                    userOsDetails: req.body.userOsDetails ? req.body.userOsDetails : 0, //str
+                    userImeiNumber: req.body.userImeiNumber ? req.body.userImeiNumber : 0, //str
+                    userGcmId: req.body.userGcmId ? req.body.userGcmId : 0, //str
+                    userAppVersion: req.body.userAppVersion ? req.body.userAppVersion : null, //str
+                    userApplicationType: req.body.userApplicationType == "Web" ? 1 : req.body.userApplicationType == 'Mobile' ? 2 : 0,
+                }
+                // console.log('data', data)
+                const response = await this.processRecharge(data);
+                // console.log('response', response);
+                statusList.push(response.status);
+                messageList.push(`Row ${i + 2}: ${response.message}`);
+
             }
 
-            // console.log('Amount:', amount, 'Type:', typeof amount);
-            // console.log('Mobile:', normalized, 'Type:', typeof normalized);
-            
-            // Safe conversion and fallback
-            const safeAmount = amount ? String(amount).trim() : '0';
-            const safeMobile = normalized ? String(normalized).trim() : '0000000000'; // fallback value
+            // Delete file after processing
+            fs.unlinkSync(req.file.path);;
+            // deleteUploadedFile(req.file.path);
+            return res.json({
+                status: 'success',
+                results: messageList
+            });
 
-            let data = {
-                operatorName: operatorName,
-                operator_uuid: operator_uuid,
-                amount: safeAmount, // now always a string
-                mobile: safeMobile, // now always a string
-                userid: req.body.user_detials.userid,
-                user_uuid: req.body.user_detials.user_uuid,
-                user_mobile: req.body.user_detials.mobile,
-                userType: req.body.user_detials.type,
-                channelType: ['Mobile', 'SMS', 'USSD', 'Web',"Company"].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
-                group_topup_id: 0,
-                full_name: req.body.user_detials.name,
-                username: req.body.user_detials.username,
-                region_id: req.body.user_detials.region_id,
-                userIpAddress: req.body.userIpAddress ? req.body.userIpAddress : 0,
-                userMacAddress: req.body.userMacAddress ? req.body.userMacAddress : 0, //str
-                userOsDetails: req.body.userOsDetails ? req.body.userOsDetails : 0, //str
-                userImeiNumber: req.body.userImeiNumber ? req.body.userImeiNumber : 0, //str
-                userGcmId: req.body.userGcmId ? req.body.userGcmId : 0, //str
-                userAppVersion: req.body.userAppVersion ? req.body.userAppVersion : null, //str
-                userApplicationType: req.body.userApplicationType == "Web" ? 1 : req.body.userApplicationType == 'Mobile' ? 2 : 0,
-            }
-          // console.log('data', data)
-            const response = await this.processRecharge(data);
-            // console.log('response', response);
-            statusList.push(response.status);
-            messageList.push(`Row ${i + 2}: ${response.message}`);
-            
-        }
-
-        // Delete file after processing
-        fs.unlinkSync(req.file.path);;
-        // deleteUploadedFile(req.file.path);
-        return res.json({
-             status: 'success',
-             results: messageList
-             });
-
-    } catch (err) {
-        console.error(err);
-        //  deleteUploadedFile(req.file.path);
+        } catch (err) {
+            console.error(err);
+            //  deleteUploadedFile(req.file.path);
             // Try to delete file even on error
-    if (req.file?.path && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-        return res.status(500).json({ msg: 'Server error', error: err.message });
-    }
+            if (req.file?.path && fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+            return res.status(500).json({ msg: 'Server error', error: err.message });
+        }
     }
 
-     deleteUploadedFile = (fileId) => {
-    const filePath = path.join(__dirname, 'src/uploads', fileId);
-    fs.unlink(filePath, (err) => {
-        if (err) {
-        console.error(`❌ Failed to delete file ${filePath}:`, err.message);
-        } else {
-        console.log(`✅ File deleted: ${filePath}`);
-        }
-    });
+    deleteUploadedFile = (fileId) => {
+        const filePath = path.join(__dirname, 'src/uploads', fileId);
+        fs.unlink(filePath, (err) => {
+            if (err) {
+                console.error(`❌ Failed to delete file ${filePath}:`, err.message);
+            } else {
+                console.log(`✅ File deleted: ${filePath}`);
+            }
+        });
     };
 
     #checkStockTransferStatus = async () => {
@@ -549,7 +560,7 @@ class rechargeController {
                 user_uuid: req.body.user_detials.user_uuid,
                 user_mobile: req.body.user_detials.mobile,
                 userType: req.body.user_detials.type,
-                channelType: ['Mobile', 'SMS', 'USSD', 'Web',"Company"].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
+                channelType: ['Mobile', 'SMS', 'USSD', 'Web', "Company"].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
                 group_topup_id: 0,
                 full_name: req.body.user_detials.name,
                 username: req.body.user_detials.username,
@@ -660,483 +671,482 @@ class rechargeController {
         return [finalPermission[channelType]]
     }
 
-    processRecharge =  async (data) => {
-            try {
+    processRecharge = async (data) => {
+        try {
 
-                // check operator details
-                const lisResponce1 = await this.#getOperatorList(data.operator_uuid);
-                if (lisResponce1 == 0) return ({ status: 400, message: 'operator id not found' })
+            // check operator details
+            const lisResponce1 = await this.#getOperatorList(data.operator_uuid);
+            if (lisResponce1 == 0) return ({ status: 400, message: 'operator id not found' })
 
-                var date = new Date();
-                date.setHours(date.getHours() + 4, date.getMinutes() + 30);
-                var isodate = date.toISOString();
+            var date = new Date();
+            date.setHours(date.getHours() + 4, date.getMinutes() + 30);
+            var isodate = date.toISOString();
 
-                // get system balance 
-                let systemDetails = await this.#getOperatorSystemList(lisResponce1[0].operator_id)
-                if (systemDetails.length == 0) return ({ status: 400, message: 'operator not active' })
-                let mno_id, queue_name, minRechargeLimit, maxRechargeList, status = 0
-                for (let i = 0; i < systemDetails.length; i++) {
-                    mno_id = systemDetails[i].mno_id
-                    // operator_access_uuid = systemDetails[i].operator_access_uuid
-                    // display_name = systemDetails[i].display_name 
-                    queue_name = systemDetails[i].queue_name
-                    status = systemDetails[i].status
-                    minRechargeLimit = systemDetails[i].min_amount 
-                    maxRechargeList = systemDetails[i].max_amount
+            // get system balance 
+            let systemDetails = await this.#getOperatorSystemList(lisResponce1[0].operator_id)
+            if (systemDetails.length == 0) return ({ status: 400, message: 'operator not active' })
+            let mno_id, queue_name, minRechargeLimit, maxRechargeList, status = 0
+            for (let i = 0; i < systemDetails.length; i++) {
+                mno_id = systemDetails[i].mno_id
+                // operator_access_uuid = systemDetails[i].operator_access_uuid
+                // display_name = systemDetails[i].display_name 
+                queue_name = systemDetails[i].queue_name
+                status = systemDetails[i].status
+                minRechargeLimit = systemDetails[i].min_amount
+                maxRechargeList = systemDetails[i].max_amount
 
-                    if (status == 1) break
-                }
-
-                if (status != 1) return ({ status: 400, message: 'Operator in active' })
-                // console.log(Number(minRechargeLimit),Number(data.amount))
-                if (Number(minRechargeLimit) > Number(data.amount))
-                {
-                    return ({ status: 400, message: `Please enter amount more then or equal to ${minRechargeLimit}` })
-
-                }
-                if (Number(maxRechargeList) > 0 && Number(maxRechargeList) < Number(data.amount)) return ({ status: 400, message: `Please enter amount less then or equal to ${maxRechargeList}` })
-
-                // get recharge count
-                let pendingCount = await redisMaster.incr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                let allowedPendingCount = await redisMaster.asyncGet(`PENDING_ALLOWED_${lisResponce1[0].operator_id}`)
-                if (pendingCount && allowedPendingCount) {
-                    if (Number(pendingCount) > Number(allowedPendingCount)) {
-                        redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                        return ({ status: 400, message: 'Request Failed, Please try again..!' })
-                    }
-                }
-
-                // get system balance
-                let balanceDe = await sqlQuery.searchQuery(this.tableName20, { id: mno_id, status: 1 }, ['current_balance', 'CAST(mno_uuid AS CHAR(16)) AS mno_uuid', 'mno_name'], 'id', 'desc', 1, 0)
-                if (balanceDe.length == 0) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'System balance not found' })
-                }
-                // check system balance
-                if (Number(data.amount) > Number(balanceDe[0].current_balance)) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'We have encountered an issue on wallet, Please contact our Customer Service' })
-                }
-                //transation variables
-                const dtCurrentDate = date // dt current date time
-                const strDate = date.toISOString().slice(0, 19).replace('T', ' ') //dt current date time
-                const strUniqueNumber = await dataBaseId(date) //str unique number
-
-                // check if the agent can do the recharge
-                // const lisResponce2 = await sqlQuery.searchQuery(this.tableName2,{user_uuid : data.user_uuid},["oper"+lisResponce1[0].operator_id+"_status AS status","comm_type"],"userid","ASC",1,0)    
-                const lisResponce2 = await this.#getOperatorAccess(data.user_uuid, lisResponce1[0].operator_id)
-                if (lisResponce2.length == 0) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'operator permission not found' })
-                }
-                if (lisResponce2[0].status == 0) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'operator permission is not given' })
-                }
-                if (lisResponce2[0].comm_type == 0) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'Commission not set feature not active' })
-                }
-
-                // check if recahnge is done in last 5 min
-                var lastRechangeCount = await sqlQuery.searchQuery(this.tableName1, {
-                    operator_id: lisResponce1[0].operator_id,
-                    amount: Number(data.amount),
-                    mobile_number: data.mobile,
-                    userid: data.userid,
-                    'NOT status': 3,
-                    timeDifferent: {
-                        key: 'created_on',
-                        value: strDate,
-                        diff: process.env.RECHARGE_TIME_LIMIT
-                    }
-                }, ['COUNT(1)'], 'userid', 'ASC', 1, 0)
-                // console.log(lastRechangeCount[0])
-                if (lastRechangeCount[0]["COUNT(1)"] != 0) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: `Same recharge is already done within ${process.env.RECHARGE_TIME_LIMIT} min` })
-                }
-                // update agent account so it cant do any transactions
-                var searchKeyValue = {
-                    user_uuid: data.user_uuid, //str user_uuid
-                    canTransfer: 1
-                }
-                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
-                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 0 }, searchKeyValue);
-                var { affectedRows, changedRows, info } = objResponce;
-                // fayaz uncomment this section 
-                // generating proper message
-                if (!affectedRows) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'earlier transation under process' })
-                }
-                if (!(affectedRows && changedRows)) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'Earlier transation under process' })
-                }
-
-                // start transaction
-                var lisresponce = await sqlQuery.specialCMD('transaction')
-
-                // // if prepaid then check for limit and deduct amount from limit
-                //     if(lisResponce2[0].comm_type == 0) ({status : 400, message : 'Commission not set feature not active' })
-
-                // check balance of the agent and minimum amount limit
-                const lisResponce3 = await sqlQuery.searchQueryTran(this.tableName4, { user_uuid: data.user_uuid }, ["ex_wallet", "min_wallet"], 'userid', "ASC", 1, 0)
-                // console.log(lisResponce3[0])
-                if (lisResponce3.length == 0) {
-                    var lisresponce = await sqlQuery.specialCMD('rollback')
-                    var searchKeyValue = {
-                        user_uuid: data.user_uuid, //str user_uuid
-                        canTransfer: 0
-                    }
-                    // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
-                    var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'user dont have enough balance to do recharge' })
-                }
-                if (lisResponce3[0].ex_wallet - Number(data.amount) < 0) {
-                    var lisresponce = await sqlQuery.specialCMD('rollback')
-                    var searchKeyValue = {
-                        user_uuid: data.user_uuid, //str user_uuid
-                        canTransfer: 0
-                    }
-                    // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
-                    var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'user dont have enough balance to do recharge' })
-                }
-
-                // get the channel access details
-                let channelList = ['Mobile', 'SMS', 'USSD', 'Web','Company']
-                let channelType = channelList.includes(data.channelType) ? data.channelType : 'Web'
-                // let channelLimit = await sqlQuery.searchQuery(this.tableName14,{userid : data.userid, channel : channelType},['threshold','status'],'userid','ASC',1,0) 
-                let channelLimit = await this.#getUserChannel(data.user_uuid, channelType)
-                if (channelLimit.length == 0) {
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'Channel limit not found' })
-                }
-                console.log(channelLimit)
-                if (channelLimit[0].status != 1) {
-                    var lisresponce = await sqlQuery.specialCMD('rollback')
-                    var searchKeyValue = {
-                        user_uuid: data.user_uuid, //str user_uuid
-                        canTransfer: 0
-                    }
-                    // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
-                    var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: `Your ${data.channelType} channel is In-Active.` })
-                }
-
-                if (Number(channelLimit[0].threshold) > Number(lisResponce3[0].ex_wallet) - Number(data.amount)) {
-                    var lisresponce = await sqlQuery.specialCMD('rollback')
-                    var searchKeyValue = {
-                        user_uuid: data.user_uuid, //str user_uuid
-                        canTransfer: 0
-                    }
-                    // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
-                    var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: `Your ${data.channelType} channel Threshold limit reached.` })
-                }
-
-                if (lisResponce2[0].comm_type == '1') {
-                    let limitStatus = await sqlQuery.searchQueryTran(this.tableName13, { userid: data.userid }, ['op' + lisResponce1[0].operator_id + '_wallet_active AS limit_state', 'op' + lisResponce1[0].operator_id + '_wallet_limit as limit_value'], 'userid', 'ASC', 1, 0)
-                    if (limitStatus.length == 0) {
-                        redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                        return ({ status: 400, message: 'Recharge limit not found' })
-                    }
-                    if (limitStatus[0].limit_state == 1) {
-                        // check limit and update its
-                        if (Number(limitStatus[0].limit_value) - Number(data.amount) >= 0) {
-                            // update limit
-                            let updateLimit = await sqlQuery.updateQuery(this.tableName13, {
-                                deductBalance: {
-                                    key: 'op' + lisResponce1[0].operator_id + '_wallet_limit',
-                                    value: Number(data.amount)
-                                }
-                            }, { userid: data.userid })
-                        } else {
-                            var lisresponce = await sqlQuery.specialCMD('rollback')
-                            var searchKeyValue = {
-                                user_uuid: data.user_uuid, //str user_uuid
-                                canTransfer: 0
-                            }
-                            // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
-                            var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                            redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                            return ({ status: 400, message: 'Recharge amount is more then Operator limit' })
-                        }
-                    }
-                }
-
-                // add data in er recharge table
-                param = {
-                    userid: data.userid,
-                    trans_number: strUniqueNumber,
-                    Operater_table_id: lisResponce1[0].operator_id,
-                    type_id: 1, // top up
-                    type_name: 'Top Up',
-                    operator_id: lisResponce1[0].operator_id,
-                    api_type: mno_id,
-                    operator_name: data.operatorName,
-                    mobile_number: data.mobile,
-                    amount: data.amount,
-                    deduct_amt: data.amount,
-                    source: channelType,
-                    group_topup_id: data.group_topup_id || 0,
-                    closing_balance: Number(lisResponce3[0].ex_wallet) - Number(data.amount),
-                    created_on: strDate, //date curren date time
-                    modified_on: strDate, //date curren date time
-                    os_details: '',
-                    status: 1,
-                    request_mobile_no: data.user_mobile
-                }
-
-                //fire sql query
-                var objResponce = await sqlQuery.createQuery(this.tableName1, param)
-
-                // decuct the amount from the agent balance and update the transaction status
-                var searchKeyValue = {
-                    user_uuid: data.user_uuid, //str user_uuid
-                    canTransfer: 0,
-                }
-                var param = {
-                    deductBalance: {
-                        key: "ex_wallet",
-                        value: Number(data.amount),
-                    },
-                    // ex_wallet : Number(lisResponce3[0].ex_wallet) - Number(data.amount), // remaining amount
-                    // canTransfer: 1
-                }
-                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
-                var objResponce = await sqlQuery.updateQuery(this.tableName4, param, searchKeyValue);
-
-                // get mno balance 
-                // let mnoBalance = await sqlQuery.searchQuery(this.tableName20,{id : mno_id},['current_balance'],'id','desc',1,0)
-
-                // deduct amount from system
-                var keyValue = {
-                    deductBalance: {
-                        key: "current_balance",
-                        value: Number(data.amount)
-                    }
-                }
-                var objResponce = await sqlQuery.updateQuery(this.tableName20, keyValue, { id: mno_id })
-
-                // rabbit mq message list
-                let reqLis = [strUniqueNumber, data.operatorName, data.mobile, data.amount]
-
-                console.log(queue_name, reqLis)
-                sendMessage(queue_name, reqLis.join('|'), (err, result) => {
-                    if (err) console.error(err)
-                    // console.log(result)
-                })
-
-                // add record to mno details
-                var param = {
-                    emoney_uuid: "uuid()",
-                    mno_uuid: balanceDe[0].mno_uuid, //str operator uuid
-                    mno_name: balanceDe[0].mno_name, //str operator name
-                    amount_added: Number(data.amount), //db amount added
-                    comm_amount: 0, //db commision amount
-                    opening_balance: balanceDe[0].current_balance, //db opening balance
-                    closing_balance: Number(balanceDe[0].current_balance) - Number(data.amount), //db closing balance
-                    emoney_txn_id: strUniqueNumber, //int transaction id
-                    emoney_txn_date: isodate, //dt transaction date
-                    created_by: data.userid, //str user id
-                    type: 2, // debit
-                    created_on: isodate, //dt current date time
-                    last_modified_by: data.userid, // str user id
-                    last_modified_on: isodate //dt current date time
-                }
-
-                //fire sql query to create er money 
-                var objResponce = await sqlQuery.createQuery(this.tableName21, param)
-
-                // add reciept data in er wallet transaction
-                var param = {
-                    wallet_txn_uuid: "uuid()",
-                    userid: data.userid, // str userid
-                    user_uuid: data.user_uuid, // str userid
-                    trans_number: strUniqueNumber, // str unique number
-                    trans_date_time: strDate, // str date
-                    amount: Number(data.amount), // db amount
-                    trans_type: 2, // type debit
-                    narration: `Top-Up to ${data.mobile}`,
-                    balance_amount: Number(lisResponce3[0].ex_wallet) - Number(data.amount), //db balance amount
-                    trans_for: "Top-Up"
-                }
-                //fire sql query
-                var objResponce = await sqlQuery.createQuery(this.tableName5, param)
-
-                let messageQueue = {
-                    userId: data.userid,
-                    amount: Number(data.amount),
-                    dateTime: strDate
-                }
-                sendMessage('processedStockSend', JSON.stringify(messageQueue), (err, msg) => {
-                    if (err) console.log(err)
-                })
-
-                // add entry to log tables  
-                let tableName, insertData
-                // redisMaster.incr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                switch (lisResponce1[0].operator_id) {
-                    case 3:
-                        tableName = this.tableName17
-                        insertData = {
-                            userid: data.userid,
-                            recharge_id: strUniqueNumber,
-                            created_on: strDate,
-                            status: 0,
-                            source: channelType,
-                            topupRequest: " ",
-                            response: " "
-                        }
-                        break;
-                    case 2:
-                        tableName = this.tableName16
-                        insertData = {
-                            userid: data.userid,
-                            recharge_id: strUniqueNumber,
-                            created_on: strDate,
-                            status: 0,
-                            source: channelType,
-                            topupRequest: " ",
-                            topupResponse: " "
-                        }
-                        break;
-                    case 4:
-                        tableName = this.tableName18
-                        insertData = {
-                            userid: data.userid,
-                            recharge_id: strUniqueNumber,
-                            created_on: strDate,
-                            status: 0,
-                            login_request: " ",
-                            login_response: " "
-                        }
-                        break;
-                    case 5:
-                        tableName = this.tableName19
-                        insertData = {
-                            userid: data.userid,
-                            recharge_id: strUniqueNumber,
-                            created_on: strDate,
-                            status: 0,
-                            top_up_request: " ",
-                            top_up_response: " "
-                        }
-                        break;
-                    case 1:
-                        tableName = this.tableName15
-                        insertData = {
-                            userid: data.userid,
-                            recharge_id: strUniqueNumber,
-                            created_on: strDate,
-                            status: 0,
-                            request: " ",
-                            response: " "
-                        }
-                        break;
-                }
-
-                if (!tableName || !insertData) {
-                    var lisresponce = await sqlQuery.specialCMD('rollback')
-                    var searchKeyValue = {
-                        user_uuid: data.user_uuid, //str user_uuid
-                        canTransfer: 0
-                    }
-                    // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
-                    var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'Recharge log error' })
-                }
-
-                objResponce = await sqlQuery.createQuery(tableName, insertData)
-
-                var logData = {
-                    userid: data.userid,
-                    user_uuid: data.user_uuid,
-                    username: data.username,
-                    full_name: data.full_name,
-                    mobile: data.user_mobile,
-                    intCreatedByType: data.userid,
-                    intUserType: data.userType,
-                    userIpAddress: data.userIpAddress,
-                    userMacAddress: data.userMacAddress, //str
-                    userOsDetails: data.userOsDetails, //str
-                    userImeiNumber: data.userImeiNumber, //str
-                    userGcmId: data.userGcmId, //str
-                    userAppVersion: data.userAppVersion, //str
-                    userApplicationType: data.userApplicationType,
-                    description: `Dear ${data.full_name}, Your Recharge to ${data.mobile} Amount: ${parseFloat(String(data.amount)).toFixed(2)} AFN is Accepted, Bal:${Number(lisResponce3[0].ex_wallet) - Number(data.amount)} AFN TX:${strUniqueNumber} Thank You for being Afghan Pay agent!`,
-                    userActivityType: 25,
-                    oldValue: Number(lisResponce3[0].ex_wallet),
-                    newValue: Number(lisResponce3[0].ex_wallet) - Number(data.amount),
-                    regionId: data.region_id
-                }
-
-                // make api call
-                let intResult = await httpRequestMakerCommon.httpPost("activity-log", logData)
-                var strLog = intResult == 1 ? 'Admin change password log added successfully' : intResult == 2 ? 'Admin chain password log error' : 'end point not found'
-                // console.log('Server Log : '+strLog)
-
-                if (intResult != 1) {
-                    var lisresponce = await sqlQuery.specialCMD('rollback')
-                    var searchKeyValue = {
-                        user_uuid: data.user_uuid, //str user_uuid
-                        canTransfer: 0
-                    }
-                    // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
-                    var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-                    return ({ status: 400, message: 'log error' })
-                }
-
-                // update transactions status
-                var searchKeyValue = {
-                    user_uuid: data.user_uuid, //str user_uuid
-                    canTransfer: 0
-                }
-                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
-                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-
-                // no error commit the transactions
-                var lisresponce = await sqlQuery.specialCMD('commit')
-                // console.log("data",data);
-                let responceMessage = `Dear ${data.full_name}, Your Recharge to ${data.mobile} Amount: ${parseFloat(String(data.amount)).toFixed(2)} AFN is Accepted, Bal:${Number(lisResponce3[0].ex_wallet) - Number(data.amount)} AFN TX:${strUniqueNumber} Thank You for being Afghan Pay agent!`
-
-                return ({
-                    status: 200,
-                    rechargeTxnNumber: strUniqueNumber,
-                    closingBalance: Number(lisResponce3[0].ex_wallet) - Number(data.amount),
-                    message: responceMessage
-                })
-
-            } catch (error) {
-                console.log(error);
-                var errMessage = error.message
-                var lisresponce = await sqlQuery.specialCMD('rollback')  // roll back due to some error
-                // update transactions status
-                var searchKeyValue = {
-                    user_uuid: data.user_uuid, //str user_uuid
-                    canTransfer: 0
-                }
-                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
-                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
-
-                const lisResponce1 = await this.#getOperatorList(data.operator_uuid);
-                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
-
-                if (errMessage.includes("Duplicate entry")) {
-                    return ({ status: 400, message: 'Recharge request Failed with Error' })
-                }
-                return ({ status: 400, message: error.message })
+                if (status == 1) break
             }
+
+            if (status != 1) return ({ status: 400, message: 'Operator in active' })
+            // console.log(Number(minRechargeLimit),Number(data.amount))
+            if (Number(minRechargeLimit) > Number(data.amount)) {
+                return ({ status: 400, message: `Please enter amount more then or equal to ${minRechargeLimit}` })
+
+            }
+            if (Number(maxRechargeList) > 0 && Number(maxRechargeList) < Number(data.amount)) return ({ status: 400, message: `Please enter amount less then or equal to ${maxRechargeList}` })
+
+            // get recharge count
+            let pendingCount = await redisMaster.incr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+            let allowedPendingCount = await redisMaster.asyncGet(`PENDING_ALLOWED_${lisResponce1[0].operator_id}`)
+            if (pendingCount && allowedPendingCount) {
+                if (Number(pendingCount) > Number(allowedPendingCount)) {
+                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    return ({ status: 400, message: 'Request Failed, Please try again..!' })
+                }
+            }
+
+            // get system balance
+            let balanceDe = await sqlQuery.searchQuery(this.tableName20, { id: mno_id, status: 1 }, ['current_balance', 'CAST(mno_uuid AS CHAR(16)) AS mno_uuid', 'mno_name'], 'id', 'desc', 1, 0)
+            if (balanceDe.length == 0) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'System balance not found' })
+            }
+            // check system balance
+            if (Number(data.amount) > Number(balanceDe[0].current_balance)) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'We have encountered an issue on wallet, Please contact our Customer Service' })
+            }
+            //transation variables
+            const dtCurrentDate = date // dt current date time
+            const strDate = date.toISOString().slice(0, 19).replace('T', ' ') //dt current date time
+            const strUniqueNumber = await dataBaseId(date) //str unique number
+
+            // check if the agent can do the recharge
+            // const lisResponce2 = await sqlQuery.searchQuery(this.tableName2,{user_uuid : data.user_uuid},["oper"+lisResponce1[0].operator_id+"_status AS status","comm_type"],"userid","ASC",1,0)    
+            const lisResponce2 = await this.#getOperatorAccess(data.user_uuid, lisResponce1[0].operator_id)
+            if (lisResponce2.length == 0) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'operator permission not found' })
+            }
+            if (lisResponce2[0].status == 0) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'operator permission is not given' })
+            }
+            if (lisResponce2[0].comm_type == 0) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'Commission not set feature not active' })
+            }
+
+            // check if recahnge is done in last 5 min
+            var lastRechangeCount = await sqlQuery.searchQuery(this.tableName1, {
+                operator_id: lisResponce1[0].operator_id,
+                amount: Number(data.amount),
+                mobile_number: data.mobile,
+                userid: data.userid,
+                'NOT status': 3,
+                timeDifferent: {
+                    key: 'created_on',
+                    value: strDate,
+                    diff: process.env.RECHARGE_TIME_LIMIT
+                }
+            }, ['COUNT(1)'], 'userid', 'ASC', 1, 0)
+            // console.log(lastRechangeCount[0])
+            if (lastRechangeCount[0]["COUNT(1)"] != 0) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: `Same recharge is already done within ${process.env.RECHARGE_TIME_LIMIT} min` })
+            }
+            // update agent account so it cant do any transactions
+            var searchKeyValue = {
+                user_uuid: data.user_uuid, //str user_uuid
+                canTransfer: 1
+            }
+            // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+            var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 0 }, searchKeyValue);
+            var { affectedRows, changedRows, info } = objResponce;
+            // fayaz uncomment this section 
+            // generating proper message
+            if (!affectedRows) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'earlier transation under process' })
+            }
+            if (!(affectedRows && changedRows)) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'Earlier transation under process' })
+            }
+
+            // start transaction
+            var lisresponce = await sqlQuery.specialCMD('transaction')
+
+            // // if prepaid then check for limit and deduct amount from limit
+            //     if(lisResponce2[0].comm_type == 0) ({status : 400, message : 'Commission not set feature not active' })
+
+            // check balance of the agent and minimum amount limit
+            const lisResponce3 = await sqlQuery.searchQueryTran(this.tableName4, { user_uuid: data.user_uuid }, ["ex_wallet", "min_wallet"], 'userid', "ASC", 1, 0)
+            // console.log(lisResponce3[0])
+            if (lisResponce3.length == 0) {
+                var lisresponce = await sqlQuery.specialCMD('rollback')
+                var searchKeyValue = {
+                    user_uuid: data.user_uuid, //str user_uuid
+                    canTransfer: 0
+                }
+                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'user dont have enough balance to do recharge' })
+            }
+            if (lisResponce3[0].ex_wallet - Number(data.amount) < 0) {
+                var lisresponce = await sqlQuery.specialCMD('rollback')
+                var searchKeyValue = {
+                    user_uuid: data.user_uuid, //str user_uuid
+                    canTransfer: 0
+                }
+                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'user dont have enough balance to do recharge' })
+            }
+
+            // get the channel access details
+            let channelList = ['Mobile', 'SMS', 'USSD', 'Web', 'Company']
+            let channelType = channelList.includes(data.channelType) ? data.channelType : 'Web'
+            // let channelLimit = await sqlQuery.searchQuery(this.tableName14,{userid : data.userid, channel : channelType},['threshold','status'],'userid','ASC',1,0) 
+            let channelLimit = await this.#getUserChannel(data.user_uuid, channelType)
+            if (channelLimit.length == 0) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'Channel limit not found' })
+            }
+            console.log(channelLimit)
+            if (channelLimit[0].status != 1) {
+                var lisresponce = await sqlQuery.specialCMD('rollback')
+                var searchKeyValue = {
+                    user_uuid: data.user_uuid, //str user_uuid
+                    canTransfer: 0
+                }
+                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: `Your ${data.channelType} channel is In-Active.` })
+            }
+
+            if (Number(channelLimit[0].threshold) > Number(lisResponce3[0].ex_wallet) - Number(data.amount)) {
+                var lisresponce = await sqlQuery.specialCMD('rollback')
+                var searchKeyValue = {
+                    user_uuid: data.user_uuid, //str user_uuid
+                    canTransfer: 0
+                }
+                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: `Your ${data.channelType} channel Threshold limit reached.` })
+            }
+
+            if (lisResponce2[0].comm_type == '1') {
+                let limitStatus = await sqlQuery.searchQueryTran(this.tableName13, { userid: data.userid }, ['op' + lisResponce1[0].operator_id + '_wallet_active AS limit_state', 'op' + lisResponce1[0].operator_id + '_wallet_limit as limit_value'], 'userid', 'ASC', 1, 0)
+                if (limitStatus.length == 0) {
+                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    return ({ status: 400, message: 'Recharge limit not found' })
+                }
+                if (limitStatus[0].limit_state == 1) {
+                    // check limit and update its
+                    if (Number(limitStatus[0].limit_value) - Number(data.amount) >= 0) {
+                        // update limit
+                        let updateLimit = await sqlQuery.updateQuery(this.tableName13, {
+                            deductBalance: {
+                                key: 'op' + lisResponce1[0].operator_id + '_wallet_limit',
+                                value: Number(data.amount)
+                            }
+                        }, { userid: data.userid })
+                    } else {
+                        var lisresponce = await sqlQuery.specialCMD('rollback')
+                        var searchKeyValue = {
+                            user_uuid: data.user_uuid, //str user_uuid
+                            canTransfer: 0
+                        }
+                        // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                        var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                        redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                        return ({ status: 400, message: 'Recharge amount is more then Operator limit' })
+                    }
+                }
+            }
+
+            // add data in er recharge table
+            param = {
+                userid: data.userid,
+                trans_number: strUniqueNumber,
+                Operater_table_id: lisResponce1[0].operator_id,
+                type_id: 1, // top up
+                type_name: 'Top Up',
+                operator_id: lisResponce1[0].operator_id,
+                api_type: mno_id,
+                operator_name: data.operatorName,
+                mobile_number: data.mobile,
+                amount: data.amount,
+                deduct_amt: data.amount,
+                source: channelType,
+                group_topup_id: data.group_topup_id || 0,
+                closing_balance: Number(lisResponce3[0].ex_wallet) - Number(data.amount),
+                created_on: strDate, //date curren date time
+                modified_on: strDate, //date curren date time
+                os_details: '',
+                status: 1,
+                request_mobile_no: data.user_mobile
+            }
+
+            //fire sql query
+            var objResponce = await sqlQuery.createQuery(this.tableName1, param)
+
+            // decuct the amount from the agent balance and update the transaction status
+            var searchKeyValue = {
+                user_uuid: data.user_uuid, //str user_uuid
+                canTransfer: 0,
+            }
+            var param = {
+                deductBalance: {
+                    key: "ex_wallet",
+                    value: Number(data.amount),
+                },
+                // ex_wallet : Number(lisResponce3[0].ex_wallet) - Number(data.amount), // remaining amount
+                // canTransfer: 1
+            }
+            // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+            var objResponce = await sqlQuery.updateQuery(this.tableName4, param, searchKeyValue);
+
+            // get mno balance 
+            // let mnoBalance = await sqlQuery.searchQuery(this.tableName20,{id : mno_id},['current_balance'],'id','desc',1,0)
+
+            // deduct amount from system
+            var keyValue = {
+                deductBalance: {
+                    key: "current_balance",
+                    value: Number(data.amount)
+                }
+            }
+            var objResponce = await sqlQuery.updateQuery(this.tableName20, keyValue, { id: mno_id })
+
+            // rabbit mq message list
+            let reqLis = [strUniqueNumber, data.operatorName, data.mobile, data.amount]
+
+            console.log(queue_name, reqLis)
+            sendMessage(queue_name, reqLis.join('|'), (err, result) => {
+                if (err) console.error(err)
+                // console.log(result)
+            })
+
+            // add record to mno details
+            var param = {
+                emoney_uuid: "uuid()",
+                mno_uuid: balanceDe[0].mno_uuid, //str operator uuid
+                mno_name: balanceDe[0].mno_name, //str operator name
+                amount_added: Number(data.amount), //db amount added
+                comm_amount: 0, //db commision amount
+                opening_balance: balanceDe[0].current_balance, //db opening balance
+                closing_balance: Number(balanceDe[0].current_balance) - Number(data.amount), //db closing balance
+                emoney_txn_id: strUniqueNumber, //int transaction id
+                emoney_txn_date: isodate, //dt transaction date
+                created_by: data.userid, //str user id
+                type: 2, // debit
+                created_on: isodate, //dt current date time
+                last_modified_by: data.userid, // str user id
+                last_modified_on: isodate //dt current date time
+            }
+
+            //fire sql query to create er money 
+            var objResponce = await sqlQuery.createQuery(this.tableName21, param)
+
+            // add reciept data in er wallet transaction
+            var param = {
+                wallet_txn_uuid: "uuid()",
+                userid: data.userid, // str userid
+                user_uuid: data.user_uuid, // str userid
+                trans_number: strUniqueNumber, // str unique number
+                trans_date_time: strDate, // str date
+                amount: Number(data.amount), // db amount
+                trans_type: 2, // type debit
+                narration: `Top-Up to ${data.mobile}`,
+                balance_amount: Number(lisResponce3[0].ex_wallet) - Number(data.amount), //db balance amount
+                trans_for: "Top-Up"
+            }
+            //fire sql query
+            var objResponce = await sqlQuery.createQuery(this.tableName5, param)
+
+            let messageQueue = {
+                userId: data.userid,
+                amount: Number(data.amount),
+                dateTime: strDate
+            }
+            sendMessage('processedStockSend', JSON.stringify(messageQueue), (err, msg) => {
+                if (err) console.log(err)
+            })
+
+            // add entry to log tables  
+            let tableName, insertData
+            // redisMaster.incr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+            switch (lisResponce1[0].operator_id) {
+                case 3:
+                    tableName = this.tableName17
+                    insertData = {
+                        userid: data.userid,
+                        recharge_id: strUniqueNumber,
+                        created_on: strDate,
+                        status: 0,
+                        source: channelType,
+                        topupRequest: " ",
+                        response: " "
+                    }
+                    break;
+                case 2:
+                    tableName = this.tableName16
+                    insertData = {
+                        userid: data.userid,
+                        recharge_id: strUniqueNumber,
+                        created_on: strDate,
+                        status: 0,
+                        source: channelType,
+                        topupRequest: " ",
+                        topupResponse: " "
+                    }
+                    break;
+                case 4:
+                    tableName = this.tableName18
+                    insertData = {
+                        userid: data.userid,
+                        recharge_id: strUniqueNumber,
+                        created_on: strDate,
+                        status: 0,
+                        login_request: " ",
+                        login_response: " "
+                    }
+                    break;
+                case 5:
+                    tableName = this.tableName19
+                    insertData = {
+                        userid: data.userid,
+                        recharge_id: strUniqueNumber,
+                        created_on: strDate,
+                        status: 0,
+                        top_up_request: " ",
+                        top_up_response: " "
+                    }
+                    break;
+                case 1:
+                    tableName = this.tableName15
+                    insertData = {
+                        userid: data.userid,
+                        recharge_id: strUniqueNumber,
+                        created_on: strDate,
+                        status: 0,
+                        request: " ",
+                        response: " "
+                    }
+                    break;
+            }
+
+            if (!tableName || !insertData) {
+                var lisresponce = await sqlQuery.specialCMD('rollback')
+                var searchKeyValue = {
+                    user_uuid: data.user_uuid, //str user_uuid
+                    canTransfer: 0
+                }
+                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'Recharge log error' })
+            }
+
+            objResponce = await sqlQuery.createQuery(tableName, insertData)
+
+            var logData = {
+                userid: data.userid,
+                user_uuid: data.user_uuid,
+                username: data.username,
+                full_name: data.full_name,
+                mobile: data.user_mobile,
+                intCreatedByType: data.userid,
+                intUserType: data.userType,
+                userIpAddress: data.userIpAddress,
+                userMacAddress: data.userMacAddress, //str
+                userOsDetails: data.userOsDetails, //str
+                userImeiNumber: data.userImeiNumber, //str
+                userGcmId: data.userGcmId, //str
+                userAppVersion: data.userAppVersion, //str
+                userApplicationType: data.userApplicationType,
+                description: `Dear ${data.full_name}, Your Recharge to ${data.mobile} Amount: ${parseFloat(String(data.amount)).toFixed(2)} AFN is Accepted, Bal:${Number(lisResponce3[0].ex_wallet) - Number(data.amount)} AFN TX:${strUniqueNumber} Thank You for being Afghan Pay agent!`,
+                userActivityType: 25,
+                oldValue: Number(lisResponce3[0].ex_wallet),
+                newValue: Number(lisResponce3[0].ex_wallet) - Number(data.amount),
+                regionId: data.region_id
+            }
+
+            // make api call
+            let intResult = await httpRequestMakerCommon.httpPost("activity-log", logData)
+            var strLog = intResult == 1 ? 'Admin change password log added successfully' : intResult == 2 ? 'Admin chain password log error' : 'end point not found'
+            // console.log('Server Log : '+strLog)
+
+            if (intResult != 1) {
+                var lisresponce = await sqlQuery.specialCMD('rollback')
+                var searchKeyValue = {
+                    user_uuid: data.user_uuid, //str user_uuid
+                    canTransfer: 0
+                }
+                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'log error' })
+            }
+
+            // update transactions status
+            var searchKeyValue = {
+                user_uuid: data.user_uuid, //str user_uuid
+                canTransfer: 0
+            }
+            // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+            var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+
+            // no error commit the transactions
+            var lisresponce = await sqlQuery.specialCMD('commit')
+            // console.log("data",data);
+            let responceMessage = `Dear ${data.full_name}, Your Recharge to ${data.mobile} Amount: ${parseFloat(String(data.amount)).toFixed(2)} AFN is Accepted, Bal:${Number(lisResponce3[0].ex_wallet) - Number(data.amount)} AFN TX:${strUniqueNumber} Thank You for being Afghan Pay agent!`
+
+            return ({
+                status: 200,
+                rechargeTxnNumber: strUniqueNumber,
+                closingBalance: Number(lisResponce3[0].ex_wallet) - Number(data.amount),
+                message: responceMessage
+            })
+
+        } catch (error) {
+            console.log(error);
+            var errMessage = error.message
+            var lisresponce = await sqlQuery.specialCMD('rollback')  // roll back due to some error
+            // update transactions status
+            var searchKeyValue = {
+                user_uuid: data.user_uuid, //str user_uuid
+                canTransfer: 0
+            }
+            // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+            var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+
+            const lisResponce1 = await this.#getOperatorList(data.operator_uuid);
+            redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+
+            if (errMessage.includes("Duplicate entry")) {
+                return ({ status: 400, message: 'Recharge request Failed with Error' })
+            }
+            return ({ status: 400, message: error.message })
         }
+    }
 
     // pending recharge list
     getPendingRechargeList = async (req, res) => {
@@ -2922,152 +2932,152 @@ class rechargeController {
     }
 
     downloadtopUpreports = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
 
-    if (!req.query.pageNumber) req.query.pageNumber = 0;
-    const isExcel = req.query.pageNumber == 0;
+            if (!req.query.pageNumber) req.query.pageNumber = 0;
+            const isExcel = req.query.pageNumber == 0;
 
-    let childList = req.body.user_detials.child_list.join(',');
-    let searchKeyValue = {
-      userid: req.body.user_detials.userid,
+            let childList = req.body.user_detials.child_list.join(',');
+            let searchKeyValue = {
+                userid: req.body.user_detials.userid,
+            };
+
+            if (req.query.mobile) searchKeyValue.mobile_number = req.query.mobile;
+
+            if (req.query.operator_uuid) {
+                const lisResponce1 = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+                if (lisResponce1 == 0) {
+                    return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
+                }
+                searchKeyValue.operator_id = lisResponce1[0].operator_id;
+            }
+
+            if (req.query.status) searchKeyValue.status = req.query.status;
+
+            if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+                return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+            }
+
+            if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+            if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+
+            if (Object.keys(searchKeyValue).length == 0) {
+                return res.status(400).json({ errors: [{ msg: "Im proper search paremeters" }] });
+            }
+
+            const totalTopUpAmount = await sqlQueryReplica.searchQueryNoLimitTimeout(
+                this.tableName1,
+                searchKeyValue,
+                ['SUM(amount) AS totalAmount', 'count(1) AS count'],
+                "id",
+                "DESC"
+            );
+
+            let intTotlaRecords = Number(totalTopUpAmount[0].count);
+            let intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+
+            let offset = req.query.pageNumber > 0 ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
+            let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
+
+            let key = [
+                'trans_number AS transactionId',
+                'operator_name AS operatorName',
+                'mobile_number as mobile',
+                'amount',
+                'comm_amt AS commissionAmount',
+                "IF(status = 1,'Pending',IF(status = 2,'Success',IF(status = 3,'Failed','NA'))) as status",
+                'CAST(created_on AS CHAR(20)) AS rechargeDate'
+            ];
+
+            const lisResponce2 = await sqlQueryReplica.searchQueryTimeout(
+                this.tableName1,
+                searchKeyValue,
+                key,
+                "id",
+                "DESC",
+                limit,
+                offset
+            );
+
+            if (isExcel) {
+                const now = new Date();
+                const dateStr = new Date().toISOString().split('T')[0];
+                const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+                const filename = `topup_report_${dateStr}_${timeStr}.xlsx`;
+                const filePath = path.join(REPORT_DIR, filename);
+
+                if (fs.existsSync(filePath)) {
+                    const stats = fs.statSync(filePath);
+                    if (moment().diff(moment(stats.ctime), 'minutes') < 30) {
+                        return res.status(200).json({
+                            success: true,
+                            downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
+                        });
+                    }
+                }
+
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Top-Up Report');
+
+                if (lisResponce2.length > 0) {
+                    worksheet.columns = Object.keys(lisResponce2[0]).map((key) => ({
+                        header: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+                        key,
+                        width: 25,
+                    }));
+
+                    worksheet.getRow(1).font = { bold: true };
+                    worksheet.addRows(lisResponce2);
+                }
+
+                await workbook.xlsx.writeFile(filePath);
+
+                setTimeout(() => {
+                    fs.unlink(filePath, (err) => {
+                        if (err && err.code !== 'ENOENT') {
+                            console.error(`Error deleting ${filename}:`, err.message);
+                        }
+                    });
+                }, 30 * 60 * 1000);
+
+                return res.status(200).json({
+                    success: true,
+                    downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
+                });
+            }
+
+            return res.status(200).send({
+                totalTopUpAmount: totalTopUpAmount[0].totalAmount || 0,
+                finalResult: lisResponce2,
+                totalRepords: intTotlaRecords,
+                pageCount: intPageCount,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: Number(process.env.PER_PAGE_COUNT)
+            });
+
+        } catch (error) {
+            console.error('topUpreports', error);
+            if (req.query.pageNumber == 0) {
+                return res.status(200).send([{}]);
+            } else {
+                return res.status(200).send({
+                    totalTopUpAmount: 0,
+                    finalResult: [{}],
+                    totalRepords: 0,
+                    pageCount: 0,
+                    currentPage: Number(req.query.pageNumber),
+                    pageLimit: Number(process.env.PER_PAGE_COUNT)
+                });
+            }
+        }
     };
 
-    if (req.query.mobile) searchKeyValue.mobile_number = req.query.mobile;
 
-    if (req.query.operator_uuid) {
-      const lisResponce1 = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
-      if (lisResponce1 == 0) {
-        return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
-      }
-      searchKeyValue.operator_id = lisResponce1[0].operator_id;
-    }
-
-    if (req.query.status) searchKeyValue.status = req.query.status;
-
-    if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
-      return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
-    }
-
-    if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
-    if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
-
-    if (Object.keys(searchKeyValue).length == 0) {
-      return res.status(400).json({ errors: [{ msg: "Im proper search paremeters" }] });
-    }
-
-    const totalTopUpAmount = await sqlQueryReplica.searchQueryNoLimitTimeout(
-      this.tableName1,
-      searchKeyValue,
-      ['SUM(amount) AS totalAmount', 'count(1) AS count'],
-      "id",
-      "DESC"
-    );
-
-    let intTotlaRecords = Number(totalTopUpAmount[0].count);
-    let intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
-
-    let offset = req.query.pageNumber > 0 ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT) : 0;
-    let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords;
-
-    let key = [
-      'trans_number AS transactionId',
-      'operator_name AS operatorName',
-      'mobile_number as mobile',
-      'amount',
-      'comm_amt AS commissionAmount',
-      "IF(status = 1,'Pending',IF(status = 2,'Success',IF(status = 3,'Failed','NA'))) as status",
-      'CAST(created_on AS CHAR(20)) AS rechargeDate'
-    ];
-
-    const lisResponce2 = await sqlQueryReplica.searchQueryTimeout(
-      this.tableName1,
-      searchKeyValue,
-      key,
-      "id",
-      "DESC",
-      limit,
-      offset
-    );
-
-    if (isExcel) {
-    const now = new Date();
-    const dateStr = new Date().toISOString().split('T')[0];
-    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
-    const filename = `topup_report_${dateStr}_${timeStr}.xlsx`;
-      const filePath = path.join(REPORT_DIR, filename);
-
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        if (moment().diff(moment(stats.ctime), 'minutes') < 30) {
-          return res.status(200).json({
-            success: true,
-            downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
-          });
-        }
-      }
-
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Top-Up Report');
-
-      if (lisResponce2.length > 0) {
-        worksheet.columns = Object.keys(lisResponce2[0]).map((key) => ({
-          header: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-          key,
-          width: 25,
-        }));
-
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.addRows(lisResponce2);
-      }
-
-      await workbook.xlsx.writeFile(filePath);
-
-      setTimeout(() => {
-        fs.unlink(filePath, (err) => {
-          if (err && err.code !== 'ENOENT') {
-            console.error(`Error deleting ${filename}:`, err.message);
-          }
-        });
-      }, 30 * 60 * 1000);
-
-      return res.status(200).json({
-        success: true,
-        downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
-      });
-    }
-
-    return res.status(200).send({
-      totalTopUpAmount: totalTopUpAmount[0].totalAmount || 0,
-      finalResult: lisResponce2,
-      totalRepords: intTotlaRecords,
-      pageCount: intPageCount,
-      currentPage: Number(req.query.pageNumber),
-      pageLimit: Number(process.env.PER_PAGE_COUNT)
-    });
-
-  } catch (error) {
-    console.error('topUpreports', error);
-    if (req.query.pageNumber == 0) {
-      return res.status(200).send([{}]);
-    } else {
-      return res.status(200).send({
-        totalTopUpAmount: 0,
-        finalResult: [{}],
-        totalRepords: 0,
-        pageCount: 0,
-        currentPage: Number(req.query.pageNumber),
-        pageLimit: Number(process.env.PER_PAGE_COUNT)
-      });
-    }
-  }
-};
-    
-    
-        // downlaine top-up report
+    // downlaine top-up report
     downlineTopUpReport = async (req, res) => {
         try {
             // body and query validators
@@ -3187,175 +3197,175 @@ class rechargeController {
         }
     }
 
-    downlineDownlineTopUpReport =   async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+    downlineDownlineTopUpReport = async (req, res) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
 
-    if (!req.query.pageNumber) req.query.pageNumber = 0;
-    const isExcel = req.query.pageNumber == 0;
+            if (!req.query.pageNumber) req.query.pageNumber = 0;
+            const isExcel = req.query.pageNumber == 0;
 
-    let searchkeyval1 = {};
+            let searchkeyval1 = {};
 
-    if (req.query.filterType && req.query.filterValue) {
-      if (req.query.filterType == 1 || req.query.filterType == 2) {
-        let searchKeyValue = {
-          child_ids: req.body.user_detials.child_list.join(','),
-          Active: 1
-        };
+            if (req.query.filterType && req.query.filterValue) {
+                if (req.query.filterType == 1 || req.query.filterType == 2) {
+                    let searchKeyValue = {
+                        child_ids: req.body.user_detials.child_list.join(','),
+                        Active: 1
+                    };
 
-        if (req.query.filterType == 1) searchKeyValue.username = req.query.filterValue;
-        if (req.query.filterType == 2) searchKeyValue.mobile = req.query.filterValue;
+                    if (req.query.filterType == 1) searchKeyValue.username = req.query.filterValue;
+                    if (req.query.filterType == 2) searchKeyValue.mobile = req.query.filterValue;
 
-        if (Object.keys(searchKeyValue).length == 2)
-          return res.status(400).json({ errors: [{ msg: "Impoper search parementer" }] });
+                    if (Object.keys(searchKeyValue).length == 2)
+                        return res.status(400).json({ errors: [{ msg: "Impoper search parementer" }] });
 
-        const lisResponce1 = await sqlQueryReplica.searchQuery(
-          this.tableName2,
-          searchKeyValue,
-          ['userid', 'child_id'],
-          'userid',
-          'ASC',
-          1,
-          0
-        );
-        if (lisResponce1.length == 0)
-          return res.status(400).json({ errors: [{ msg: "user not found" }] });
+                    const lisResponce1 = await sqlQueryReplica.searchQuery(
+                        this.tableName2,
+                        searchKeyValue,
+                        ['userid', 'child_id'],
+                        'userid',
+                        'ASC',
+                        1,
+                        0
+                    );
+                    if (lisResponce1.length == 0)
+                        return res.status(400).json({ errors: [{ msg: "user not found" }] });
 
-        searchkeyval1.child_ids = lisResponce1[0].child_id != ''
-          ? lisResponce1[0].child_id + "," + lisResponce1[0].userid
-          : lisResponce1[0].userid;
-      }
+                    searchkeyval1.child_ids = lisResponce1[0].child_id != ''
+                        ? lisResponce1[0].child_id + "," + lisResponce1[0].userid
+                        : lisResponce1[0].userid;
+                }
 
-      if (req.query.filterType == 3) {
-        searchkeyval1.mobile_number = req.query.filterValue;
-        searchkeyval1.child_ids = req.body.user_detials.child_list.join(',');
-      }
-    } else {
-      searchkeyval1.child_ids = req.body.user_detials.child_list.join(',');
-    }
+                if (req.query.filterType == 3) {
+                    searchkeyval1.mobile_number = req.query.filterValue;
+                    searchkeyval1.child_ids = req.body.user_detials.child_list.join(',');
+                }
+            } else {
+                searchkeyval1.child_ids = req.body.user_detials.child_list.join(',');
+            }
 
-    if (Object.keys(searchkeyval1).length == 0)
-      return res.status(400).json({ errors: [{ msg: "Improper search parameter" }] });
+            if (Object.keys(searchkeyval1).length == 0)
+                return res.status(400).json({ errors: [{ msg: "Improper search parameter" }] });
 
-    if (req.query.operator_uuid) {
-      const lisResponce1 = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
-      if (lisResponce1 == 0)
-        return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
-      searchkeyval1.operator_id = lisResponce1[0].operator_id;
-    }
+            if (req.query.operator_uuid) {
+                const lisResponce1 = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+                if (lisResponce1 == 0)
+                    return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
+                searchkeyval1.operator_id = lisResponce1[0].operator_id;
+            }
 
-    if (req.query.status) searchkeyval1.status = req.query.status;
+            if (req.query.status) searchkeyval1.status = req.query.status;
 
-    if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
-      return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
-    }
+            if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+                return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+            }
 
-    if (req.query.startDate) {
-      searchkeyval1.between = {
-        key: 'created_on',
-        value: [req.query.startDate, req.query.startDate]
-      };
-    }
+            if (req.query.startDate) {
+                searchkeyval1.between = {
+                    key: 'created_on',
+                    value: [req.query.startDate, req.query.startDate]
+                };
+            }
 
-    if (req.query.endDate) {
-      searchkeyval1.between.value[1] = req.query.endDate;
-    }
+            if (req.query.endDate) {
+                searchkeyval1.between.value[1] = req.query.endDate;
+            }
 
-    const lisTotalRecords = await rechargeModel.downlineTopUpReportCount(searchkeyval1);
+            const lisTotalRecords = await rechargeModel.downlineTopUpReportCount(searchkeyval1);
 
-    let intTotlaRecords = Number(lisTotalRecords[0].count);
-    let intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
-    let offset = req.query.pageNumber > 0
-      ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT)
-      : 0;
-    let limit = req.query.pageNumber > 0
-      ? Number(process.env.PER_PAGE_COUNT)
-      : intTotlaRecords;
+            let intTotlaRecords = Number(lisTotalRecords[0].count);
+            let intPageCount = Math.ceil(intTotlaRecords / Number(process.env.PER_PAGE_COUNT));
+            let offset = req.query.pageNumber > 0
+                ? (Number(req.query.pageNumber) - 1) * Number(process.env.PER_PAGE_COUNT)
+                : 0;
+            let limit = req.query.pageNumber > 0
+                ? Number(process.env.PER_PAGE_COUNT)
+                : intTotlaRecords;
 
-    const lisResponce2 = await rechargeModel.downlineTopUpReport(searchkeyval1, limit, offset);
+            const lisResponce2 = await rechargeModel.downlineTopUpReport(searchkeyval1, limit, offset);
 
-    if (lisResponce2.length == 0) {
-      return res.status(204).send({ message: 'no recharge found' });
-    }
+            if (lisResponce2.length == 0) {
+                return res.status(204).send({ message: 'no recharge found' });
+            }
 
-    if (isExcel) {
-    const now = new Date();
-    const dateStr = new Date().toISOString().split('T')[0];
-    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
-    const filename = `downline_topup_report_${dateStr}_${timeStr}.xlsx`;
-      const filePath = path.join(REPORT_DIR, filename);
+            if (isExcel) {
+                const now = new Date();
+                const dateStr = new Date().toISOString().split('T')[0];
+                const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+                const filename = `downline_topup_report_${dateStr}_${timeStr}.xlsx`;
+                const filePath = path.join(REPORT_DIR, filename);
 
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        if (moment().diff(moment(stats.ctime), 'minutes') < 30) {
-          return res.status(200).json({
-            success: true,
-            downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
-          });
+                if (fs.existsSync(filePath)) {
+                    const stats = fs.statSync(filePath);
+                    if (moment().diff(moment(stats.ctime), 'minutes') < 30) {
+                        return res.status(200).json({
+                            success: true,
+                            downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
+                        });
+                    }
+                }
+
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Downline Top-Up Report');
+
+                if (lisResponce2.length > 0) {
+                    worksheet.columns = Object.keys(lisResponce2[0]).map((key) => ({
+                        header: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+                        key,
+                        width: 25,
+                    }));
+
+                    worksheet.getRow(1).font = { bold: true };
+                    worksheet.addRows(lisResponce2);
+                }
+
+                await workbook.xlsx.writeFile(filePath);
+
+                setTimeout(() => {
+                    fs.unlink(filePath, (err) => {
+                        if (err && err.code !== 'ENOENT') {
+                            console.error(`Error deleting ${filename}:`, err.message);
+                        }
+                    });
+                }, 30 * 60 * 1000);
+
+                return res.status(200).json({
+                    success: true,
+                    downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
+                });
+            }
+
+            res.status(200).send({
+                reportList: lisResponce2,
+                totalRepords: intTotlaRecords,
+                pageCount: intPageCount,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: Number(process.env.PER_PAGE_COUNT),
+                totalAmount: lisTotalRecords[0].totalAmount || 0,
+                totalCommissionAmount: lisTotalRecords[0].totalCommissionAmount || 0
+            });
+
+        } catch (error) {
+            console.error('downlineTopUpReport', error);
+
+            if (req.query.pageNumber == 0) {
+                res.status(200).send([{}]);
+            } else {
+                res.status(200).send({
+                    reportList: [{}],
+                    totalRepords: 0,
+                    pageCount: 0,
+                    currentPage: Number(req.query.pageNumber),
+                    pageLimit: Number(process.env.PER_PAGE_COUNT),
+                    totalAmount: 0,
+                    totalCommissionAmount: 0
+                });
+            }
         }
-      }
-
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Downline Top-Up Report');
-
-      if (lisResponce2.length > 0) {
-        worksheet.columns = Object.keys(lisResponce2[0]).map((key) => ({
-          header: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-          key,
-          width: 25,
-        }));
-
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.addRows(lisResponce2);
-      }
-
-      await workbook.xlsx.writeFile(filePath);
-
-      setTimeout(() => {
-        fs.unlink(filePath, (err) => {
-          if (err && err.code !== 'ENOENT') {
-            console.error(`Error deleting ${filename}:`, err.message);
-          }
-        });
-      }, 30 * 60 * 1000);
-
-      return res.status(200).json({
-        success: true,
-        downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
-      });
-    }
-
-    res.status(200).send({
-      reportList: lisResponce2,
-      totalRepords: intTotlaRecords,
-      pageCount: intPageCount,
-      currentPage: Number(req.query.pageNumber),
-      pageLimit: Number(process.env.PER_PAGE_COUNT),
-      totalAmount: lisTotalRecords[0].totalAmount || 0,
-      totalCommissionAmount: lisTotalRecords[0].totalCommissionAmount || 0
-    });
-
-  } catch (error) {
-    console.error('downlineTopUpReport', error);
-
-    if (req.query.pageNumber == 0) {
-      res.status(200).send([{}]);
-    } else {
-      res.status(200).send({
-        reportList: [{}],
-        totalRepords: 0,
-        pageCount: 0,
-        currentPage: Number(req.query.pageNumber),
-        pageLimit: Number(process.env.PER_PAGE_COUNT),
-        totalAmount: 0,
-        totalCommissionAmount: 0
-      });
-    }
-  }
-};
+    };
     // group topup report
     groupTopUpReport = async (req, res) => {
         try {
@@ -3586,10 +3596,10 @@ class rechargeController {
             // }
             // if (req.query.userId) searchKeyValue.username = req.query.userId;
 
-                 if (req.query.userId) {
+            if (req.query.userId) {
                 const userId = req.query.userId;
                 searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
-              }
+            }
             if (req.query.userName) {
                 if (Number(req.query.userName)) {
                     let reqNum = []
@@ -3717,162 +3727,162 @@ class rechargeController {
 
 
 
-downloadAgentTopupReport = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+    downloadAgentTopupReport = async (req, res) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
 
-    const searchKeyValue = { Active: 1 };
-    const filters = [];
+            const searchKeyValue = { Active: 1 };
+            const filters = [];
 
-    if (req.body.user_detials?.region_list?.length !== 7) {
-      searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
-      filters.push(`region_ids=${searchKeyValue.region_ids}`);
-    }
+            if (req.body.user_detials?.region_list?.length !== 7) {
+                searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+                filters.push(`region_ids=${searchKeyValue.region_ids}`);
+            }
 
-    if (req.query.contactNumber) {
-      if (req.query.contactNumber.length === 10) {
-        searchKeyValue.mobile_number = req.query.contactNumber;
-        filters.push(`mobile=${req.query.contactNumber}`);
-      } else {
-        searchKeyValue.trans_number = req.query.contactNumber;
-        filters.push(`txn=${req.query.contactNumber}`);
-      }
-    }
+            if (req.query.contactNumber) {
+                if (req.query.contactNumber.length === 10) {
+                    searchKeyValue.mobile_number = req.query.contactNumber;
+                    filters.push(`mobile=${req.query.contactNumber}`);
+                } else {
+                    searchKeyValue.trans_number = req.query.contactNumber;
+                    filters.push(`txn=${req.query.contactNumber}`);
+                }
+            }
 
-    if (req.query.userId) {
-      const userId = req.query.userId.startsWith("AFP-") ? req.query.userId : `AFP-${req.query.userId}`;
-      searchKeyValue.username = userId;
-      filters.push(`userId=${userId}`);
-    }
+            if (req.query.userId) {
+                const userId = req.query.userId.startsWith("AFP-") ? req.query.userId : `AFP-${req.query.userId}`;
+                searchKeyValue.username = userId;
+                filters.push(`userId=${userId}`);
+            }
 
-    if (req.query.userName) {
-      if (!isNaN(req.query.userName)) {
-        searchKeyValue.request_mobile_no = [req.query.userName, "0" + req.query.userName];
-        filters.push(`userPhone=${req.query.userName}`);
-      } else {
-        searchKeyValue.full_name = req.query.userName;
-        filters.push(`userName=${req.query.userName}`);
-      }
-    }
+            if (req.query.userName) {
+                if (!isNaN(req.query.userName)) {
+                    searchKeyValue.request_mobile_no = [req.query.userName, "0" + req.query.userName];
+                    filters.push(`userPhone=${req.query.userName}`);
+                } else {
+                    searchKeyValue.full_name = req.query.userName;
+                    filters.push(`userName=${req.query.userName}`);
+                }
+            }
 
-    if (req.query.region_uuid) {
-      searchKeyValue.region_uuid = req.query.region_uuid;
-      filters.push(`region=${req.query.region_uuid}`);
-    }
+            if (req.query.region_uuid) {
+                searchKeyValue.region_uuid = req.query.region_uuid;
+                filters.push(`region=${req.query.region_uuid}`);
+            }
 
-    if (req.query.province_uuid) {
-      searchKeyValue.province_uuid = req.query.province_uuid;
-      filters.push(`province=${req.query.province_uuid}`);
-    }
+            if (req.query.province_uuid) {
+                searchKeyValue.province_uuid = req.query.province_uuid;
+                filters.push(`province=${req.query.province_uuid}`);
+            }
 
-    if (req.query.district_uuid) {
-      searchKeyValue.district_uuid = req.query.district_uuid;
-      filters.push(`district=${req.query.district_uuid}`);
-    }
+            if (req.query.district_uuid) {
+                searchKeyValue.district_uuid = req.query.district_uuid;
+                filters.push(`district=${req.query.district_uuid}`);
+            }
 
-    if (!searchKeyValue.trans_number) {
-      if ((req.query.startDate && !req.query.endDate) || (!req.query.startDate && req.query.endDate)) {
-        return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
-      }
-      if (req.query.startDate) {
-        searchKeyValue.start_date = req.query.startDate;
-        filters.push(`from=${req.query.startDate}`);
-      }
-      if (req.query.endDate) {
-        searchKeyValue.end_date = req.query.endDate;
-        filters.push(`to=${req.query.endDate}`);
-      }
-    }
+            if (!searchKeyValue.trans_number) {
+                if ((req.query.startDate && !req.query.endDate) || (!req.query.startDate && req.query.endDate)) {
+                    return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+                }
+                if (req.query.startDate) {
+                    searchKeyValue.start_date = req.query.startDate;
+                    filters.push(`from=${req.query.startDate}`);
+                }
+                if (req.query.endDate) {
+                    searchKeyValue.end_date = req.query.endDate;
+                    filters.push(`to=${req.query.endDate}`);
+                }
+            }
 
-    if (req.query.operator_uuid) {
-      const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
-      if (!operator || operator.length === 0) {
-        return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
-      }
-      searchKeyValue.operator_id = operator[0].operator_id;
-      filters.push(`op=${req.query.operator_uuid}`);
-    }
+            if (req.query.operator_uuid) {
+                const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+                if (!operator || operator.length === 0) {
+                    return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
+                }
+                searchKeyValue.operator_id = operator[0].operator_id;
+                filters.push(`op=${req.query.operator_uuid}`);
+            }
 
-    if (req.query.status) {
-      if (req.query.status == 4) {
-        searchKeyValue.rollback_status = 3;
-      } else {
-        if (req.query.status == 2) {
-          searchKeyValue.isIn = {
-            key: 'rollback_status',
-            value: '0,1,2,4'
-          };
+            if (req.query.status) {
+                if (req.query.status == 4) {
+                    searchKeyValue.rollback_status = 3;
+                } else {
+                    if (req.query.status == 2) {
+                        searchKeyValue.isIn = {
+                            key: 'rollback_status',
+                            value: '0,1,2,4'
+                        };
+                    }
+                    searchKeyValue.status = req.query.status;
+                }
+                filters.push(`status=${req.query.status}`);
+            }
+            // Generate timestamp for filename
+            const now = new Date();
+            const dateStr = new Date().toISOString().split('T')[0];
+            // const filterHash = Buffer.from(filters.sort().join('&')).toString('base64').replace(/[+/=]/g, '');
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+            const fileName = `topup_report_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            // ✅ Reuse file if created within last 30 minutes
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                const ageMinutes = (Date.now() - stats.mtimeMs) / (60 * 1000);
+                if (ageMinutes < 30) {
+                    console.log("Reusing cached report:", fileName);
+                    return res.json({
+                        success: true,
+                        downloadUrl: `${process.env.THE_DOMAIN_NAME}/api/v1/recharge/admin-report/files/${fileName}`,
+                        reused: true
+                    });
+                }
+            }
+
+            // ✅ Otherwise, generate new file
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('TopUp Report');
+            const perPage = 1000;
+            let page = 1;
+            let isFirstBatch = true;
+
+            while (true) {
+                const offset = (page - 1) * perPage;
+                const chunk = await rechargeModel.agentTopupReport(searchKeyValue, perPage, offset);
+                if (!chunk.length) break;
+
+                if (isFirstBatch) {
+                    sheet.columns = Object.keys(chunk[0]).map(key => ({ header: key, key }));
+                    isFirstBatch = false;
+                }
+
+                sheet.addRows(chunk);
+                if (chunk.length < perPage) break;
+                page++;
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+            fs.chmodSync(filePath, 0o644);
+
+            // ⏱ Delete file after 30 minutes
+            setTimeout(() => {
+                fs.unlink(filePath, err => {
+                    if (err) console.error('Error deleting file:', filePath, err);
+                    else console.log('Deleted expired report file:', fileName);
+                });
+            }, 30 * 60 * 1000);
+
+            const downloadUrl = `${process.env.THE_DOMAIN_NAME}/api/v1/recharge/admin-report/files/${fileName}`;
+            res.json({ success: true, downloadUrl, reused: false });
+
+        } catch (err) {
+            console.error("Export error:", err);
+            res.status(500).json({ error: 'Internal Server Error' });
         }
-        searchKeyValue.status = req.query.status;
-      }
-      filters.push(`status=${req.query.status}`);
-    }
-  // Generate timestamp for filename
-    const now = new Date();
-    const dateStr = new Date().toISOString().split('T')[0];
-    // const filterHash = Buffer.from(filters.sort().join('&')).toString('base64').replace(/[+/=]/g, '');
-    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
-    const fileName = `topup_report_${dateStr}_${timeStr}.xlsx`;
-    const filePath = path.join(REPORT_DIR, fileName);
-
-    // ✅ Reuse file if created within last 30 minutes
-    if (fs.existsSync(filePath)) {
-      const stats = fs.statSync(filePath);
-      const ageMinutes = (Date.now() - stats.mtimeMs) / (60 * 1000);
-      if (ageMinutes < 30) {
-        console.log("Reusing cached report:", fileName);
-        return res.json({
-          success: true,
-          downloadUrl: `${process.env.THE_DOMAIN_NAME}/api/v1/recharge/admin-report/files/${fileName}`,
-          reused: true
-        });
-      }
-    }
-
-    // ✅ Otherwise, generate new file
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('TopUp Report');
-    const perPage = 1000;
-    let page = 1;
-    let isFirstBatch = true;
-
-    while (true) {
-      const offset = (page - 1) * perPage;
-      const chunk = await rechargeModel.agentTopupReport(searchKeyValue, perPage, offset);
-      if (!chunk.length) break;
-
-      if (isFirstBatch) {
-        sheet.columns = Object.keys(chunk[0]).map(key => ({ header: key, key }));
-        isFirstBatch = false;
-      }
-
-      sheet.addRows(chunk);
-      if (chunk.length < perPage) break;
-      page++;
-    }
-
-    await workbook.xlsx.writeFile(filePath);
-    fs.chmodSync(filePath, 0o644);
-
-    // ⏱ Delete file after 30 minutes
-    setTimeout(() => {
-      fs.unlink(filePath, err => {
-        if (err) console.error('Error deleting file:', filePath, err);
-        else console.log('Deleted expired report file:', fileName);
-      });
-    }, 30 * 60 * 1000);
-
-    const downloadUrl = `${process.env.THE_DOMAIN_NAME}/api/v1/recharge/admin-report/files/${fileName}`;
-    res.json({ success: true, downloadUrl, reused: false });
-
-  } catch (err) {
-    console.error("Export error:", err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-};
+    };
 
 
 
@@ -3920,10 +3930,10 @@ downloadAgentTopupReport = async (req, res) => {
                 }
             }
             // if (req.query.userId) searchKeyValue.username = req.query.userId;"
-                 if (req.query.userId) {
+            if (req.query.userId) {
                 const userId = req.query.userId;
                 searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
-              }
+            }
             if (req.query.userName) searchKeyValue.full_name = req.query.userName;
 
             let lisTotalRecords = await sqlQueryReplica.searchQueryNoLimitTimeout(this.tableName2, searchKeyValue, ['COUNT(1) AS count'], 'userid', "ASC")
@@ -4077,111 +4087,111 @@ downloadAgentTopupReport = async (req, res) => {
     }
 
     downloadTopUpSummeryReport = async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-        }
-
-        let searchKeyValue = { Active: 1 };
-        if (req.body.user_detials.region_list.length !== 7) {
-        searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
-        }
-        if (req.query.parent_uuid) {
-        const parentDetails = await sqlQueryReplica.searchQuery(this.tableName2, { user_uuid: req.query.parent_uuid }, ['userid'], 'userid', 'ASC', 1, 0);
-        if (!parentDetails.length) return res.status(400).json({ errors: [{ msg: 'Parent id not found' }] });
-        searchKeyValue.parent_id = parentDetails[0].userid;
-        } else if (!req.query.userId) {
-        searchKeyValue.parent_id = 1;
-        }
-        if (req.query.userId) {
-        const userId = req.query.userId;
-        searchKeyValue.username = userId.startsWith('AFP-') ? userId : `AFP-${userId}`;
-        }
-        if (req.query.userName) searchKeyValue.full_name = req.query.userName;
-
-        const agentList = await sqlQueryReplica.searchQueryTimeout(
-        this.tableName2,
-        searchKeyValue,
-        ['username', 'full_name', 'child_id', 'userid', 'province_Name', 'region_name', "IF(usertype_id = 1,'Master Distributor',IF(usertype_id = 2,'Distributor',IF(usertype_id = 3,'Reseller','Retailer'))) as agentType"],
-        'userid',
-        'ASC',
-        10000,
-        0
-        );
-
-        const rechargeSearch = {};
-        if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
-        return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
-        }
-        if (req.query.startDate && req.query.endDate) {
-        rechargeSearch.start_date = req.query.startDate;
-        rechargeSearch.end_date = req.query.endDate;
-        }
-        rechargeSearch.status = req.query.status == 4 ? 3 : (req.query.status || 2);
-
-         // Generate timestamp for filename
-    const now = new Date();
-    const dateStr = new Date().toISOString().split('T')[0];
-    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
-    const fileName = `Topup_Summary_Report_${dateStr}_${timeStr}.xlsx`;
-        const filePath = path.join(REPORT_DIR, fileName);
-
-        if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
-            return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
-        }
-        }
-
-        const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('TopUp Summary Report');
-        const rows = [];
-
-        for (const agent of agentList) {
-        const { full_name, username, child_id, userid, region_name, province_Name, agentType } = agent;
-        const allChildIds = child_id ? `${child_id},${userid}` : `${userid}`;
-        const rechargeDetails = await rechargeModel.topUpSummeryReport(rechargeSearch, allChildIds);
-        rows.push({
-            userId: username,
-            userName: full_name,
-            regionName: region_name,
-            provicneName: province_Name,
-            agentType,
-            Salam: rechargeDetails?.Salam || 0,
-            AWCC: rechargeDetails?.AWCC || 0,
-            MTN: rechargeDetails?.MTN || 0,
-            Etisalat: rechargeDetails?.Etisalat || 0,
-            Roshan: rechargeDetails?.Roshan || 0,
-            topUpAmount: rechargeDetails?.topUpAmount || 0,
-            topUpCount: rechargeDetails?.topUpCount || 0
-        });
-        }
-
-        sheet.columns = Object.keys(rows[0] || {}).map(key => ({ header: key, key }));
-        sheet.addRows(rows);
-        await workbook.xlsx.writeFile(filePath);
-        fs.chmodSync(filePath, 0o644);
-
-        setTimeout(() => {
-        fs.access(filePath, fs.constants.F_OK, (err) => {
-            if (!err) {
-            fs.unlink(filePath, err => {
-                if (err) console.error('Error deleting file:', filePath, err);
-                else console.log('Deleted file:', fileName);
-            });
-            } else {
-            console.warn('File already deleted or missing:', filePath);
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
             }
-        });
-        }, 30 * 60 * 1000);
 
-        res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+            let searchKeyValue = { Active: 1 };
+            if (req.body.user_detials.region_list.length !== 7) {
+                searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+            }
+            if (req.query.parent_uuid) {
+                const parentDetails = await sqlQueryReplica.searchQuery(this.tableName2, { user_uuid: req.query.parent_uuid }, ['userid'], 'userid', 'ASC', 1, 0);
+                if (!parentDetails.length) return res.status(400).json({ errors: [{ msg: 'Parent id not found' }] });
+                searchKeyValue.parent_id = parentDetails[0].userid;
+            } else if (!req.query.userId) {
+                searchKeyValue.parent_id = 1;
+            }
+            if (req.query.userId) {
+                const userId = req.query.userId;
+                searchKeyValue.username = userId.startsWith('AFP-') ? userId : `AFP-${userId}`;
+            }
+            if (req.query.userName) searchKeyValue.full_name = req.query.userName;
 
-    } catch (error) {
-        console.error('downloadTopUpSummeryReport', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+            const agentList = await sqlQueryReplica.searchQueryTimeout(
+                this.tableName2,
+                searchKeyValue,
+                ['username', 'full_name', 'child_id', 'userid', 'province_Name', 'region_name', "IF(usertype_id = 1,'Master Distributor',IF(usertype_id = 2,'Distributor',IF(usertype_id = 3,'Reseller','Retailer'))) as agentType"],
+                'userid',
+                'ASC',
+                10000,
+                0
+            );
+
+            const rechargeSearch = {};
+            if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+                return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+            }
+            if (req.query.startDate && req.query.endDate) {
+                rechargeSearch.start_date = req.query.startDate;
+                rechargeSearch.end_date = req.query.endDate;
+            }
+            rechargeSearch.status = req.query.status == 4 ? 3 : (req.query.status || 2);
+
+            // Generate timestamp for filename
+            const now = new Date();
+            const dateStr = new Date().toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+            const fileName = `Topup_Summary_Report_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+                    return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+                }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('TopUp Summary Report');
+            const rows = [];
+
+            for (const agent of agentList) {
+                const { full_name, username, child_id, userid, region_name, province_Name, agentType } = agent;
+                const allChildIds = child_id ? `${child_id},${userid}` : `${userid}`;
+                const rechargeDetails = await rechargeModel.topUpSummeryReport(rechargeSearch, allChildIds);
+                rows.push({
+                    userId: username,
+                    userName: full_name,
+                    regionName: region_name,
+                    provicneName: province_Name,
+                    agentType,
+                    Salam: rechargeDetails?.Salam || 0,
+                    AWCC: rechargeDetails?.AWCC || 0,
+                    MTN: rechargeDetails?.MTN || 0,
+                    Etisalat: rechargeDetails?.Etisalat || 0,
+                    Roshan: rechargeDetails?.Roshan || 0,
+                    topUpAmount: rechargeDetails?.topUpAmount || 0,
+                    topUpCount: rechargeDetails?.topUpCount || 0
+                });
+            }
+
+            sheet.columns = Object.keys(rows[0] || {}).map(key => ({ header: key, key }));
+            sheet.addRows(rows);
+            await workbook.xlsx.writeFile(filePath);
+            fs.chmodSync(filePath, 0o644);
+
+            setTimeout(() => {
+                fs.access(filePath, fs.constants.F_OK, (err) => {
+                    if (!err) {
+                        fs.unlink(filePath, err => {
+                            if (err) console.error('Error deleting file:', filePath, err);
+                            else console.log('Deleted file:', fileName);
+                        });
+                    } else {
+                        console.warn('File already deleted or missing:', filePath);
+                    }
+                });
+            }, 30 * 60 * 1000);
+
+            res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+
+        } catch (error) {
+            console.error('downloadTopUpSummeryReport', error);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
     };
 
 
@@ -4316,125 +4326,125 @@ downloadAgentTopupReport = async (req, res) => {
         }
     }
 
- agentDownloadDownlineTopUpReport = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+    agentDownloadDownlineTopUpReport = async (req, res) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
 
-    const searchKeyValue = { Active: 1 };
+            const searchKeyValue = { Active: 1 };
 
-    if (req.query.parent_uuid) {
-      const searchKeyValue1 = {
-        user_uuid: req.query.parent_uuid,
-        Active: 1
-      };
-      if (req.body.user_detials.region_list.length !== 7) {
-        searchKeyValue1.region_ids = req.body.user_detials.region_list.join(',');
-      }
-      const parentResult = await sqlQueryReplica.searchQuery(
-        this.tableName2,
-        searchKeyValue1,
-        ['userid', 'child_id'],
-        'userid',
-        'ASC',
-        1,
-        0
-      );
-      if (!parentResult.length) return res.status(400).json({ errors: 'parent id not found' });
-      searchKeyValue.child_ids = parentResult[0].child_id || '0';
-    } else if (req.body.user_detials.region_list.length !== 7) {
-      searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
-    }
+            if (req.query.parent_uuid) {
+                const searchKeyValue1 = {
+                    user_uuid: req.query.parent_uuid,
+                    Active: 1
+                };
+                if (req.body.user_detials.region_list.length !== 7) {
+                    searchKeyValue1.region_ids = req.body.user_detials.region_list.join(',');
+                }
+                const parentResult = await sqlQueryReplica.searchQuery(
+                    this.tableName2,
+                    searchKeyValue1,
+                    ['userid', 'child_id'],
+                    'userid',
+                    'ASC',
+                    1,
+                    0
+                );
+                if (!parentResult.length) return res.status(400).json({ errors: 'parent id not found' });
+                searchKeyValue.child_ids = parentResult[0].child_id || '0';
+            } else if (req.body.user_detials.region_list.length !== 7) {
+                searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+            }
 
-    if (req.query.agentId) searchKeyValue.username = req.query.agentId;
-    if (req.query.agentName) searchKeyValue.full_name = req.query.agentName;
-    if (req.query.agentMobile) searchKeyValue.mobile = req.query.agentMobile;
-    if (req.query.agentEmail) searchKeyValue.emailid = req.query.agentEmail;
+            if (req.query.agentId) searchKeyValue.username = req.query.agentId;
+            if (req.query.agentName) searchKeyValue.full_name = req.query.agentName;
+            if (req.query.agentMobile) searchKeyValue.mobile = req.query.agentMobile;
+            if (req.query.agentEmail) searchKeyValue.emailid = req.query.agentEmail;
 
-    if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
-      return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
-    }
+            if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+                return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+            }
 
-    if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
-    if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+            if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+            if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
 
-    if (req.query.operator_uuid) {
-      const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
-      if (!operator || operator.length === 0) {
-        return res.status(400).json({ errors: [{ msg: 'operator id not found' }] });
-      }
-      searchKeyValue.operator_id = operator[0].operator_id;
-    }
+            if (req.query.operator_uuid) {
+                const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+                if (!operator || operator.length === 0) {
+                    return res.status(400).json({ errors: [{ msg: 'operator id not found' }] });
+                }
+                searchKeyValue.operator_id = operator[0].operator_id;
+            }
 
-    if (req.query.status) {
-      if (req.query.status == 4) {
-        searchKeyValue.rollback_status = 3;
-      } else {
-        searchKeyValue.status = req.query.status;
-      }
-    }
+            if (req.query.status) {
+                if (req.query.status == 4) {
+                    searchKeyValue.rollback_status = 3;
+                } else {
+                    searchKeyValue.status = req.query.status;
+                }
+            }
 
-   const now = new Date();
-    const dateStr = new Date().toISOString().split('T')[0];
-    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
-    const fileName = `Downline_topup_report_${dateStr}_${timeStr}.xlsx`;
-    const filePath = path.join(REPORT_DIR, fileName);
+            const now = new Date();
+            const dateStr = new Date().toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+            const fileName = `Downline_topup_report_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
 
-    if (fs.existsSync(filePath)) {
-      const stats = fs.statSync(filePath);
-      const fileAgeMs = Date.now() - stats.mtimeMs;
-      if (fileAgeMs < 30 * 60 * 1000) {
-        return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
-      }
-    }
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                const fileAgeMs = Date.now() - stats.mtimeMs;
+                if (fileAgeMs < 30 * 60 * 1000) {
+                    return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+                }
+            }
 
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Downline TopUp Report');
-    const perPage = 1000;
-    let page = 1;
-    let isFirstBatch = true;
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Downline TopUp Report');
+            const perPage = 1000;
+            let page = 1;
+            let isFirstBatch = true;
 
-    while (true) {
-      const offset = (page - 1) * perPage;
-      const chunk = await rechargeModel.agentDownlineTopUpReport(searchKeyValue, perPage, offset);
-      if (!chunk.length) break;
+            while (true) {
+                const offset = (page - 1) * perPage;
+                const chunk = await rechargeModel.agentDownlineTopUpReport(searchKeyValue, perPage, offset);
+                if (!chunk.length) break;
 
-      if (isFirstBatch) {
-        sheet.columns = Object.keys(chunk[0]).map(key => ({ header: key, key }));
-        isFirstBatch = false;
-      }
+                if (isFirstBatch) {
+                    sheet.columns = Object.keys(chunk[0]).map(key => ({ header: key, key }));
+                    isFirstBatch = false;
+                }
 
-      sheet.addRows(chunk);
-      if (chunk.length < perPage) break;
-      page++;
-    }
+                sheet.addRows(chunk);
+                if (chunk.length < perPage) break;
+                page++;
+            }
 
-    await workbook.xlsx.writeFile(filePath);
-    fs.chmodSync(filePath, 0o644);
+            await workbook.xlsx.writeFile(filePath);
+            fs.chmodSync(filePath, 0o644);
 
-    setTimeout(() => {
-      fs.access(filePath, fs.constants.F_OK, (err) => {
-        if (!err) {
-          fs.unlink(filePath, err => {
-            if (err) console.error('Error deleting file:', filePath, err);
-            else console.log('Deleted file:', fileName);
-          });
-        } else {
-          console.warn('File already deleted or missing:', filePath);
+            setTimeout(() => {
+                fs.access(filePath, fs.constants.F_OK, (err) => {
+                    if (!err) {
+                        fs.unlink(filePath, err => {
+                            if (err) console.error('Error deleting file:', filePath, err);
+                            else console.log('Deleted file:', fileName);
+                        });
+                    } else {
+                        console.warn('File already deleted or missing:', filePath);
+                    }
+                });
+            }, 30 * 60 * 1000);
+
+            const downloadUrl = `/api/v1/recharge/admin-report/files/${fileName}`;
+            res.json({ success: true, downloadUrl });
+
+        } catch (error) {
+            console.error('agentDownlineTopUpReport', error);
+            res.status(500).json({ error: 'Internal Server Error' });
         }
-      });
-    }, 30 * 60 * 1000);
-
-    const downloadUrl = `/api/v1/recharge/admin-report/files/${fileName}`;
-    res.json({ success: true, downloadUrl });
-
-  } catch (error) {
-    console.error('agentDownlineTopUpReport', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-};
+    };
 
 
     agentTelcoTopUpreport = async (req, res) => {
@@ -4604,10 +4614,10 @@ downloadAgentTopupReport = async (req, res) => {
                 searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
             }
             // if (req.query.userId) searchKeyValue.username = req.query.userId;
-                 if (req.query.userId) {
+            if (req.query.userId) {
                 const userId = req.query.userId;
                 searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
-              }
+            }
             if (req.query.userName) searchKeyValue.full_name = req.query.userName;
             if (req.query.agent_type_uuid) {
                 const lisResponce1 = await commonQueryCommon.getAgentTypeId(req.query.agent_type_uuid)
@@ -4689,148 +4699,148 @@ downloadAgentTopupReport = async (req, res) => {
     }
 
     downloadAgentCommissionReport = async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-
-        if (!req.query.pageNumber) req.query.pageNumber = 0;
-
-        const listAgentType = await commonQueryCommon.getAllAgentType();
-        if (listAgentType.length === 0) return res.status(400).json({ errors: "Agent type list not found" });
-
-        const agentTypeMap = listAgentType.map(item => item.agent_type_name);
-
-        let searchKeyValue = { Active: 1 };
-
-        if (req.body.user_detials.type == roles.Admin || req.body.user_detials.type == roles.SubAdmin) {
-            if (req.body.user_detials.region_list.length !== 7) {
-                searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
             }
-        } else {
-            searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
-        }
 
-        if (req.query.userId) {
-            const userId = req.query.userId;
-            searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
-        }
+            if (!req.query.pageNumber) req.query.pageNumber = 0;
 
-        if (req.query.userName) searchKeyValue.full_name = req.query.userName;
+            const listAgentType = await commonQueryCommon.getAllAgentType();
+            if (listAgentType.length === 0) return res.status(400).json({ errors: "Agent type list not found" });
 
-        if (req.query.agent_type_uuid) {
-            const agentTypeRes = await commonQueryCommon.getAgentTypeId(req.query.agent_type_uuid);
-            if (!agentTypeRes || agentTypeRes.length === 0) return res.status(400).json({ errors: "Agent type not found" });
-            searchKeyValue.usertype_id = agentTypeRes[0].agent_type_id;
-        }
+            const agentTypeMap = listAgentType.map(item => item.agent_type_name);
 
-        if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
-            return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
-        }
+            let searchKeyValue = { Active: 1 };
 
-        if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
-        if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
-
-        if (req.query.operator_uuid) {
-            const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
-            if (!operator || operator.length === 0) return res.status(400).json({ errors: [{ msg: "Operator not found" }] });
-            searchKeyValue.operator_id = operator[0].operator_id;
-        }
-
-        if (Object.keys(searchKeyValue).length === 0) return res.status(400).json({ errors: [{ msg: "Improper search parameters" }] });
-
-        const lisTotalRecords = await rechargeModel.agentCommissionReportCount(searchKeyValue);
-        const totalRecords = Number(lisTotalRecords[0].count);
-        const pageLimit = Number(process.env.PER_PAGE_COUNT);
-        const totalPages = totalRecords % pageLimit === 0 ? totalRecords / pageLimit : Math.floor(totalRecords / pageLimit) + 1;
-
-        const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
-        const limit = req.query.pageNumber > 0 ? pageLimit : totalRecords;
-
-        const resultData = await rechargeModel.agentCommissionReport(searchKeyValue, limit, offset);
-
-        const finalResult = resultData.map((row) => {
-            const { usertype_id, ...rest } = row;
-            return {
-                ...rest,
-                userType: agentTypeMap[usertype_id - 1] || 'Unknown'
-            };
-        });
-
-        // ✅ Report Download Logic
-        if (req.query.pageNumber == 0) {
-            const now = new Date();
-            const dateStr = new Date().toISOString().split('T')[0];
-            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
-            const fileName = `agent_commission_report_${dateStr}_${timeStr}.xlsx`;
-            const filePath = path.join(REPORT_DIR, fileName);
-
-            if (fs.existsSync(filePath)) {
-                const stats = fs.statSync(filePath);
-                if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
-                    return res.status(200).json({ success: true, downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}` });
+            if (req.body.user_detials.type == roles.Admin || req.body.user_detials.type == roles.SubAdmin) {
+                if (req.body.user_detials.region_list.length !== 7) {
+                    searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
                 }
+            } else {
+                searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
             }
 
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet('Agent Commission Report');
-
-            if (finalResult.length > 0) {
-                worksheet.columns = Object.keys(finalResult[0]).map(key => ({
-                    header: key,
-                    key: key,
-                    width: key.length < 20 ? 20 : key.length + 5
-                }));
-                worksheet.addRows(finalResult);
+            if (req.query.userId) {
+                const userId = req.query.userId;
+                searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
             }
 
-            await workbook.xlsx.writeFile(filePath);
-            fs.chmodSync(filePath, 0o644);
+            if (req.query.userName) searchKeyValue.full_name = req.query.userName;
 
-            setTimeout(() => {
-                fs.unlink(filePath, (err) => {
-                    if (err) console.error('Failed to delete report:', fileName);
+            if (req.query.agent_type_uuid) {
+                const agentTypeRes = await commonQueryCommon.getAgentTypeId(req.query.agent_type_uuid);
+                if (!agentTypeRes || agentTypeRes.length === 0) return res.status(400).json({ errors: "Agent type not found" });
+                searchKeyValue.usertype_id = agentTypeRes[0].agent_type_id;
+            }
+
+            if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+                return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+            }
+
+            if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+            if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+
+            if (req.query.operator_uuid) {
+                const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+                if (!operator || operator.length === 0) return res.status(400).json({ errors: [{ msg: "Operator not found" }] });
+                searchKeyValue.operator_id = operator[0].operator_id;
+            }
+
+            if (Object.keys(searchKeyValue).length === 0) return res.status(400).json({ errors: [{ msg: "Improper search parameters" }] });
+
+            const lisTotalRecords = await rechargeModel.agentCommissionReportCount(searchKeyValue);
+            const totalRecords = Number(lisTotalRecords[0].count);
+            const pageLimit = Number(process.env.PER_PAGE_COUNT);
+            const totalPages = totalRecords % pageLimit === 0 ? totalRecords / pageLimit : Math.floor(totalRecords / pageLimit) + 1;
+
+            const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+            const limit = req.query.pageNumber > 0 ? pageLimit : totalRecords;
+
+            const resultData = await rechargeModel.agentCommissionReport(searchKeyValue, limit, offset);
+
+            const finalResult = resultData.map((row) => {
+                const { usertype_id, ...rest } = row;
+                return {
+                    ...rest,
+                    userType: agentTypeMap[usertype_id - 1] || 'Unknown'
+                };
+            });
+
+            // ✅ Report Download Logic
+            if (req.query.pageNumber == 0) {
+                const now = new Date();
+                const dateStr = new Date().toISOString().split('T')[0];
+                const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+                const fileName = `agent_commission_report_${dateStr}_${timeStr}.xlsx`;
+                const filePath = path.join(REPORT_DIR, fileName);
+
+                if (fs.existsSync(filePath)) {
+                    const stats = fs.statSync(filePath);
+                    if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+                        return res.status(200).json({ success: true, downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}` });
+                    }
+                }
+
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Agent Commission Report');
+
+                if (finalResult.length > 0) {
+                    worksheet.columns = Object.keys(finalResult[0]).map(key => ({
+                        header: key,
+                        key: key,
+                        width: key.length < 20 ? 20 : key.length + 5
+                    }));
+                    worksheet.addRows(finalResult);
+                }
+
+                await workbook.xlsx.writeFile(filePath);
+                fs.chmodSync(filePath, 0o644);
+
+                setTimeout(() => {
+                    fs.unlink(filePath, (err) => {
+                        if (err) console.error('Failed to delete report:', fileName);
+                    });
+                }, 30 * 60 * 1000);
+
+                return res.status(200).json({
+                    success: true,
+                    downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
                 });
-            }, 30 * 60 * 1000);
+            }
 
+            // ✅ Paginated JSON Response
             return res.status(200).json({
-                success: true,
-                downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`
-            });
-        }
-
-        // ✅ Paginated JSON Response
-        return res.status(200).json({
-            reportList: finalResult,
-            totalRepords: totalRecords,
-            pageCount: totalPages,
-            currentPage: Number(req.query.pageNumber),
-            pageLimit: pageLimit,
-            totalAmount: lisTotalRecords[0].totalAmount || 0,
-            totalDeductAmount: lisTotalRecords[0].totalDeductAmount || 0,
-            totalCommissionAmount: lisTotalRecords[0].totalCommissionAmount || 0
-        });
-
-    } catch (error) {
-        console.error('agentCommissionReport error:', error);
-
-        if (req.query.pageNumber == 0) {
-            return res.status(200).send([{}]);
-        } else {
-            return res.status(200).send({
-                reportList: [{}],
-                totalRepords: 0,
-                pageCount: 0,
+                reportList: finalResult,
+                totalRepords: totalRecords,
+                pageCount: totalPages,
                 currentPage: Number(req.query.pageNumber),
-                pageLimit: Number(process.env.PER_PAGE_COUNT),
-                totalAmount: 0,
-                totalDeductAmount: 0,
-                totalCommissionAmount: 0
+                pageLimit: pageLimit,
+                totalAmount: lisTotalRecords[0].totalAmount || 0,
+                totalDeductAmount: lisTotalRecords[0].totalDeductAmount || 0,
+                totalCommissionAmount: lisTotalRecords[0].totalCommissionAmount || 0
             });
+
+        } catch (error) {
+            console.error('agentCommissionReport error:', error);
+
+            if (req.query.pageNumber == 0) {
+                return res.status(200).send([{}]);
+            } else {
+                return res.status(200).send({
+                    reportList: [{}],
+                    totalRepords: 0,
+                    pageCount: 0,
+                    currentPage: Number(req.query.pageNumber),
+                    pageLimit: Number(process.env.PER_PAGE_COUNT),
+                    totalAmount: 0,
+                    totalDeductAmount: 0,
+                    totalCommissionAmount: 0
+                });
+            }
         }
-    }
-};
+    };
 
 
 
@@ -4946,133 +4956,133 @@ downloadAgentTopupReport = async (req, res) => {
 
 
     adminDownloadCommissionReport = async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
 
-        if (!req.query.pageNumber) req.query.pageNumber = 0;
+            if (!req.query.pageNumber) req.query.pageNumber = 0;
 
-       let searchKeyValue = { Active: 1 };
-        if (req.query.agentId) searchKeyValue.username = req.query.agentId;
-        if (req.query.agnetName) searchKeyValue.full_name = req.query.agnetName;
+            let searchKeyValue = { Active: 1 };
+            if (req.query.agentId) searchKeyValue.username = req.query.agentId;
+            if (req.query.agnetName) searchKeyValue.full_name = req.query.agnetName;
 
-        if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
-            return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
-        }
-        if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
-        if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+            if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+                return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+            }
+            if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+            if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
 
-        if (req.query.operator_uuid) {
-            const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
-            if (!operator || operator.length === 0) return res.status(400).json({ errors: [{ msg: "Operator not found" }] });
-            searchKeyValue.operator_id = operator[0].operator_id;
-        }
+            if (req.query.operator_uuid) {
+                const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+                if (!operator || operator.length === 0) return res.status(400).json({ errors: [{ msg: "Operator not found" }] });
+                searchKeyValue.operator_id = operator[0].operator_id;
+            }
 
-        if (req.query.agent_type_uuid) {
-            const agentType = await commonQueryCommon.getAgentTypeId(req.query.agent_type_uuid);
-            if (!agentType || agentType.length === 0) return res.status(400).json({ errors: [{ msg: "Agent type not found" }] });
-            searchKeyValue.usertype_id = agentType[0].agent_type_id;
-        }
+            if (req.query.agent_type_uuid) {
+                const agentType = await commonQueryCommon.getAgentTypeId(req.query.agent_type_uuid);
+                if (!agentType || agentType.length === 0) return res.status(400).json({ errors: [{ msg: "Agent type not found" }] });
+                searchKeyValue.usertype_id = agentType[0].agent_type_id;
+            }
 
-        if (Object.keys(searchKeyValue).length === 0) {
-            return res.status(400).json({ errors: [{ msg: "Improper search parameters" }] });
-        }
+            if (Object.keys(searchKeyValue).length === 0) {
+                return res.status(400).json({ errors: [{ msg: "Improper search parameters" }] });
+            }
 
-        const userId = req.body.user_detials.userid;
-        const lisTotalRecords = await rechargeModel.adminCommissionReportCount(searchKeyValue, userId);
-        const totalRecords = Number(lisTotalRecords[0].count);
-        const pageLimit = Number(process.env.PER_PAGE_COUNT);
-        const totalPages = totalRecords % pageLimit === 0 ? totalRecords / pageLimit : Math.floor(totalRecords / pageLimit) + 1;
+            const userId = req.body.user_detials.userid;
+            const lisTotalRecords = await rechargeModel.adminCommissionReportCount(searchKeyValue, userId);
+            const totalRecords = Number(lisTotalRecords[0].count);
+            const pageLimit = Number(process.env.PER_PAGE_COUNT);
+            const totalPages = totalRecords % pageLimit === 0 ? totalRecords / pageLimit : Math.floor(totalRecords / pageLimit) + 1;
 
-        const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
-        const limit = req.query.pageNumber > 0 ? pageLimit : totalRecords;
+            const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+            const limit = req.query.pageNumber > 0 ? pageLimit : totalRecords;
 
-        const results = await rechargeModel.adminCommissionReport(searchKeyValue, userId, limit, offset);
-        const agentTypes = await commonQueryCommon.getAllAgentType();
+            const results = await rechargeModel.adminCommissionReport(searchKeyValue, userId, limit, offset);
+            const agentTypes = await commonQueryCommon.getAllAgentType();
 
-        const finalResult = results.map(row => {
-            const { usertype_id, ...rest } = row;
-            return {
-                ...rest,
-                userType: agentTypes[usertype_id - 1]?.agent_type_name || "Unknown"
-            };
-        });
+            const finalResult = results.map(row => {
+                const { usertype_id, ...rest } = row;
+                return {
+                    ...rest,
+                    userType: agentTypes[usertype_id - 1]?.agent_type_name || "Unknown"
+                };
+            });
 
-        // ✅ Download Report Generation
-        if (req.query.pageNumber == 0) {
-               const now = new Date();
+            // ✅ Download Report Generation
+            if (req.query.pageNumber == 0) {
+                const now = new Date();
                 const dateStr = new Date().toISOString().split('T')[0];
                 const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
                 const fileName = `admin_commission_report_${dateStr}_${timeStr}.xlsx`;
-            const filePath = path.join(REPORT_DIR, fileName);
+                const filePath = path.join(REPORT_DIR, fileName);
 
-            // Use cached file if exists and not expired
-            if (fs.existsSync(filePath)) {
-                const stats = fs.statSync(filePath);
-                if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
-                    return res.status(200).json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+                // Use cached file if exists and not expired
+                if (fs.existsSync(filePath)) {
+                    const stats = fs.statSync(filePath);
+                    if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+                        return res.status(200).json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+                    }
                 }
-            }
 
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet('Admin Commission Report');
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Admin Commission Report');
 
-            if (finalResult.length > 0) {
-                worksheet.columns = Object.keys(finalResult[0]).map(key => ({
-                    header: key,
-                    key: key,
-                    width: key.length < 20 ? 20 : key.length + 5
-                }));
-                worksheet.addRows(finalResult);
-            }
+                if (finalResult.length > 0) {
+                    worksheet.columns = Object.keys(finalResult[0]).map(key => ({
+                        header: key,
+                        key: key,
+                        width: key.length < 20 ? 20 : key.length + 5
+                    }));
+                    worksheet.addRows(finalResult);
+                }
 
-            await workbook.xlsx.writeFile(filePath);
-            fs.chmodSync(filePath, 0o644);
+                await workbook.xlsx.writeFile(filePath);
+                fs.chmodSync(filePath, 0o644);
 
-            // Delete after 30 minutes
-            setTimeout(() => {
-                fs.unlink(filePath, (err) => {
-                    if (err) console.error('Failed to delete report:', fileName);
+                // Delete after 30 minutes
+                setTimeout(() => {
+                    fs.unlink(filePath, (err) => {
+                        if (err) console.error('Failed to delete report:', fileName);
+                    });
+                }, 30 * 60 * 1000);
+
+                return res.status(200).json({
+                    success: true,
+                    downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}`
                 });
-            }, 30 * 60 * 1000);
+            }
 
+            // ✅ Paginated Response
             return res.status(200).json({
-                success: true,
-                downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}`
+                reportList: finalResult,
+                totalRepords: totalRecords,
+                pageCount: totalPages,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: pageLimit,
+                totalRechargeAmount: lisTotalRecords[0].totalRechargeAmount || 0,
+                totalCommAmount: lisTotalRecords[0].totalCommAmount || 0
             });
+
+        } catch (error) {
+            console.error('adminCommissionReport error:', error);
+
+            // if (req.query.pageNumber == 0) {
+            //     return res.status(200).send([{}]);
+            // } else {
+            //     return res.status(200).json({
+            //         reportList: [{}],
+            //         totalRepords: 0,
+            //         pageCount: 0,
+            //         currentPage: Number(req.query.pageNumber),
+            //         pageLimit: Number(process.env.PER_PAGE_COUNT),
+            //         totalRechargeAmount: 0,
+            //         totalCommAmount: 0
+            //     });
+            // }
         }
-
-        // ✅ Paginated Response
-        return res.status(200).json({
-            reportList: finalResult,
-            totalRepords: totalRecords,
-            pageCount: totalPages,
-            currentPage: Number(req.query.pageNumber),
-            pageLimit: pageLimit,
-            totalRechargeAmount: lisTotalRecords[0].totalRechargeAmount || 0,
-            totalCommAmount: lisTotalRecords[0].totalCommAmount || 0
-        });
-
-    } catch (error) {
-        console.error('adminCommissionReport error:', error);
-
-        // if (req.query.pageNumber == 0) {
-        //     return res.status(200).send([{}]);
-        // } else {
-        //     return res.status(200).json({
-        //         reportList: [{}],
-        //         totalRepords: 0,
-        //         pageCount: 0,
-        //         currentPage: Number(req.query.pageNumber),
-        //         pageLimit: Number(process.env.PER_PAGE_COUNT),
-        //         totalRechargeAmount: 0,
-        //         totalCommAmount: 0
-        //     });
-        // }
-    }
-};
+    };
     // agent panel commission report
     commissionReport = async (req, res) => {
         try {
@@ -5293,120 +5303,120 @@ downloadAgentTopupReport = async (req, res) => {
 
 
     downloadTopRankingReport = async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-        if (!req.query.pageNumber) req.query.pageNumber = 0;
+            if (!req.query.pageNumber) req.query.pageNumber = 0;
 
-        let searchKeyValue = {
-        status: 2,
-        isIn: {
-            key: 'operator_id',
-            value: [1, 2, 3, 4, 5]
-        }
-        };
+            let searchKeyValue = {
+                status: 2,
+                isIn: {
+                    key: 'operator_id',
+                    value: [1, 2, 3, 4, 5]
+                }
+            };
 
-        let operatorName = 'All operator';
+            let operatorName = 'All operator';
 
-        if (req.query.operator_uuid) {
-        const operatorInfo = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
-        if (!operatorInfo || operatorInfo.length === 0)
-            return res.status(400).json({ errors: [{ msg: 'Operator ID not found' }] });
+            if (req.query.operator_uuid) {
+                const operatorInfo = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+                if (!operatorInfo || operatorInfo.length === 0)
+                    return res.status(400).json({ errors: [{ msg: 'Operator ID not found' }] });
 
-        searchKeyValue.isIn.value = [operatorInfo[0].operator_id];
-        operatorName = operatorInfo[0].operator_name;
-        }
-
-        if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
-        return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
-        }
-
-        if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
-        if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
-
-        const user = req.body.user_detials;
-        if (user.type === roles.Admin || user.type === roles.SubAdmin) {
-        if (user.region_list.length !== 7) {
-            searchKeyValue.region_ids = user.region_list.join(',');
-        }
-        } else {
-        searchKeyValue.child_ids = user.child_list.join(',');
-        }
-
-        const totalRecordsList = await rechargeModel.topRankingReportCount(searchKeyValue);
-        const intTotlaRecords = totalRecordsList.length;
-        const pageLimit = Number(process.env.PER_PAGE_COUNT);
-        const intPageCount = intTotlaRecords % pageLimit === 0
-        ? intTotlaRecords / pageLimit
-        : Math.floor(intTotlaRecords / pageLimit) + 1;
-
-        const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
-        const limit = req.query.pageNumber > 0 ? pageLimit : intTotlaRecords;
-
-        let finalResult = await rechargeModel.topRankingReport(searchKeyValue, limit, offset);
-        finalResult = finalResult.map(row => ({
-        ...row,
-        operatorName
-        }));
-
-        // ✅ Paginated response
-        if (req.query.pageNumber > 0) {
-        return res.status(200).json({
-            reportList: finalResult,
-            totalRepords: intTotlaRecords,
-            pageCount: intPageCount,
-            currentPage: Number(req.query.pageNumber),
-            pageLimit
-        });
-        }
-
-        // ✅ Downloadable Excel report
-          const now = new Date();
-        const dateStr = new Date().toISOString().split('T')[0];
-        const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
-        const fileName = `Top_Ranking_Agent_topup_report_${dateStr}_${timeStr}.xlsx`;
-        const filePath = path.join(REPORT_DIR, fileName);
-
-        if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
-            return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
-        }
-        }
-
-        const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('Top Ranking Report');
-
-        if (finalResult.length > 0) {
-        sheet.columns = Object.keys(finalResult[0]).map(key => ({
-            header: key,
-            key,
-            width: key.length < 20 ? 20 : key.length + 5
-        }));
-        sheet.addRows(finalResult);
-        }
-
-        await workbook.xlsx.writeFile(filePath);
-        fs.chmodSync(filePath, 0o644);
-
-        setTimeout(() => {
-        fs.access(filePath, fs.constants.F_OK, (err) => {
-            if (!err) {
-            fs.unlink(filePath, err => {
-                if (err) console.error('Error deleting file:', filePath, err);
-                else console.log('Deleted file:', fileName);
-            });
+                searchKeyValue.isIn.value = [operatorInfo[0].operator_id];
+                operatorName = operatorInfo[0].operator_name;
             }
-        });
-        }, 30 * 60 * 1000); // 30 minutes
 
-        return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+            if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) {
+                return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+            }
 
-    } catch (error) {
-        console.error('topRankingReport error:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
+            if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+            if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+
+            const user = req.body.user_detials;
+            if (user.type === roles.Admin || user.type === roles.SubAdmin) {
+                if (user.region_list.length !== 7) {
+                    searchKeyValue.region_ids = user.region_list.join(',');
+                }
+            } else {
+                searchKeyValue.child_ids = user.child_list.join(',');
+            }
+
+            const totalRecordsList = await rechargeModel.topRankingReportCount(searchKeyValue);
+            const intTotlaRecords = totalRecordsList.length;
+            const pageLimit = Number(process.env.PER_PAGE_COUNT);
+            const intPageCount = intTotlaRecords % pageLimit === 0
+                ? intTotlaRecords / pageLimit
+                : Math.floor(intTotlaRecords / pageLimit) + 1;
+
+            const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+            const limit = req.query.pageNumber > 0 ? pageLimit : intTotlaRecords;
+
+            let finalResult = await rechargeModel.topRankingReport(searchKeyValue, limit, offset);
+            finalResult = finalResult.map(row => ({
+                ...row,
+                operatorName
+            }));
+
+            // ✅ Paginated response
+            if (req.query.pageNumber > 0) {
+                return res.status(200).json({
+                    reportList: finalResult,
+                    totalRepords: intTotlaRecords,
+                    pageCount: intPageCount,
+                    currentPage: Number(req.query.pageNumber),
+                    pageLimit
+                });
+            }
+
+            // ✅ Downloadable Excel report
+            const now = new Date();
+            const dateStr = new Date().toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+            const fileName = `Top_Ranking_Agent_topup_report_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+                    return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+                }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Top Ranking Report');
+
+            if (finalResult.length > 0) {
+                sheet.columns = Object.keys(finalResult[0]).map(key => ({
+                    header: key,
+                    key,
+                    width: key.length < 20 ? 20 : key.length + 5
+                }));
+                sheet.addRows(finalResult);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+            fs.chmodSync(filePath, 0o644);
+
+            setTimeout(() => {
+                fs.access(filePath, fs.constants.F_OK, (err) => {
+                    if (!err) {
+                        fs.unlink(filePath, err => {
+                            if (err) console.error('Error deleting file:', filePath, err);
+                            else console.log('Deleted file:', fileName);
+                        });
+                    }
+                });
+            }, 30 * 60 * 1000); // 30 minutes
+
+            return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+
+        } catch (error) {
+            console.error('topRankingReport error:', error);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
     };
 
 
