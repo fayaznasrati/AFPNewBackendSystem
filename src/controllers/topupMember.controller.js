@@ -148,95 +148,179 @@ class membersController {
     // ########################--member function--##############################
 
     //function to add member to specific group
-    addMember = async (req, res) => {
-        try{
+    // addMember = async (req, res) => {
+    //     try{
 
-            // console.log(req.body)
+    //         console.log(req.body)
 
-            // check body and query
-                const errors = validationResult(req);
-                if (!errors.isEmpty()) {
-                    return res.status(400).json({ errors: errors.array() });
-                }
-                console.log('TopUpMember/addMember',JSON.stringify(req.body), JSON.stringify(req.query))
-            // check group name and uuid
-                var searchKeyValue = {
-                    group_uuid : req.body.group_uuid,
-                    group_name : req.body.groupName,
-                    user_uuid : req.body.user_detials.user_uuid,
-                    active : 1,
-                }
-                var key = ["group_id"]
-                var orderby = "group_name"
-                var ordertype = "ASC"
-                const lisResponce1 = await sqlQueryReplica.searchQuery(this.tablename1, searchKeyValue, key, orderby, ordertype,1,0)
+    //         // check body and query
+    //             const errors = validationResult(req);
+    //             if (!errors.isEmpty()) {
+    //                 return res.status(400).json({ errors: errors.array() });
+    //             }
+    //             console.log('TopUpMember/addMember',JSON.stringify(req.body), JSON.stringify(req.query))
+    //         // check group name and uuid
+    //             var searchKeyValue = {
+    //                 group_uuid : req.body.group_uuid,
+    //                 group_name : req.body.groupName,
+    //                 user_uuid : req.body.user_detials.user_uuid,
+    //                 active : 1,
+    //             }
+    //             var key = ["group_id"]
+    //             var orderby = "group_name"
+    //             var ordertype = "ASC"
+    //             const lisResponce1 = await sqlQueryReplica.searchQuery(this.tablename1, searchKeyValue, key, orderby, ordertype,1,0)
 
-                if(lisResponce1.length === 0) return res.status(400).json({ errors: [ {msg : "Group not found"}] });
+    //             if(lisResponce1.length === 0) return res.status(400).json({ errors: [ {msg : "Group not found"}] });
 
-            // create member name and uuid
-                //variables for sql query
+    //         // create member name and uuid
+    //             //variables for sql query
 
-                var param = { 
-                    member_uuid : "uuid()",
-                    group_id : lisResponce1[0].group_id,
-                    group_uuid : req.body.group_uuid,
-                    created_by_type : (req.body.user_detials.type == roles.Admin || req.body.user_detials.type == roles.SubAdmin) ? 1 : 2,
-                    created_by_id : (req.body.user_detials.type == roles.Admin || req.body.user_detials.type == roles.SubAdmin) ? req.body.user_detials.id : req.body.user_detials.userid ,
-                    active : 1
-                }
+    //             var param = { 
+    //                 member_uuid : "uuid()",
+    //                 group_id : lisResponce1[0].group_id,
+    //                 group_uuid : req.body.group_uuid,
+    //                 created_by_type : (req.body.user_detials.type == roles.Admin || req.body.user_detials.type == roles.SubAdmin) ? 1 : 2,
+    //                 created_by_id : (req.body.user_detials.type == roles.Admin || req.body.user_detials.type == roles.SubAdmin) ? req.body.user_detials.id : req.body.user_detials.userid ,
+    //                 active : 1
+    //             }
 
-                if(req.body.memberName) param.name = req.body.memberName
+    //             if(req.body.memberName) param.name = req.body.memberName
 
-                if(req.body.mobile){
+    //             if(req.body.mobile){
 
-                    if(req.body.mobile != 10 && !Number(req.body.mobile)) return res.status(400).json({ errors: [ {msg : 'Number should be of 10 digit'}] });
+    //                 if(req.body.mobile != 10 && !Number(req.body.mobile)) return res.status(400).json({ errors: [ {msg : 'Number should be of 10 digit'}] });
 
-                    // check number already exist or not
-                    let checkNum = await this.checkIfMemberEx(req.body.group_uuid,req.body.mobile)
-                    // console.log(checkNum)
-                    if (checkNum != 1) return res.status(400).json({ errors: [ {msg : 'Number already exist'}] });
+    //                 // check number already exist or not
+    //                 let checkNum = await this.checkIfMemberEx(req.body.group_uuid,req.body.mobile)
+    //                 // console.log(checkNum)
+    //                 if (checkNum != 1) return res.status(400).json({ errors: [ {msg : 'Number already exist'}] });
 
-                    param.mobile = req.body.mobile
-                    // fire sql query to create new group
-                    const objresult = await sqlQuery.createQuery(this.tablename2, param)
+    //                 param.mobile = req.body.mobile
+    //                 param.amount = req.body.amount ? req.body.amount : 0
+    //                 // fire sql query to create new group
+    //                 const objresult = await sqlQuery.createQuery(this.tablename2, param)
                     
-                    //check result and responce accordingly
-                    res.status(201).send({ message: 'Member added successfully' });
+    //                 //check result and responce accordingly
+    //                 res.status(201).send({ message: 'Member added successfully' });
 
-                }else{
-                    if(req.body.multipleMobile){
-                        let mobileNumbers = req.body.multipleMobile.split("\r\n,")
+    //             }else{
+    //                 if(req.body.multipleMobile){
+    //                     let mobileNumbers = req.body.multipleMobile.split("\r\n,")
 
-                        let multipleInsert = []
+    //                     let multipleInsert = []
 
-                        for(var i = 0; i < mobileNumbers.length; i++){
-                            // console.log()
-                            param.mobile = mobileNumbers[i]
-                            if(mobileNumbers[i].length != 10) continue 
+    //                     for(var i = 0; i < mobileNumbers.length; i++){
+    //                         // console.log()
+    //                         param.mobile = mobileNumbers[i]
+    //                         if(mobileNumbers[i].length != 10) continue 
 
-                            // check number already exist or not
-                            let checkNum = await this.checkIfMemberEx(req.body.group_uuid,mobileNumbers[i])
-                            if (checkNum != 1) continue
+    //                         // check number already exist or not
+    //                         let checkNum = await this.checkIfMemberEx(req.body.group_uuid,mobileNumbers[i])
+    //                         if (checkNum != 1) continue
 
-                            // multipleInsert.push(param)
-                            const objresult = await sqlQuery.createQuery(this.tablename2, param)
-                        }
+    //                         // multipleInsert.push(param)
+    //                         const objresult = await sqlQuery.createQuery(this.tablename2, param)
+    //                     }
 
-                        // const objresult = await sqlQuery.multiInsert(this.tablename2, multipleInsert)
+    //                     // const objresult = await sqlQuery.multiInsert(this.tablename2, multipleInsert)
                         
-                        //check result and responce accordingly
-                        res.status(201).send({ message: 'Member list added successfully' });
-                    }else{
-                        res.status(400).json({ errors: [ {msg : 'no number found'}] });
-                    }
-                }
+    //                     //check result and responce accordingly
+    //                     res.status(201).send({ message: 'Member list added successfully' });
+    //                 }else{
+    //                     res.status(400).json({ errors: [ {msg : 'no number found'}] });
+    //                 }
+    //             }
 
-        }catch(error){
-            console.log(error);
-            res.status(400).json({ errors: [ {msg : error.message}] });
-        }
+    //     }catch(error){
+    //         console.log(error);
+    //         res.status(400).json({ errors: [ {msg : error.message}] });
+    //     }
+    // }
+
+
+addMember = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
 
+    const membersArray = req.body; // Array of members
+    const user = req.body.user_detials; // Make sure this is passed properly (likely from auth middleware)
+
+    let insertedCount = 0;
+    let skipped = [];
+
+    for (const memberData of membersArray) {
+      const { group_uuid, groupName, memberName, mobile, amount } = memberData;
+
+      // Check group exists
+      const groupRes = await sqlQueryReplica.searchQuery(
+        this.tablename1,
+        { group_uuid, group_name: groupName, user_uuid: user.user_uuid, active: 1 },
+        ['group_id'], 'group_name', 'ASC', 1, 0
+      );
+
+      if (groupRes.length === 0) {
+        skipped.push({ member: memberData, reason: 'Group not found' });
+        continue;
+      }
+
+      if (!mobile || mobile.length !== 10 || isNaN(mobile)) {
+        skipped.push({ member: memberData, reason: 'Invalid mobile' });
+        continue;
+      }
+
+      const exists = await this.checkIfMemberEx(group_uuid, mobile);
+      if (exists !== 1) {
+        skipped.push({ member: memberData, reason: 'Mobile already exists' });
+        continue;
+      }
+
+      const param = {
+        member_uuid: 'uuid()',
+        group_id: groupRes[0].group_id,
+        group_uuid,
+        name: memberName || '',
+        mobile,
+        amount: amount || 0,
+        created_by_type: [roles.Admin, roles.SubAdmin].includes(user.type) ? 1 : 2,
+        created_by_id: [roles.Admin, roles.SubAdmin].includes(user.type) ? user.id : user.userid,
+        active: 1
+      };
+
+      await sqlQuery.createQuery(this.tablename2, param);
+      insertedCount++;
+    }
+
+    return res.status(201).json({
+      message: 'Members processed',
+      inserted: insertedCount,
+      skipped,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ errors: [{ msg: error.message }] });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
     checkIfMemberEx = async (group_uuid,number) => {
         try{
 
@@ -303,7 +387,7 @@ class membersController {
                 let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
                 let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
 
-                key = ["CAST(member_uuid AS CHAR(16)) AS member_uuid","name AS memberName","mobile"]
+                key = ["CAST(member_uuid AS CHAR(16)) AS member_uuid","name AS memberName","mobile", "amount"]
 
                 const lisResponce2 = await sqlQueryReplica.searchQuery(this.tablename2, searchKeyValue, key, orderby, ordertype, limit, offset)
             
@@ -331,7 +415,7 @@ class membersController {
         }
     }
 
-    // update member
+    // // update member
     updateMemberDetails = async (req, res) => {
         try{
             // check body and query
@@ -341,11 +425,12 @@ class membersController {
                     return res.status(400).json({ errors: errors.array() });
                 }
                 console.log('TopUpMember/updateMemberDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+                 const { group_uuid, groupName, user_detials, member_uuid, mobile, amount, memberName } = req.body;
             // check group name and uuid
                 var searchKeyValue = {
-                    group_uuid : req.body.group_uuid,
-                    group_name : req.body.groupName,
-                    user_uuid : req.body.user_detials.user_uuid,
+                    group_uuid : group_uuid,
+                    group_name : groupName,
+                    user_uuid : user_detials.user_uuid,
                     active : 1,
                 }
                 var key = ["group_id"]
@@ -356,39 +441,206 @@ class membersController {
                 if(lisResponce1.length === 0) return res.status(400).json({ errors: [ {msg : "Group not found"}] });  
 
             // sql query
-                var searchKeyValue = {
+                // var searchKeyValue = {
+                //     member_uuid : req.body.member_uuid,
+                //     active : 1,
+                // }
+                 // 2. Fetch current member data
+                // const existingMemberList = await sqlQueryReplica.searchQuery(
+                //     // searchQuery = async(tableName, searchKeyValue, key, orderby, ordertype, limit, offset) => {
+                //     this.tablename2,
+                //     {searchKeyValue },
+                //     ["member_uuid","mobile","amount"],
+                //     "name",
+                //     "ASC",
+                //     1,
+                //     0
+                // );
+               var searchKeyValue = {
                     member_uuid : req.body.member_uuid,
                     active : 1,
                 }
-                var param = {
-                    group_id : lisResponce1[0].group_id,
-                    group_uuid : req.body.group_uuid,
-                    mobile : req.body.mobile
+                var orderby = "member_id"
+                var ordertype = "DESC"
+
+                key = ["member_uuid","mobile","amount","name"]
+
+                let existingMemberList = await sqlQueryReplica.searchQueryNoLimit(this.tablename2, searchKeyValue, key, orderby, ordertype)
+
+                if (existingMemberList.length === 0) {
+                    return res.status(404).json({ errors: [{ msg: "Member not found" }] });
                 }
-                if(req.body.memberName) param.name = req.body.memberName
-                // console.log(param);
 
-                // check number already exist or not
-                let checkNum = await this.checkIfMemberEx(req.body.group_uuid,req.body.mobile)
-                // console.log(checkNum)
-                if (checkNum != 1 && checkNum != req.body.member_uuid ) return res.status(400).json({ errors: [ {msg : 'Number already exist'}] });
+                const existing = existingMemberList[0];
 
-                var lisResponse = await sqlQuery.updateQuery(this.tablename2, param, searchKeyValue)
+                // 3. Determine which fields have changed
+                const updatedFields = {};
+                if (mobile && mobile !== existing.mobile) {
+                    // Check if new mobile exists in the same group
+                    // const exists = await this.checkIfMemberEx(group_uuid, mobile);
+                    // if (exists && exists !== member_uuid) {
+                    //     return res.status(400).json({ errors: [{ msg: "Mobile number already exists in this group" }] });
+                    // }
+                let searchKeyValue ={
+                    group_uuid : group_uuid,
+                    active : 1,
+                    mobile : mobile
+                }
+                let searchResponce = await sqlQueryReplica.searchQuery(this.tablename2, searchKeyValue, ['member_uuid','group_uuid','mobile'], 'member_id', 'ASC', 1, 0)
+                 console.log(searchResponce)
+                    if (searchResponce && searchResponce.length > 0){
+                        return res.status(400).json({ errors: [{ msg: "Mobile number already exists in this group" }] });
+                    }
+                    updatedFields.mobile = mobile;
+                }
 
-            // check if the result is there and responce accordingly
-                const { affectedRows, changedRows, info } = lisResponse;
-                const message = !affectedRows ? 'Member not found' :
-                    affectedRows && changedRows ? 'Member updated successfully' : 'Details Updated';
+                if (amount && amount !== existing.amount) {
+                    updatedFields.amount = amount;
+                }
 
-            // send responce to fornt end
-                res.send({ message, info });
-                // console.log(message)
+                if (memberName && memberName !== existing.name) {
+                    updatedFields.name = memberName;
+                }
+
+                // If no changes, respond early
+                if (Object.keys(updatedFields).length === 0) {
+                    return res.status(200).json({ message: "No changes detected" });
+                }
+
+                // 4. Proceed with update
+                updatedFields.group_id = lisResponce1[0].group_id;
+                updatedFields.group_uuid = group_uuid;
+
+                const updateRes = await sqlQuery.updateQuery(this.tablename2, updatedFields, {
+                    member_uuid,
+                    active: 1,
+                });
+
+                const { affectedRows, changedRows, info } = updateRes;
+                const message = affectedRows && changedRows
+                    ? "Member updated successfully"
+                    : "Member data submitted but no changes were made";
+
+                res.status(200).json({ message, info });
+            //     var param = {
+            //         group_id : lisResponce1[0].group_id,
+            //         group_uuid : req.body.group_uuid,
+            //         mobile : req.body.mobile,
+            //         amount : req.body.amount
+            //     }
+            //     if(req.body.memberName) param.name = req.body.memberName
+            //     // console.log(param);
+
+            //     // check number already exist or not
+            //     let checkNum = await this.checkIfMemberEx(req.body.group_uuid,req.body.mobile)
+            //     // console.log(checkNum)
+            //     if (checkNum != 1 && checkNum != req.body.member_uuid ) return res.status(400).json({ errors: [ {msg : 'Number already exist'}] });
+
+            //     var lisResponse = await sqlQuery.updateQuery(this.tablename2, param, searchKeyValue)
+
+            // // check if the result is there and responce accordingly
+            //     const { affectedRows, changedRows, info } = lisResponse;
+            //     const message = !affectedRows ? 'Member not found' :
+            //         affectedRows && changedRows ? 'Member updated successfully' : 'Details Updated';
+
+            // // send responce to fornt end
+            //     res.send({ message, info });
+            //     // console.log(message)
 
         }catch (error) {
             console.log(error);
             res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+   // updateMemberDetails = async (req, res) => {
+//     try {
+//         // Validate request
+//         const errors = validationResult(req);
+//         if (!errors.isEmpty()) {
+//             return res.status(400).json({ errors: errors.array() });
+//         }
+
+//         console.log('TopUpMember/updateMemberDetails', JSON.stringify(req.body), JSON.stringify(req.query));
+
+//         const { group_uuid, groupName, user_detials, member_uuid, mobile, amount, memberName } = req.body;
+
+//         // 1. Validate group exists
+//         const groupSearchParams = {
+//             group_uuid,
+//             group_name: groupName,
+//             user_uuid: user_detials.user_uuid,
+//             active: 1,
+//         };
+//         const groupKey = ["group_id"];
+//         const groupList = await sqlQueryReplica.searchQuery(this.tablename1, groupSearchParams, groupKey, "group_name", "ASC", 1, 0);
+//         if (groupList.length === 0) {
+//             return res.status(400).json({ errors: [{ msg: "Group not found" }] });
+//         }
+
+//         const group_id = groupList[0].group_id;
+
+//         // 2. Fetch current member data
+//         const existingMemberList = await sqlQueryReplica.searchQuery(
+//             this.tablename2,
+//             { member_uuid, active: 1 },
+//             ["member_uuid","mobile","amount"],
+//             "name",
+//             "ASC",
+//             1,
+//             0
+//         );
+
+//         if (existingMemberList.length === 0) {
+//             return res.status(404).json({ errors: [{ msg: "Member not found" }] });
+//         }
+
+//         const existing = existingMemberList[0];
+
+//         // 3. Determine which fields have changed
+//         const updatedFields = {};
+//         if (mobile && mobile !== existing.mobile) {
+//             // Check if new mobile exists in the same group
+//             const exists = await this.checkIfMemberEx(group_uuid, mobile);
+//             if (exists && exists !== member_uuid) {
+//                 return res.status(400).json({ errors: [{ msg: "Mobile number already exists in this group" }] });
+//             }
+//             updatedFields.mobile = mobile;
+//         }
+
+//         if (amount && amount !== existing.amount) {
+//             updatedFields.amount = amount;
+//         }
+
+//         if (memberName && memberName !== existing.name) {
+//             updatedFields.name = memberName;
+//         }
+
+//         // If no changes, respond early
+//         if (Object.keys(updatedFields).length === 0) {
+//             return res.status(200).json({ message: "No changes detected" });
+//         }
+
+//         // 4. Proceed with update
+//         updatedFields.group_id = group_id;
+//         updatedFields.group_uuid = group_uuid;
+
+//         const updateRes = await sqlQuery.updateQuery(this.tablename2, updatedFields, {
+//             member_uuid,
+//             active: 1,
+//         });
+
+//         const { affectedRows, changedRows, info } = updateRes;
+//         const message = affectedRows && changedRows
+//             ? "Member updated successfully"
+//             : "Member data submitted but no changes were made";
+
+//         res.status(200).json({ message, info });
+
+//     } catch (error) {
+//         console.error("Update Member Error:", error);
+//         res.status(500).json({ errors: [{ msg: error.message }] });
+//     }
+// };
 
     // delete member 
     deleteMember = async( req, res)=>{
