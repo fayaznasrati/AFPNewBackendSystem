@@ -11,7 +11,7 @@ const membersController = require('../controllers/topupMember.controller')
 const { 
     createMemberGroup,getMemberGroups,updateMemberGroup,deleteMessagegroup,getMemberList,addMember,updateMemberDetails,
     deleteMember,getUserGroupList,addAgentGroup,getAgentGroupList,getAgentMemberList,addAgentGroupMember,updateAgentMember,
-    deleteAgentMember
+    deleteAgentMember,addMemberBulk
 } = require('../middleware/validators/topupMemberValidators.middleware')
 
 const walletMemberGroupController = require('../controllers/walletMember.controll')
@@ -28,8 +28,8 @@ router.delete('/group', deleteMessagegroup, auth(1,2,3,4,5,6), accessManager({ag
 
 // group member related apis
 router.get('/', getMemberList, auth(1,2,3,4,5,6), accessManager({agent: { module: [3,2], permission: apiMethod.view }}), awaitHandlerFactory(membersController.getMemberList));
-router.post('/', addMember, auth(1,2,3,4,5,6), accessManager({agent: { module: [3,2], permission: apiMethod.add }}), awaitHandlerFactory(membersController.addMember));
-router.put('/', updateMemberDetails, auth(1,2,3,4,5,6), accessManager({agent: { module: [3,2], permission: apiMethod.edit }}), awaitHandlerFactory(membersController.updateMemberDetails));
+router.post('/', addMemberBulk, auth(1,2,3,4,5,6), accessManager({agent: { module: [3,2], permission: apiMethod.add }}), awaitHandlerFactory(membersController.addMember));
+router.put('/', updateMemberDetails, auth(1,2,3,4,5,6),  accessManager({agent: { module: [3,2], permission: apiMethod.add }}), awaitHandlerFactory(membersController.updateMemberDetails));
 router.delete('/', deleteMember, auth(1,2,3,4,5,6), accessManager({agent: { module: [3,2], permission: apiMethod.delete }}), awaitHandlerFactory(membersController.deleteMember));
 
 // route for admin to get all group list

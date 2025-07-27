@@ -105,6 +105,39 @@ exports.addMember = [
     }).withMessage('wrong request')
 ]
 
+
+exports.addMemberBulk = [
+  query('username')
+    .exists().withMessage('username is required')
+    .isString().withMessage('should be a string')
+    .trim().isLength({ min: 1, max: 50 }).withMessage('username max 50 chars'),
+
+  body().isArray().withMessage('Request body should be an array'),
+
+  body('*.group_uuid')
+    .exists().withMessage('group_uuid is required')
+    .isString().isLength({ min: 16, max: 16 }).withMessage('group_uuid must be 16 chars'),
+
+  body('*.groupName')
+    .exists().withMessage('groupName is required')
+    .isString().isLength({ min: 3, max: 50 }),
+
+  body('*.memberName')
+    .optional()
+    .isString(),
+
+  body('*.mobile')
+    .exists().withMessage('mobile is required')
+    .isString().isLength({ min: 10, max: 10 }).withMessage('mobile must be 10 digits'),
+
+  body('*.amount')
+    .optional()
+    .isNumeric(),
+
+  body('user_detials')
+    .custom(value => value === undefined).withMessage('wrong request')
+];
+
 exports.getMemberList = [
     query('username')
     .exists().withMessage('username is required')
