@@ -209,6 +209,40 @@ exports.addNumberSchema = [
     .withMessage('wrong request')
 ]
 
+exports.checkNumber = [
+    query('username')
+    .exists()
+    .withMessage('username is required')
+    .isString()
+    .withMessage('should be string')
+    .trim().isLength({ min: 1, max: 50 })
+    .withMessage('username maximum limit is 50 words'),
+    body('user_uuid')
+    .exists()
+    .withMessage('Select a user whose details you want to update')
+    .isString()
+    .withMessage('should be string')
+    .trim().isLength({ min: 16, max: 16 })
+    .withMessage('Select a user to add contact number'),
+    body('mobile')
+    .exists()
+    .withMessage('mobile is required')
+    .matches(/^[0-9\s]+$/)
+    .withMessage('mobile number should contain digits 0-9')
+    .isNumeric()
+    .withMessage('Please enter a proper mobile number')
+    .trim().isLength({ min: 10, max: 10})
+    .withMessage('Mobile number should be of 10 digits only'),
+    body('user_detials')
+    .custom(value => {
+        if (value === undefined) {
+            return true
+        }
+        return false
+    })
+    .withMessage('wrong request')
+]
+
 exports.getContactDetailsSchema = [
     query('username')
     .exists()

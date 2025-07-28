@@ -26,7 +26,7 @@ const {
     addNumberSchema,getContactDetailsSchema,updateContactDetailsSchema,
     createOperatorAccessSchema,getOperatorByIdSchema,updateOperatorStatusSchema,
     createStockTransferSchema,getStockTransferByIdSchema,updateStransferChannelSchema,
-    verifySecurityPin,updateAgentPassword,getParentAgentDetail,prePaidParentChange,
+    verifySecurityPin,updateAgentPassword,getParentAgentDetail,prePaidParentChange,checkNumber,
     changePostPaidParent,getAgentTypeForSwitchAcc, getParentListForSwitchAcc, updateMpin
 } = require('../middleware/validators/agentValidator.middleware');
 const agentModule = require('../models/agent.module');
@@ -58,6 +58,7 @@ router.get('/m-pin', getDetialsSchema, auth(role.Admin,role.SubAdmin,1,2,3,4,5),
 
 //Apis related to Agent contact
 router.post('/contact/', addNumberSchema, auth(role.Admin,role.SubAdmin,1,2,3,4,5), accessManager({subAdmin : { module: [1,1], permission: apiMethod.add } , agent: { module: [1,1], permission: apiMethod.add }}), awaitHandlerFactory(agentController.addNumber)) // child condition applyed
+router.post('/check-contact/', checkNumber, auth(role.Admin,role.SubAdmin,1,2,3,4,5), accessManager({subAdmin : { module: [1,1], permission: apiMethod.add } , agent: { module: [1,1], permission: apiMethod.add }}), awaitHandlerFactory(agentController.checkContactNumber)) // child condition applyed
 router.get('/contact', getContactDetailsSchema, auth(role.Admin,role.SubAdmin,1,2,3,4,5), accessManager({subAdmin : { module: [1,1], permission: apiMethod.view } , agent: { module: [1,1], permission: apiMethod.view }}), awaitHandlerFactory(agentController.getContactDetails)) // child condition applyed
 router.put('/contact/', updateContactDetailsSchema, auth(role.Admin,role.SubAdmin,1,2,3,4,5), accessManager({subAdmin : { module: [1,1], permission: apiMethod.edit } , agent: { module: [1,1], permission: apiMethod.edit }}), awaitHandlerFactory(agentController.updateContactDetails)) // child condition applyed
 router.post('/contact/random', addAutoGenNumber, auth(role.Admin,role.SubAdmin,1,2,3,4,5), accessManager({subAdmin : { module: [1,1], permission: apiMethod.add } , agent: { module: [1,1], permission: apiMethod.add }}), awaitHandlerFactory(agentController.addAutoGenNumber))  // child condition applyed

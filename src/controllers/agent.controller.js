@@ -499,6 +499,71 @@ class agentController {
         }
     }
 
+        //function to Add Number to agent data
+    checkContactNumber = async(req, res, next) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+
+            let operator_uuid = '', operatorName = ''
+            console.log('Agent/addNumber',JSON.stringify(req.body), JSON.stringify(req.query))
+            switch(req.body.mobile.slice(0,3)){
+                case "078":
+                case "073":
+                    // Etisalat
+                    operator_uuid = "70b9906d-c2ba-11"
+                    operatorName ="Etisalat"
+                    break;
+                case "079":
+                case "072":
+                    // Roshan
+                    operator_uuid = "9edb602c-c2ba-11"
+                    operatorName = "Roshan"
+                    break;
+                case "077":
+                case "076":
+                    // MTN
+                    operator_uuid = "456a6b47-c2ba-11",
+                    operatorName = "MTN"
+                    break;
+                case "074" :
+                    // Salaam
+                    operator_uuid = "1e0e1eeb-c2a6-11"
+                    operatorName = "Salaam"
+                    break;
+                case "070":
+                case "071":
+                    // AWCC
+                    operator_uuid = "6a904d84-c2a6-11"
+                    operatorName = "AWCC"
+                    break;
+            }
+
+            if(operator_uuid != req.body.operator_uuid && operatorName != req.body.operatorName){
+                return res.status(400).json({ errors: [ {msg : "Mobile number does not match with selected operator"}] });
+            }
+
+            // check if mobile number already registered with some user
+            let boolCheckMobileNumber = await sqlQuery.searchQuery(this.tableName1, { mobile: req.body.mobile, status : 1}, ['COUNT(1)'],'agent_contact_id','ASC',1,0)
+            if(boolCheckMobileNumber[0]["COUNT(1)"] != 0){
+
+                return res.status(400).json({ errors: [ {msg :'Mobile Number is already registered'}]})
+            }
+            else{
+                return res.status(200).send({ message: 'Mobile number is available' });
+            }            
+        
+        } catch (error) {
+            console.log(error);
+            let message = error.message
+            let key = message.split("'")
+            if(message.includes('Duplicate entry ')) return res.status(400).json({ errors: [ {msg : key [1]+ " allready registered" }] }); 
+            return res.status(400).json({ errors: [ {msg : error.message}] });
+        }
+    }
+
     //add auto generated number
     addAutoGenNumber = async(req, res)=>{
         try {
