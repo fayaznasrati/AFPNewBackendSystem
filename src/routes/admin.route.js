@@ -30,6 +30,7 @@ router.get('/username/:username', getUserByuserName, auth(role.Admin,role.SubAdm
 router.put('/password', changePasswordScheme, auth(role.Admin,role.SubAdmin), awaitHandlerFactory(adminController.changePassword))
 
 router.put('/', updateUserDetials, auth(role.Admin,role.SubAdmin), awaitHandlerFactory(adminController.updateUserDetials))
+router.put('/update-user', updateUserDetials, auth(role.Admin,role.SubAdmin), awaitHandlerFactory(adminController.updateUser))
 
 //API to change mobile number
 router.post('/get-otp/',requestForOtp,auth(role.Admin,role.SubAdmin), awaitHandlerFactory(adminController.requestForOtp))

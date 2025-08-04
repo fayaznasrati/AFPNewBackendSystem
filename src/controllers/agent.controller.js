@@ -508,7 +508,7 @@ class agentController {
             }
 
             let operator_uuid = '', operatorName = ''
-            console.log('Agent/addNumber',JSON.stringify(req.body), JSON.stringify(req.query))
+            console.log('Agent/CheckContactNumber',JSON.stringify(req.body), JSON.stringify(req.query))
             switch(req.body.mobile.slice(0,3)){
                 case "078":
                 case "073":
@@ -541,7 +541,7 @@ class agentController {
                     break;
             }
 
-            if(operator_uuid != req.body.operator_uuid && operatorName != req.body.operatorName){
+            if(!operator_uuid && !operatorName ){
                 return res.status(400).json({ errors: [ {msg : "Mobile number does not match with selected operator"}] });
             }
 

@@ -1128,10 +1128,10 @@ class stockController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('stock/downlineStockTransferReport',JSON.stringify(req.body), JSON.stringify(req.query))
+            console.log('stock/downlineStockTransferReport',JSON.stringify(req.body), JSON.stringify(req.query))
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
-            // console.log(req.query)
+            console.log(req.query)
             let searchQkeys = Object.keys(req.query)
             searchQkeys.forEach((key) => {
                 if(key.includes('user_id')) req.query.userId = key.slice(7,key.length)
@@ -1161,14 +1161,14 @@ class stockController {
             
             if((req.query.start_date && !req.query.end_date )||(req.query.end_date && !req.query.start_date )) return res.status(400).json({ errors: [ {msg : 'Date range is not proper'}] });
 
-            if (req.query.userType_uuid) {
-                const lisResponce = await commonQueryCommon.checkAgentType(req.query.userType_uuid)
+            if (req.query.user_type_uuid ) {
+                const lisResponce = await commonQueryCommon.checkAgentType(req.query.user_type_uuid )
                 if (lisResponce == 0) return res.status(400).json({ errors: [ {msg : 'user type uuid not found'}] });
-                searchKeyValue.usertype_id = lisResponce[0].agent_type_id //int user typeId
+                searchKeyValue.usertype_id = lisResponce //int user typeId
             }
             // if (req.query.userId) searchKeyValue.sender_username = req.query.userId //str username
-             if (req.query.userid) {
-                const userid = req.query.userid;
+             if (req.query.user_id) {
+                const userid = req.query.user_id;
                 searchKeyValue.sender_username = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
               }
             if (req.query.name) searchKeyValue.reciever_username = req.query.name //str full name

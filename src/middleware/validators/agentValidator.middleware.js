@@ -31,20 +31,6 @@ exports.allTypeSchema = [
     .withMessage('should be string')
     .trim().isLength({ min: 1, max: 50 })
     .withMessage('username maximum limit is 50 words'),
-    // query('start')
-    // .exists()
-    // .withMessage('start is required')
-    // .matches(/^[0-9\s]+$/)
-    // .withMessage('should contain proper character 0-9')
-    // .isNumeric()
-    // .withMessage('should be a number'),
-    // query('end')
-    // .exists()
-    // .withMessage('end is required')
-    // .matches(/^[0-9\s]+$/)
-    // .withMessage('should contain proper character 0-9')
-    // .isNumeric()
-    // .withMessage('should be a number'),
     body('user_detials')
     .custom(value => {
         if (value === undefined) {
@@ -71,20 +57,6 @@ exports.getLowerAgentType = [
     .withMessage('should be string')
     .trim().isLength({ min: 1, max: 50 })
     .withMessage('user_uuid maximum limit is 50 words'),
-    // query('start')
-    // .exists()
-    // .withMessage('start is required')
-    // .matches(/^[0-9\s]+$/)
-    // .withMessage('should contain proper character 0-9')
-    // .isNumeric()
-    // .withMessage('should be a number'),
-    // query('end')
-    // .exists()
-    // .withMessage('end is required')
-    // .matches(/^[0-9\s]+$/)
-    // .withMessage('should contain proper character 0-9')
-    // .isNumeric()
-    // .withMessage('should be a number'),
     body('user_detials')
     .custom(value => {
         if (value === undefined) {
@@ -217,13 +189,6 @@ exports.checkNumber = [
     .withMessage('should be string')
     .trim().isLength({ min: 1, max: 50 })
     .withMessage('username maximum limit is 50 words'),
-    body('user_uuid')
-    .exists()
-    .withMessage('Select a user whose details you want to update')
-    .isString()
-    .withMessage('should be string')
-    .trim().isLength({ min: 16, max: 16 })
-    .withMessage('Select a user to add contact number'),
     body('mobile')
     .exists()
     .withMessage('mobile is required')
@@ -249,19 +214,6 @@ exports.getContactDetailsSchema = [
     .withMessage('username is required')
     .trim().isLength({ min: 1, max: 50 })
     .withMessage('username maximum limit is 50 words'),
-    // query('start')
-    // .exists()
-    // .withMessage('start is required')
-    // .matches(/^[0-9\s]+$/)
-    // .isNumeric()
-    // .withMessage('should be number'),
-    // query('end')
-    // .exists()
-    // .withMessage('end is required')
-    // .matches(/^[0-9\s]+$/)
-    // .withMessage('should contain proper character 0-9')
-    // .isNumeric()
-    // .withMessage('should be number'),
     query('user_uuid')
     .exists().withMessage('user_uuid is required')
     .isString()

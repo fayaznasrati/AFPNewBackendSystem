@@ -341,9 +341,9 @@ class checkCommomDetails {
             //verify agent type id
             var searchKeyValue = {
                 agent_type_uuid: type_uuid, //str  type_uuid
-                agent_type_name: typeName, //str type_name
+                // agent_type_name: typeName, //str type_name
             }
-            var key = ["agent_type_id"]
+            var key = ["agent_type_id","agent_type_name"]
             var orderby = "agent_type_name"
             var ordertype = "ASC"
 
