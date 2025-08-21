@@ -47,6 +47,27 @@ exports.singlerecharge = [
     // .withMessage('wrong request channelType'),
 ]
 
+exports.rechargeStatus = [
+     body('trans_number')
+    .exists()
+    .withMessage('trans_number is required')
+    .isLength({ min: 15, max: 15 })
+    .withMessage('trans_number_max_and_min limit is 15 number'),
+    body('mobile')
+    .exists().withMessage("mobile number is required")
+    .isLength({ min: 10, max: 10 }).withMessage('Please Enter Complete 10 Numbers!')
+    .isNumeric().withMessage('should be numeric'),
+    body('amount')
+    .isLength({ min: 1, max: 20 }).withMessage('Please Enter Amount')
+    .isNumeric().withMessage('should be numeric')
+    .custom(value => {
+        if (Number(value) && Number(value) >= 1) {
+            return true
+        }
+        return false
+    })
+]
+
 exports.checkBalance = [
     header('X-Api-Key')
     .exists()
