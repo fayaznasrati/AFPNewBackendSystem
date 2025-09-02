@@ -17,6 +17,7 @@ const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
 const rechargeService = require('../controllers/recharge.controller');
 const { response } = require('express');
 const { send } = require('express/lib/response');
+const rechargeModel = require('../models/recharge.model');
 
 class companyController {
 
@@ -856,7 +857,6 @@ class companyController {
                 user_uuid: the_user_uuid,
                 user_mobile:user_detials.mobile,
                 userType: user_detials.usertype_id,
-                // channelType: ['Mobile', 'SMS', 'USSD', 'Web','Company'].includes(req.body.userApplicationType) ? req.body.userApplicationType : 'Web',
                 channelType:'Company',
                 group_topup_id: 0,
                 full_name: user_detials.full_name,
@@ -893,6 +893,162 @@ class companyController {
     
 
     }
+
+    //  recharge ststus 
+    getCompanyRechargeStatus = async (req, res) => {
+        try {
+            // check body and query
+            const {mobile, amount, trans_number} = req.body;
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+            console.log('recharge status/getRechageStatus',JSON.stringify(req.body), JSON.stringify(req.query))
+
+
+            // sql search param
+            var searchKeyValue = {
+                mobile_number:mobile,
+                amount,
+                trans_number
+            }
+            var key = ["trans_number AS transNumber", "operator_name AS operatorName", "mobile_number AS number", "amount", "operator_transid", "os_details","status", "CAST(created_on AS CHAR(20)) AS rechargeDate"]
+
+            const lisResponce1 = await sqlQuery.searchQueryNoLimitTimeout(this._tableName4, searchKeyValue, key, "id", "ASC")
+            if (lisResponce1.length == 0) return res.status(404).send({ message: 'no recharge found' })
+            const theResponce = lisResponce1[0];
+            let response = {};
+
+                switch(theResponce.status){
+                    case 1:
+                        response = {
+                            status: "PENDING",
+                            details: theResponce,
+                        }
+                    break;
+                     case 2:
+                        response = {
+                            status: "SUCCESS",
+                            details: theResponce,
+                        }
+                    break;
+                     case 3:
+                        response = {
+                            status: "FAILD",
+                            details: theResponce,
+                        }
+                        break;
+                    default:
+                           response = {
+                            status: "FAILD",
+                            details: theResponce,
+                        }
+
+                }
+                console.log(response)
+            res.status(200).send(response);
+
+
+        } catch (error) {
+            console.error('getCompanyRechargeStatus', error);
+            res.status(200).send({ count: 0, theResponce: [{}] });
+        }
+    }
+    // recharge report #########################################
+    getCompanyRechargeReport = async (req, res) => {
+        try {
+                 // body and query validators
+                const errors = validationResult(req);
+                if (!errors.isEmpty()) {
+                    return res.status(400).json({ errors: errors.array() });
+                }
+             const apiKey = req.header('X-Api-Key');
+                // Get company by API key
+                const companies = await sqlQuery.searchOrQuery(
+                  this.tableName1,
+                  { company_api_key: apiKey },
+                  [
+                    'company_name',
+                    'company_uuid',
+                    'allowed_ips',
+                    'company_api_key',
+                    'encrypted_secret',
+                    'bcrypt_hash',
+                    'active',
+                    'account_username',
+                    'account_userid'
+                  ],
+                  'company_name',
+                  'ASC',
+                  1,
+                  0
+                );
+                const company = companies[0];
+            console.log("company", company, company.account_username)
+
+            if (!req.query.pageNumber) req.query.pageNumber = 0
+
+            // optional search paremeters
+            var searchKeyValue = {
+                Active: 1,
+                username: company.account_username
+            }
+
+
+            if (req.query.search) {
+                if (req.query.search.length == 10) searchKeyValue.mobile_number = req.query.search;
+                else searchKeyValue.trans_number = req.query.search;
+            }
+
+            if (req.query.status) {
+                if (req.query.status == 4) {
+                    searchKeyValue.rollback_status = 3
+                } else {
+                    if (req.query.status == 2) {
+                        searchKeyValue.isIn = {
+                            key: 'rollback_status',
+                            value: ' 0,1,2,4 '
+                        }
+                    }
+                    searchKeyValue.status = req.query.status
+                }
+            }
+
+            // let sum and count
+            const lisTotalRecords = await rechargeModel.agentTopupSumCountReport(searchKeyValue)
+            if (lisTotalRecords.length == 0) return res.status(400).send({ message: "Calculation error" })
+
+            let intTotlaRecords = Number(lisTotalRecords[0].count)
+            let intPageCount = (intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
+            let sumRechargeAmount = Number(lisTotalRecords[0].amount) || 0
+            let sumDebitedAmount = Number(lisTotalRecords[0].deductAdmount) || 0
+
+            // check the searchKeyValue parem
+            if (Object.keys(searchKeyValue).length == 0) return res.status(400).json({ errors: [{ msg: "Improper search paremeters" }] });
+            let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
+            let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
+
+            // use module to search list
+            const lisResponce1 = await rechargeModel.companyRechargeReport(searchKeyValue, limit, offset);
+            if(lisResponce1.length == 0) return res.status(204).send({message:"no transaction found"})
+
+                res.status(200).send({
+                    reportList: lisResponce1,
+                    totalRecords: intTotlaRecords,
+                    pageCount: intPageCount,
+                    currentPage: Number(req.query.pageNumber),
+                    totalRechargeAmount: lisTotalRecords[0].amount || 0,
+                    totalDebitedAmount: lisTotalRecords[0].deductAmount || 0,
+                    pageLimit: Number(process.env.PER_PAGE_COUNT)
+                })
+
+        } catch (error) {
+            console.error('CompanyRechageReport', error);
+      
+            return res.status(400).json({ errors: [ {msg : error.message}] }); 
+        }
+    }
+
 
     #checkStockTransferStatus = async () => {
             let strStockTransferStatus = await redisMaster.asyncGet('STOCK_TRANSFER_STATUS')
@@ -934,6 +1090,7 @@ class companyController {
 
     getCompanyActivityStatus = async (req) => {
     try {
+        
          const apiKey = req.header('X-Api-Key');
            
             // check body and query

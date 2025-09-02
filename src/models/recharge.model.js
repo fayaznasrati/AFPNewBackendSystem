@@ -79,6 +79,20 @@ class rechargeModule {
         return result
     } 
 
+    companyRechargeReport = async (searchKeyValue, limit, offset ) => {
+    const { seColumnSet, sevalues } = this.multipleAndColumnSet(searchKeyValue,this.tableName2,this.tableName1)
+
+    var sql = `SELECT /*+ MAX_EXECUTION_TIME(${process.env.SQL_QUERY_TIME_OUT}) */
+                 ${this.tableName1}.trans_number AS transactionNumber, ${this.tableName1}.operator_name AS operatorName, ${this.tableName1}.mobile_number AS topUpMobile, ${this.tableName1}.amount, ${this.tableName1}.deduct_amt AS deductAdmount,  CAST(${this.tableName1}.created_on AS CHAR(20)) AS date, CASE when ${this.tableName1}.status = 1 then 'Pending' when ${this.tableName1}.status = 3 then 'Failed' when ${this.tableName1}.rollback_status = 3 then 'Complete' else 'Success' end AS status,
+                CASE when ${this.tableName1}.api_type = 1 then 'KYDSC' when ${this.tableName1}.api_type = 2 then 'Roshan' when ${this.tableName1}.api_type = 3 then 'AWCC' when ${this.tableName1}.api_type = 4 then 'Etisalat' when ${this.tableName1}.api_type = 7 then 'IIT' when ${this.tableName1}.api_type = 8 then 'MTN' when ${this.tableName1}.api_type = 9 then 'BOLORO' else 'NA' end  AS apiType, ${this.tableName1}.os_details AS apiResponce
+                FROM ${this.tableName1} JOIN ${this.tableName2} ON ${this.tableName1}.userid = ${this.tableName2}.userid
+                WHERE ${seColumnSet} ORDER BY ${this.tableName1}.id DESC LIMIT ${limit} OFFSET ${offset}`
+    // console.log(sql)
+
+    const result = await dbConnectionReplica.query(sql, [...sevalues]);
+
+    return result
+    } 
     failedRechargeNumberList = async (mnoId) =>{
         // const { seColumnSet, sevalues } = this.multipleAndColumnSet(searchKeyValue,this.tableName2,this.tableName1)
 

@@ -4,7 +4,7 @@ const router = express.Router();
 const awaitHandlerFactory = require('../middleware/awaitHandlerFactory.middleware');
 const auth = require('../middleware/auth.middleware');
 const role = require('../utils/userRoles.utils')
-const { createCompanyMiddleware,genAPIKeyCompanyMiddleware,singlerecharge,checkBalance,getAgentsName} = require('../middleware/validators/companyValidator.middleware');
+const { createCompanyMiddleware,genAPIKeyCompanyMiddleware,singlerecharge,checkBalance,getAgentsName,rechargeStatus} = require('../middleware/validators/companyValidator.middleware');
 const companyController = require('../controllers/company.controller');
 const validateCompanyAuth = require('../middleware/validateCompanyAuth.middleware.js');
 const validateCompanyAuthCheckBalance = require('../middleware/validateCompanyAuthCheckBalance.middleware.js');
@@ -13,7 +13,9 @@ const validateCompanyAuthCheckBalance = require('../middleware/validateCompanyAu
 
 //  routes to be used by company
 router.post('/recharge',singlerecharge,validateCompanyAuth,awaitHandlerFactory(companyController.CompanySinglerecharge));
+router.get('/recharge-report',validateCompanyAuthCheckBalance,awaitHandlerFactory(companyController.getCompanyRechargeReport));
 router.get('/check-balance',checkBalance,validateCompanyAuthCheckBalance, awaitHandlerFactory(companyController.CompanyActivityStatus));
+router.post('/recharge-status',rechargeStatus,validateCompanyAuthCheckBalance, awaitHandlerFactory(companyController.getCompanyRechargeStatus));
 
 //  routes to be used by Admin
 router.get('/download',  auth(role.Admin,role.SubAdmin), awaitHandlerFactory(companyController.downloadCompanies))
