@@ -15,7 +15,7 @@ const validateCompanyAuthCheckBalance = require('../middleware/validateCompanyAu
 router.post('/recharge',singlerecharge,validateCompanyAuth,awaitHandlerFactory(companyController.CompanySinglerecharge));
 router.get('/recharge-report',validateCompanyAuthCheckBalance,awaitHandlerFactory(companyController.getCompanyRechargeReport));
 router.get('/check-balance',checkBalance,validateCompanyAuthCheckBalance, awaitHandlerFactory(companyController.CompanyActivityStatus));
-router.post('/rechage-status',rechargeStatus,validateCompanyAuthCheckBalance, awaitHandlerFactory(companyController.getCompanyRechargeStatus));
+router.post('/recharge-status',rechargeStatus,validateCompanyAuthCheckBalance, awaitHandlerFactory(companyController.getCompanyRechargeStatus));
 
 //  routes to be used by Admin
 router.get('/download',  auth(role.Admin,role.SubAdmin), awaitHandlerFactory(companyController.downloadCompanies))
