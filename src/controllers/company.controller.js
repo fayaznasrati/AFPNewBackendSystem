@@ -880,7 +880,7 @@ class companyController {
             } else {
                 responce = await rechargeService.CompanyProcessRecharge(params)
                 // console.log("params", params)
-                console.log("Rechage Responce", responce)
+                console.log("Recharge Responce", responce)
             }
            
             if (responce.status == 200) res.status(responce.status).send({ the_response: responce }) 

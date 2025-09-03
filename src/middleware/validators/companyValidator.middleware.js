@@ -14,13 +14,11 @@ exports.genAPIKeyCompanyMiddleware = [
     // params('id').exists().withMessage('company_id is required')
 ]
 exports.singlerecharge = [
-    // body('username')
-    // .exists()
-    // .withMessage('username is required')
-    // .isString()
-    // .withMessage('should be a string')
-    // .isLength({ min: 1, max: 50 })
-    // .withMessage('usernamemaximum limit is 50 words'),
+     body('transaction_id')
+    .exists()
+    .withMessage('transaction_id is required')
+    .isLength({ min: 15, max: 50 })
+    .withMessage('trans_number_min limit is 15 max limit is 50 number'),
     body('mobile')
     .exists().withMessage("mobile number is required")
     .isLength({ min: 10, max: 10 }).withMessage('Please Enter Complete 10 Numbers!')
