@@ -1148,6 +1148,485 @@ class rechargeController {
         }
     }
 
+    CompanyProcessRecharge = async (data) => {
+        try {
+
+            // check operator details
+            const lisResponce1 = await this.#getOperatorList(data.operator_uuid);
+            if (lisResponce1 == 0) return ({ status: 403, message: 'operator id not found' })
+
+            var date = new Date();
+            date.setHours(date.getHours() + 4, date.getMinutes() + 30);
+            var isodate = date.toISOString();
+
+            // get system balance 
+            let systemDetails = await this.#getOperatorSystemList(lisResponce1[0].operator_id)
+            if (systemDetails.length == 0) return ({ status: 403, message: 'operator is not active' })
+            let mno_id, queue_name, minRechargeLimit, maxRechargeList, status = 0
+            for (let i = 0; i < systemDetails.length; i++) {
+                mno_id = systemDetails[i].mno_id
+                // operator_access_uuid = systemDetails[i].operator_access_uuid
+                // display_name = systemDetails[i].display_name 
+                queue_name = systemDetails[i].queue_name
+                status = systemDetails[i].status
+                minRechargeLimit = systemDetails[i].min_amount
+                maxRechargeList = systemDetails[i].max_amount
+
+                if (status == 1) break
+            }
+
+            if (status != 1) return ({ status: 400, message: 'Operator in active' })
+            // console.log(Number(minRechargeLimit),Number(data.amount))
+            if (Number(minRechargeLimit) > Number(data.amount)) {
+                return ({ status: 400, message: `Please enter amount more then or equal to ${minRechargeLimit}` })
+
+            }
+            if (Number(maxRechargeList) > 0 && Number(maxRechargeList) < Number(data.amount)) return ({ status: 400, message: `Please enter amount less then or equal to ${maxRechargeList}` })
+
+            // get recharge count
+            let pendingCount = await redisMaster.incr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+            let allowedPendingCount = await redisMaster.asyncGet(`PENDING_ALLOWED_${lisResponce1[0].operator_id}`)
+            if (pendingCount && allowedPendingCount) {
+                if (Number(pendingCount) > Number(allowedPendingCount)) {
+                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    return ({ status: 400, message: 'Request Failed, Please try again..!' })
+                }
+            }
+
+            // get system balance
+            let balanceDe = await sqlQuery.searchQuery(this.tableName20, { id: mno_id, status: 1 }, ['current_balance', 'CAST(mno_uuid AS CHAR(16)) AS mno_uuid', 'mno_name'], 'id', 'desc', 1, 0)
+            if (balanceDe.length == 0) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 503, message: 'System balance not found' })
+            }
+            // check system balance
+            if (Number(data.amount) > Number(balanceDe[0].current_balance)) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 503, message: 'We have encountered an issue on wallet, Please contact our Customer Service' })
+            }
+            //transation variables
+            const dtCurrentDate = date // dt current date time
+            const strDate = date.toISOString().slice(0, 19).replace('T', ' ') //dt current date time
+            const strUniqueNumber = await dataBaseId(date) //str unique number
+
+            // check if the agent can do the recharge
+            // const lisResponce2 = await sqlQuery.searchQuery(this.tableName2,{user_uuid : data.user_uuid},["oper"+lisResponce1[0].operator_id+"_status AS status","comm_type"],"userid","ASC",1,0)    
+            const lisResponce2 = await this.#getOperatorAccess(data.user_uuid, lisResponce1[0].operator_id)
+            if (lisResponce2.length == 0) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 403, message: 'operator permission not found' })
+            }
+            if (lisResponce2[0].status == 0) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 403, message: 'operator permission is not given' })
+            }
+            if (lisResponce2[0].comm_type == 0) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 403, message: 'Commission not set feature not active' })
+            }
+
+            // check if recahnge is done in last 5 min
+            var lastRechangeCount = await sqlQuery.searchQuery(this.tableName1, {
+                operator_id: lisResponce1[0].operator_id,
+                amount: Number(data.amount),
+                mobile_number: data.mobile,
+                userid: data.userid,
+                'NOT status': 3,
+                timeDifferent: {
+                    key: 'created_on',
+                    value: strDate,
+                    diff: process.env.RECHARGE_TIME_LIMIT
+                }
+            }, ['COUNT(1)'], 'userid', 'ASC', 1, 0)
+            // console.log(lastRechangeCount[0])
+            if (lastRechangeCount[0]["COUNT(1)"] != 0) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 409, message: `Same recharge is already done within ${process.env.RECHARGE_TIME_LIMIT} min` })
+            }
+            // update agent account so it cant do any transactions
+            var searchKeyValue = {
+                user_uuid: data.user_uuid, //str user_uuid
+                canTransfer: 1
+            }
+            // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+            var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 0 }, searchKeyValue);
+            var { affectedRows, changedRows, info } = objResponce;
+            // fayaz uncomment this section 
+            // generating proper message
+            if (!affectedRows) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 409, message: 'earlier transation under process' })
+            }
+            if (!(affectedRows && changedRows)) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 409, message: 'Earlier transation under process' })
+            }
+
+            // start transaction
+            var lisresponce = await sqlQuery.specialCMD('transaction')
+
+            // // if prepaid then check for limit and deduct amount from limit
+            //     if(lisResponce2[0].comm_type == 0) ({status : 400, message : 'Commission not set feature not active' })
+
+            // check balance of the agent and minimum amount limit
+            const lisResponce3 = await sqlQuery.searchQueryTran(this.tableName4, { user_uuid: data.user_uuid }, ["ex_wallet", "min_wallet"], 'userid', "ASC", 1, 0)
+            // console.log(lisResponce3[0])
+            if (lisResponce3.length == 0) {
+                var lisresponce = await sqlQuery.specialCMD('rollback')
+                var searchKeyValue = {
+                    user_uuid: data.user_uuid, //str user_uuid
+                    canTransfer: 0
+                }
+                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 402, message: 'user do not have enough balance to do recharge' })
+            }
+            if (lisResponce3[0].ex_wallet - Number(data.amount) < 0) {
+                var lisresponce = await sqlQuery.specialCMD('rollback')
+                var searchKeyValue = {
+                    user_uuid: data.user_uuid, //str user_uuid
+                    canTransfer: 0
+                }
+                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 402, message: 'user dont have enough balance to do recharge' })
+            }
+
+            // get the channel access details
+            let channelList = ['Mobile', 'SMS', 'USSD', 'Web', 'Company']
+            let channelType = channelList.includes(data.channelType) ? data.channelType : 'Web'
+            // let channelLimit = await sqlQuery.searchQuery(this.tableName14,{userid : data.userid, channel : channelType},['threshold','status'],'userid','ASC',1,0) 
+            let channelLimit = await this.#getUserChannel(data.user_uuid, channelType)
+            if (channelLimit.length == 0) {
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 404, message: 'Channel limit not found' })
+            }
+            console.log(channelLimit)
+            if (channelLimit[0].status != 1) {
+                var lisresponce = await sqlQuery.specialCMD('rollback')
+                var searchKeyValue = {
+                    user_uuid: data.user_uuid, //str user_uuid
+                    canTransfer: 0
+                }
+                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 403, message: `Your ${data.channelType} channel is In-Active.` })
+            }
+
+            if (Number(channelLimit[0].threshold) > Number(lisResponce3[0].ex_wallet) - Number(data.amount)) {
+                var lisresponce = await sqlQuery.specialCMD('rollback')
+                var searchKeyValue = {
+                    user_uuid: data.user_uuid, //str user_uuid
+                    canTransfer: 0
+                }
+                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 429, message: `Your ${data.channelType} channel Threshold limit reached.` })
+            }
+
+            if (lisResponce2[0].comm_type == '1') {
+                let limitStatus = await sqlQuery.searchQueryTran(this.tableName13, { userid: data.userid }, ['op' + lisResponce1[0].operator_id + '_wallet_active AS limit_state', 'op' + lisResponce1[0].operator_id + '_wallet_limit as limit_value'], 'userid', 'ASC', 1, 0)
+                if (limitStatus.length == 0) {
+                    redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                    return ({ status: 404, message: 'Recharge limit not found' })
+                }
+                if (limitStatus[0].limit_state == 1) {
+                    // check limit and update its
+                    if (Number(limitStatus[0].limit_value) - Number(data.amount) >= 0) {
+                        // update limit
+                        let updateLimit = await sqlQuery.updateQuery(this.tableName13, {
+                            deductBalance: {
+                                key: 'op' + lisResponce1[0].operator_id + '_wallet_limit',
+                                value: Number(data.amount)
+                            }
+                        }, { userid: data.userid })
+                    } else {
+                        var lisresponce = await sqlQuery.specialCMD('rollback')
+                        var searchKeyValue = {
+                            user_uuid: data.user_uuid, //str user_uuid
+                            canTransfer: 0
+                        }
+                        // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                        var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                        redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                        return ({ status: 400, message: 'Recharge amount is more then Operator limit' })
+                    }
+                }
+            }
+
+            // add data in er recharge table
+            param = {
+                userid: data.userid,
+                trans_number: strUniqueNumber,
+                Operater_table_id: lisResponce1[0].operator_id,
+                type_id: 1, // top up
+                type_name: 'Top Up',
+                operator_id: lisResponce1[0].operator_id,
+                api_type: mno_id,
+                operator_name: data.operatorName,
+                mobile_number: data.mobile,
+                amount: data.amount,
+                deduct_amt: data.amount,
+                source: channelType,
+                group_topup_id: data.group_topup_id || 0,
+                closing_balance: Number(lisResponce3[0].ex_wallet) - Number(data.amount),
+                created_on: strDate, //date curren date time
+                modified_on: strDate, //date curren date time
+                os_details: '',
+                status: 1,
+                request_mobile_no: data.user_mobile,
+                company_trans_id: data.company_transaction_id
+            }
+
+            //fire sql query
+            var objResponce = await sqlQuery.createQuery(this.tableName1, param)
+
+            // decuct the amount from the agent balance and update the transaction status
+            var searchKeyValue = {
+                user_uuid: data.user_uuid, //str user_uuid
+                canTransfer: 0,
+            }
+            var param = {
+                deductBalance: {
+                    key: "ex_wallet",
+                    value: Number(data.amount),
+                },
+                // ex_wallet : Number(lisResponce3[0].ex_wallet) - Number(data.amount), // remaining amount
+                // canTransfer: 1
+            }
+            // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+            var objResponce = await sqlQuery.updateQuery(this.tableName4, param, searchKeyValue);
+
+            // get mno balance 
+            // let mnoBalance = await sqlQuery.searchQuery(this.tableName20,{id : mno_id},['current_balance'],'id','desc',1,0)
+
+            // deduct amount from system
+            var keyValue = {
+                deductBalance: {
+                    key: "current_balance",
+                    value: Number(data.amount)
+                }
+            }
+            var objResponce = await sqlQuery.updateQuery(this.tableName20, keyValue, { id: mno_id })
+
+            // rabbit mq message list
+            let reqLis = [strUniqueNumber, data.operatorName, data.mobile, data.amount]
+
+            console.log(queue_name, reqLis)
+            sendMessage(queue_name, reqLis.join('|'), (err, result) => {
+                if (err) console.error(err)
+                // console.log(result)
+            })
+
+            // add record to mno details
+            var param = {
+                emoney_uuid: "uuid()",
+                mno_uuid: balanceDe[0].mno_uuid, //str operator uuid
+                mno_name: balanceDe[0].mno_name, //str operator name
+                amount_added: Number(data.amount), //db amount added
+                comm_amount: 0, //db commision amount
+                opening_balance: balanceDe[0].current_balance, //db opening balance
+                closing_balance: Number(balanceDe[0].current_balance) - Number(data.amount), //db closing balance
+                emoney_txn_id: strUniqueNumber, //int transaction id
+                emoney_txn_date: isodate, //dt transaction date
+                created_by: data.userid, //str user id
+                type: 2, // debit
+                created_on: isodate, //dt current date time
+                last_modified_by: data.userid, // str user id
+                last_modified_on: isodate //dt current date time
+            }
+
+            //fire sql query to create er money 
+            var objResponce = await sqlQuery.createQuery(this.tableName21, param)
+
+            // add reciept data in er wallet transaction
+            var param = {
+                wallet_txn_uuid: "uuid()",
+                userid: data.userid, // str userid
+                user_uuid: data.user_uuid, // str userid
+                trans_number: strUniqueNumber, // str unique number
+                trans_date_time: strDate, // str date
+                amount: Number(data.amount), // db amount
+                trans_type: 2, // type debit
+                narration: `Top-Up to ${data.mobile}`,
+                balance_amount: Number(lisResponce3[0].ex_wallet) - Number(data.amount), //db balance amount
+                trans_for: "Top-Up"
+            }
+            //fire sql query
+            var objResponce = await sqlQuery.createQuery(this.tableName5, param)
+
+            let messageQueue = {
+                userId: data.userid,
+                amount: Number(data.amount),
+                dateTime: strDate
+            }
+            sendMessage('processedStockSend', JSON.stringify(messageQueue), (err, msg) => {
+                if (err) console.log(err)
+            })
+
+            // add entry to log tables  
+            let tableName, insertData
+            // redisMaster.incr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+            switch (lisResponce1[0].operator_id) {
+                case 3:
+                    tableName = this.tableName17
+                    insertData = {
+                        userid: data.userid,
+                        recharge_id: strUniqueNumber,
+                        created_on: strDate,
+                        status: 0,
+                        source: channelType,
+                        topupRequest: " ",
+                        response: " "
+                    }
+                    break;
+                case 2:
+                    tableName = this.tableName16
+                    insertData = {
+                        userid: data.userid,
+                        recharge_id: strUniqueNumber,
+                        created_on: strDate,
+                        status: 0,
+                        source: channelType,
+                        topupRequest: " ",
+                        topupResponse: " "
+                    }
+                    break;
+                case 4:
+                    tableName = this.tableName18
+                    insertData = {
+                        userid: data.userid,
+                        recharge_id: strUniqueNumber,
+                        created_on: strDate,
+                        status: 0,
+                        login_request: " ",
+                        login_response: " "
+                    }
+                    break;
+                case 5:
+                    tableName = this.tableName19
+                    insertData = {
+                        userid: data.userid,
+                        recharge_id: strUniqueNumber,
+                        created_on: strDate,
+                        status: 0,
+                        top_up_request: " ",
+                        top_up_response: " "
+                    }
+                    break;
+                case 1:
+                    tableName = this.tableName15
+                    insertData = {
+                        userid: data.userid,
+                        recharge_id: strUniqueNumber,
+                        created_on: strDate,
+                        status: 0,
+                        request: " ",
+                        response: " "
+                    }
+                    break;
+            }
+
+            if (!tableName || !insertData) {
+                var lisresponce = await sqlQuery.specialCMD('rollback')
+                var searchKeyValue = {
+                    user_uuid: data.user_uuid, //str user_uuid
+                    canTransfer: 0
+                }
+                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'Recharge log error' })
+            }
+
+            objResponce = await sqlQuery.createQuery(tableName, insertData)
+
+            var logData = {
+                userid: data.userid,
+                user_uuid: data.user_uuid,
+                username: data.username,
+                full_name: data.full_name,
+                mobile: data.user_mobile,
+                intCreatedByType: data.userid,
+                intUserType: data.userType,
+                userIpAddress: data.userIpAddress,
+                userMacAddress: data.userMacAddress, //str
+                userOsDetails: data.userOsDetails, //str
+                userImeiNumber: data.userImeiNumber, //str
+                userGcmId: data.userGcmId, //str
+                userAppVersion: data.userAppVersion, //str
+                userApplicationType: data.userApplicationType,
+                description: `Dear valuable partner ${data.full_name}, Your Recharge to ${data.mobile} Amount: ${parseFloat(String(data.amount)).toFixed(2)} AFN is Accepted, Bal:${Number(lisResponce3[0].ex_wallet) - Number(data.amount)} AFN TX:${strUniqueNumber} and Company TX:${data.company_transaction_id} Thank you for being an Afghan Pay partner!`,
+                userActivityType: 25,
+                oldValue: Number(lisResponce3[0].ex_wallet),
+                newValue: Number(lisResponce3[0].ex_wallet) - Number(data.amount),
+                regionId: data.region_id
+            }
+
+            // make api call
+            let intResult = await httpRequestMakerCommon.httpPost("activity-log", logData)
+            var strLog = intResult == 1 ? 'Admin change password log added successfully' : intResult == 2 ? 'Admin chain password log error' : 'end point not found'
+            // console.log('Server Log : '+strLog)
+
+            if (intResult != 1) {
+                var lisresponce = await sqlQuery.specialCMD('rollback')
+                var searchKeyValue = {
+                    user_uuid: data.user_uuid, //str user_uuid
+                    canTransfer: 0
+                }
+                // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+                var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+                redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+                return ({ status: 400, message: 'log error' })
+            }
+
+            // update transactions status
+            var searchKeyValue = {
+                user_uuid: data.user_uuid, //str user_uuid
+                canTransfer: 0
+            }
+            // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+            var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+
+            // no error commit the transactions
+            var lisresponce = await sqlQuery.specialCMD('commit')
+            // console.log("data",data);
+            let responceMessage = `Dear valuable partner ${data.full_name}, Your Recharge to ${data.mobile} Amount: ${parseFloat(String(data.amount)).toFixed(2)} AFN is Accepted, Bal:${Number(lisResponce3[0].ex_wallet) - Number(data.amount)} AFN TX:${strUniqueNumber}  Thank you for being an Afghan Pay partner!`;
+
+            return ({
+                status: 200,
+                rechargeTxnNumber: strUniqueNumber,
+                companyRechargeTxnNumber: data.company_transaction_id,
+                closingBalance: Number(lisResponce3[0].ex_wallet) - Number(data.amount),
+                message: responceMessage
+            })
+
+        } catch (error) {
+            console.log(error);
+            var errMessage = error.message
+            var lisresponce = await sqlQuery.specialCMD('rollback')  // roll back due to some error
+            // update transactions status
+            var searchKeyValue = {
+                user_uuid: data.user_uuid, //str user_uuid
+                canTransfer: 0
+            }
+            // fire sql update query to change the can transfer status to 0 only when the can transfer is 1
+            var objResponce = await sqlQuery.updateQuery(this.tableName4, { canTransfer: 1 }, searchKeyValue);
+
+            const lisResponce1 = await this.#getOperatorList(data.operator_uuid);
+            redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
+
+            if (errMessage.includes("Duplicate entry")) {
+                return ({ status: 400, message: 'Recharge request Failed with Error' })
+            }
+            return ({ status: 400, message: error.message })
+        }
+    }
+
     // pending recharge list
     getPendingRechargeList = async (req, res) => {
         try {
