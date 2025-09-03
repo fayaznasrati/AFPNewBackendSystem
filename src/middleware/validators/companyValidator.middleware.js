@@ -48,11 +48,11 @@ exports.singlerecharge = [
 ]
 
 exports.rechargeStatus = [
-     body('trans_number')
+     body('transaction_id')
     .exists()
-    .withMessage('trans_number is required')
-    .isLength({ min: 15, max: 15 })
-    .withMessage('trans_number_max_and_min limit is 15 number'),
+    .withMessage('transaction_id is required')
+    .isLength({ min: 15, max: 50 })
+    .withMessage('trans_number_min limit is 15 max limit is 50 number'),
     body('mobile')
     .exists().withMessage("mobile number is required")
     .isLength({ min: 10, max: 10 }).withMessage('Please Enter Complete 10 Numbers!')

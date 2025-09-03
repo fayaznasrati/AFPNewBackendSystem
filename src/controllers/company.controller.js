@@ -763,7 +763,7 @@ class companyController {
                 }
                
             }
-            console.log('recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
+            console.log('company recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
 
             //test 
 
@@ -800,7 +800,7 @@ class companyController {
                     return res.status(400).json({ errors: [{ msg: "Invalid or missing user account" }] });
                 }
                 if (user_detials.active !== 1) {
-                    return res.status(400).json({ errors: [{ msg: "User account is in-active, Call AFP admin " }] });
+                    return res.status(403).json({ errors: [{ msg: "User account is in-active, Call AFP admin " }] });
                 }
                 const userUuidBuffer = user_detials.user_uuid; // Assume it's a Buffer
                 const userUuidStr = userUuidBuffer.toString('utf8');
@@ -870,14 +870,15 @@ class companyController {
                 userAppVersion: req.body.userAppVersion ? req.body.userAppVersion : null, //str
                 // userApplicationType: req.body.userApplicationType == "Web" ? 1 : req.body.userApplicationType == "Company" ? 10 : req.body.userApplicationType == 'Mobile' ? 2 : 0,
                 userApplicationType: 10, // Company
+                company_transaction_id: req.body.transaction_id ? req.body.transaction_id : null,
             }
             let responce
             let stockTransferStatus = await this.#checkStockTransferStatus()
             
             if (stockTransferStatus.length == 0 || stockTransferStatus[0].stock_transfer == 0) {
-                responce = { status: 400, message: 'Recharge is not allowed for a while.' }
+                responce = { status: 503, message: 'Recharge is not allowed for a while.' }
             } else {
-                responce = await rechargeService.processRecharge(params)
+                responce = await rechargeService.CompanyProcessRecharge(params)
                 // console.log("params", params)
                 console.log("Rechage Responce", responce)
             }
@@ -898,21 +899,21 @@ class companyController {
     getCompanyRechargeStatus = async (req, res) => {
         try {
             // check body and query
-            const {mobile, amount, trans_number} = req.body;
+            const {mobile, amount, transaction_id} = req.body;
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('recharge status/getRechageStatus',JSON.stringify(req.body), JSON.stringify(req.query))
+            console.log('company recharge status/getRechageStatus',JSON.stringify(req.body), JSON.stringify(req.query))
 
 
             // sql search param
             var searchKeyValue = {
                 mobile_number:mobile,
                 amount,
-                trans_number
+                company_trans_id:transaction_id
             }
-            var key = ["trans_number AS transNumber", "operator_name AS operatorName", "mobile_number AS number", "amount", "operator_transid", "os_details","status", "CAST(created_on AS CHAR(20)) AS rechargeDate"]
+            var key = ["trans_number AS AFPTransNumber", "company_trans_id AS companyTransactionNumber", "operator_name AS operatorName", "mobile_number AS number", "amount", "operator_transid", "os_details","status", "CAST(created_on AS CHAR(20)) AS rechargeDate"]
 
             const lisResponce1 = await sqlQuery.searchQueryNoLimitTimeout(this._tableName4, searchKeyValue, key, "id", "ASC")
             if (lisResponce1.length == 0) return res.status(404).send({ message: 'no recharge found' })
@@ -954,6 +955,8 @@ class companyController {
             res.status(200).send({ count: 0, theResponce: [{}] });
         }
     }
+
+    
     // recharge report #########################################
     getCompanyRechargeReport = async (req, res) => {
         try {
