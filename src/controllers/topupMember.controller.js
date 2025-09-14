@@ -59,10 +59,7 @@ class membersController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('TopUpMember/getMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
-                // var offset = req.query.start
-                // var limit = req.query.end - offset
-
+                console.log('TopUpMember/getMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
             // search group name created by the Agent/ Admin
                 var searchKeyValue = {
                     user_uuid : req.body.user_detials.user_uuid,
@@ -76,8 +73,25 @@ class membersController {
             // check responce
                 if (lisResponce1.length == 0) return res.status(204).send({message : "group list not found"})
             
-            // send response
-                res.status(200).send(lisResponce1)
+              let intTotlaRecords = Number(lisResponce1.length)
+                let intPageCount = ( intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0 ) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
+
+                let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
+                let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
+                
+                const lisResponce2 = await sqlQueryReplica.searchQuery(this.tablename1, searchKeyValue, key, orderby, ordertype, limit, offset)
+            
+                if( req.query.pageNumber == 0 ) {
+                    res.status(200).send(lisResponce2)
+                }else{
+                    res.status(200).send({
+                        memberList : lisResponce2,
+                        totalRepords : intTotlaRecords,
+                        pageCount : intPageCount,
+                        currentPage : Number(req.query.pageNumber),
+                        pageLimit : Number(process.env.PER_PAGE_COUNT)
+                    })
+                }
 
         }catch(error){
             console.log(error);
@@ -304,20 +318,6 @@ addMember = async (req, res) => {
     return res.status(500).json({ errors: [{ msg: error.message }] });
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     

@@ -64,9 +64,10 @@ class languageController {
                     var key = ["CAST(lang_uuid AS CHAR(16)) AS lang_uuid", "lang_symbol AS symbol", "lang_name AS name"]
                     var orderby = "lang_name"
                     var ordertype = "ASC"
-
+                    var searchKeyValue = {}
                     // fire sql query to get the str language name, str language uuid
-                    const lisResults = await sqlQueryReplica.searchQueryNoLimit(this.tableName1, key, orderby, ordertype)
+                    const lisResults = await sqlQueryReplica.searchQueryNoConNolimit(this.tableName1, key, orderby, ordertype)
+
 
                     // check if the result is there and responce accordingly
                     if (lisResults.length === 0) {
