@@ -101,5 +101,8 @@ router.get('/switch-account/parent-list',getParentListForSwitchAcc,auth(role.Adm
 router.get('/switch-account',getParentAgentDetail,auth(role.Admin,role.SubAdmin),awaitHandlerFactory(agentController.getParentAgentDetail))   // child condition applyed
 router.post('/switch-account/pre-paid',prePaidParentChange,auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [1,1], permission: apiMethod.edit }}), awaitHandlerFactory(agentController.changeAgentPrePaidParent))
 router.post('/switch-account/post-paid',changePostPaidParent,auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [1,1], permission: apiMethod.edit }}), awaitHandlerFactory(agentController.changePostPaidParent))
+// router.get('/switch-account/parent-list', getParentListForSwitchAcc,auth(role.Admin,role.SubAdmin),(req, res)=>{
+//     return  res.send("parent-list");
+// }) // search parent check
 
 module.exports = router;
