@@ -216,13 +216,13 @@ exports.updateContactNumber = [
     body("agent_contact_uuid")
     .exists().withMessage('agent_contact_uuid is required')
     .trim().isLength({ min : 16, max : 16}).withMessage("agent_contact_uuid is of 16 characters"),
-    body("operator_uuid")
-    .exists().withMessage('Select an Operator')
-    .trim().isLength({ min : 16, max : 16}).withMessage("Select an Operator"),
-    body('operatorName')
-    .exists().withMessage('Select an Operator')
-    .trim().isLength({ min : 3, max : 50}).withMessage('Select an Operator')
-    .isString().withMessage('should be a string'),
+    // body("operator_uuid")
+    // .exists().withMessage('Select an Operator')
+    // .trim().isLength({ min : 16, max : 16}).withMessage("Select an Operator"),
+    // body('operatorName')
+    // .exists().withMessage('Select an Operator')
+    // .trim().isLength({ min : 3, max : 50}).withMessage('Select an Operator')
+    // .isString().withMessage('should be a string'),
     body('mobileType')
     .exists().withMessage('mobileType is required')
     .isIn([1,0]).withMessage('use 1 for primary and 0 for alternative'),

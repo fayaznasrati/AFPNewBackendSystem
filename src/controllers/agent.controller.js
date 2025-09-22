@@ -1998,7 +1998,7 @@ class agentController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('Agent/getParentAgentDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+                console.log('Agent/getParentAgentDetails',JSON.stringify(req.body), JSON.stringify(req.query))
             // search query paremeters
                 var searchKeyValue = {
                     user_uuid : req.query.user_uuid,

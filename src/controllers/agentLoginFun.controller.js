@@ -737,17 +737,17 @@ class agentLoginFunction {
                         break;
                 }
     
-                if(operator_uuid != req.body.operator_uuid && operatorName != req.body.operatorName){
-                    return res.status(400).json({ errors: [ {msg : "Mobile number does not match with selected operator"}] });
-                }
+                // if(operator_uuid != req.body.operator_uuid && operatorName != req.body.operatorName){
+                //     return res.status(400).json({ errors: [ {msg : "Mobile number does not match with selected operator"}] });
+                // }
 
             // check operator uuid and name
-                // var boolCheckOperator = await commonQueryCommon.checkOperator(req.body.operator_uuid,req.body.operatorName)
-                // if (!boolCheckOperator) return res.status(400).json({ errors: [ {msg :"operator not found"}] });
+                var boolCheckOperator = await commonQueryCommon.checkOperator(operator_uuid,operatorName)
+                if (!boolCheckOperator) return res.status(400).json({ errors: [ {msg :"operator not found"}] });
 
                 var searchKeyValue = {
-                    operator_uuid: req.body.operator_uuid, //str operator uuid
-                    operator_name: req.body.operatorName,
+                    operator_uuid: operator_uuid || req.body.operator_uuid, //str operator uuid
+                    operator_name: operatorName || req.body.operatorName,
                     active: 1,
                     SMPP : 1
                 }
@@ -787,9 +787,9 @@ class agentLoginFunction {
                     oldValue.push("type "+ liscontactDetails[0].mobile_type)
                     newValue.push("type "+ req.body.mobileType)
                 }
-                if(req.body.operator_uuid != liscontactDetails[0].operator_uuid) {
+                if((req.body.operator_uuid || operator_uuid) != liscontactDetails[0].operator_uuid) {
                     oldValue.push(liscontactDetails[0].operator_uuid)
-                    newValue.push(req.body.operator_uuid)
+                    newValue.push(req.body.operator_uuid || operator_uuid)
                 }
                 if(req.body.recieveNotification != liscontactDetails[0].recieve_notification) {
                     oldValue.push("noti "+ liscontactDetails[0].recieve_notification)
@@ -840,8 +840,8 @@ class agentLoginFunction {
             // update mobile number
                 var param = {
                     mobile: req.body.mobile, //int mobile number
-                    operator_uuid: req.body.operator_uuid, //str operator uuid
-                    operator_name: req.body.operatorName, //str operator name
+                    operator_uuid: req.body.operator_uuid || operator_uuid, //str operator uuid
+                    operator_name: req.body.operatorName || operatorName, //str operator name
                     mobile_type: req.body.mobileType, //str operator type
                     recieve_notification: req.body.recieveNotification, //bool recieve notification
                     udpated_by_type : ( req.body.user_detials.type == role.SubAdmin || req.body.user_detials.type == role.Admin) ? 1 : 2,
