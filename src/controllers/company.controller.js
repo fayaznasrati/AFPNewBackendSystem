@@ -687,7 +687,7 @@ class companyController {
         // 7. Send download response
         const downloadData = {
         company_name: companyName,
-        secret: secretKey,
+        secret: encryptedSecret,
         note: "Store this secret securely; it cannot be retrieved again from our side."
         };
 

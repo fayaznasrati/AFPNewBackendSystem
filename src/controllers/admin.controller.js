@@ -488,7 +488,7 @@ class AdminController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-          //  console.log('[Admin/requestforotp]', JSON.stringify(req.body), JSON.stringify(req.query));
+           console.log('[Admin/requestforotp]', JSON.stringify(req.body), JSON.stringify(req.query));
             let operator_uuid = '', operatorName = ''
 
            // console.log(req.body.mobileNumber.slice(0,3))
@@ -524,13 +524,13 @@ class AdminController {
                     break;
             }
 
-            if(operator_uuid != req.body.operator_uuid && operatorName != req.body.operatorName){
-                return res.status(400).json({ errors: [ {msg : "Mobile number does not match with selected operator"}] });
-            }
+            // if(operator_uuid != req.body.operator_uuid && operatorName != req.body.operatorName){
+            //     return res.status(400).json({ errors: [ {msg : "Mobile number does not match with selected operator"}] });
+            // }
 
             var searchKeyValue = {
-                operator_uuid: req.body.operator_uuid, //str operator uuid
-                operator_name: req.body.operatorName,
+                operator_uuid:  operator_uuid, //str operator uuid
+                operator_name:  operatorName,
                 active: 1,
                 SMPP : 1
             }
@@ -560,7 +560,7 @@ class AdminController {
             
             if(boolResponce.length > 0){
                 if(boolResponce[0].admin_userid != req.body.user_detials.id) return res.status(400).json({ errors: [ {msg : 'Mobile Number is already registered'}]})
-                if(boolResponce[0].admin_userid == req.body.user_detials.id && boolResponce[0].operator_uuid == req.body.operator_uuid ) return res.status(400).json({ errors: [ {msg : 'Mobile number  and operator value are same '}]})
+                if(boolResponce[0].admin_userid == req.body.user_detials.id && boolResponce[0].operator_uuid == operator_uuid ) return res.status(400).json({ errors: [ {msg : 'Mobile number  and operator value are same '}]})
             }
 
             //1) get user details mobile number, operator name and uuid
@@ -579,10 +579,10 @@ class AdminController {
             // check if the result is there and responce accordingly
             if (lisResponce.length === 0) return res.status(400).json({ errors: [ {msg : 'user not found'}]})
 
-            if(lisResponce[0].mobile == req.body.mobileNumber && lisResponce[0].operator_uuid == req.body.operator_uuid) return res.status(400).json({ errors: [ {msg : 'Mobile number and operator are same'}]})
+            if(lisResponce[0].mobile == req.body.mobileNumber && lisResponce[0].operator_uuid == operator_uuid) return res.status(400).json({ errors: [ {msg : 'Mobile number and operator are same'}]})
 
             //2) check new operator name
-            var boolOperatorFound = await commonQueryCommon.checkOperator(req.body.operator_uuid, req.body.operatorName)
+            var boolOperatorFound = await commonQueryCommon.checkOperator(operator_uuid, operatorName)
 
             if(!boolOperatorFound) return res.status(400).json({ errors: [ {msg : 'operator not found'}]})
 
@@ -601,8 +601,8 @@ class AdminController {
 
             var param = {
                 new_mobile_number: req.body.mobileNumber, 
-                mobile_verification_otp_operator_uuid : req.body.operator_uuid,
-                mobile_verification_otp_operator_name :req.body.operatorName, 
+                mobile_verification_otp_operator_uuid : operator_uuid,
+                mobile_verification_otp_operator_name : operatorName, 
                 mobile_verification_otp: intOTP,
                 mobile_verification_expire_on : dtOtpExpirationDateTime,
                 new_mobile_number_request : 1
@@ -623,7 +623,7 @@ class AdminController {
 
             if(affectedRows && changedRows){
                 let smsDetails = {
-                    operator_uuid: req.body.operator_uuid,
+                    operator_uuid: operator_uuid,
                     userId : req.body.user_detials.id,
                     username : req.query.username,
                     mobile : req.body.mobileNumber,

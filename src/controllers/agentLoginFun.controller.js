@@ -663,13 +663,13 @@ class agentLoginFunction {
             // get contact details from sql query
                 var searchKeyValue = {
                     user_uuid : req.body.user_detials.user_uuid,
-                    status : 1
+                    // status : 1 
                 }
                 var key = ["CAST(agent_contact_uuid AS CHAR(16)) AS agent_contact_uuid","mobile","CAST(operator_uuid AS CHAR(16)) AS operator_uuid","operator_name AS operatorName","mobile_type AS type","recieve_notification AS revieveNoti","status"]
                 var orderby = "mobile_type"
                 var ordertype = "DESC"
                 
-                var lisResponce1 = await sqlQueryReplica.searchQuery(this.tableName2, searchKeyValue, key, orderby, ordertype, 6, 0)
+                var lisResponce1 = await sqlQueryReplica.searchQuery(this.tableName2, searchKeyValue, key, orderby, ordertype, 10, 0)
                 if(lisResponce1.length === 0) return res.status(204).send({ message : "no contact details found"})
                 // console.log(lisResponce1)
 
@@ -765,7 +765,7 @@ class agentLoginFunction {
                 const lisAgentDetails = await sqlQuery.searchQuery(this.tableName1,{user_uuid : req.body.user_detials.user_uuid,Active : 1},['full_name',"mobile",'usertype_id','region_id'],'userid','ASC',1,0)
 
             // get last mobile number and operator uuid
-                const liscontactDetails = await sqlQuery.searchQuery(this.tableName2,{agent_contact_uuid: req.body.agent_contact_uuid,user_uuid: req.body.user_detials.user_uuid,status : 1} , ['mobile','mobile_type',"operator_uuid","recieve_notification","status"], 'userid', "ASC", 1, 0)    
+                const liscontactDetails = await sqlQuery.searchQuery(this.tableName2,{agent_contact_uuid: req.body.agent_contact_uuid,user_uuid: req.body.user_detials.user_uuid} , ['mobile','mobile_type',"operator_uuid","recieve_notification","status"], 'userid', "ASC", 1, 0)    
             
                 if(liscontactDetails.length == 0) return res.status(400).json({ errors: [ {msg : "Contact details not found" }] });
 
