@@ -546,7 +546,7 @@ class agentLoginFunction {
                     break;
             }
 
-            if(operator_uuid != req.body.operator_uuid && operatorName != req.body.operatorName){
+            if(!operator_uuid  && !operatorName ){
                 return res.status(400).json({ errors: [ {msg : "Mobile number does not match with selected operator"}] });
             }
 
@@ -560,8 +560,8 @@ class agentLoginFunction {
                 // var boolCheckOperator = await commonQueryCommon.checkOperator(req.body.operator_uuid,req.body.operatorName)
                 // if (!boolCheckOperator) return res.status(400).json({ errors: [ {msg :"operator not found"}] });
                 var searchKeyValue = {
-                    operator_uuid: req.body.operator_uuid, //str operator uuid
-                    operator_name: req.body.operatorName,
+                    operator_uuid: operator_uuid, //str operator uuid
+                    operator_name: operatorName,
                     active: 1,
                     SMPP : 1
                 }
@@ -627,8 +627,8 @@ class agentLoginFunction {
                     userid: req.body.user_detials.userid, //str user id
                     user_uuid: req.body.user_detials.user_uuid, //str user uuid
                     mobile: req.body.mobile, //int mobile number
-                    operator_uuid: req.body.operator_uuid, //str operator uuid
-                    operator_name: req.body.operatorName, //str operator name
+                    operator_uuid: operator_uuid, //str operator uuid
+                    operator_name: operatorName, //str operator name
                     mobile_type: req.body.mobileType, //str operator type
                     recieve_notification: req.body.recieveNotification, //bool recieve notification
                     udpated_by_type : ( req.body.user_detials.type == role.SubAdmin || req.body.user_detials.type == role.Admin) ? 1 : 2,
@@ -663,7 +663,7 @@ class agentLoginFunction {
             // get contact details from sql query
                 var searchKeyValue = {
                     user_uuid : req.body.user_detials.user_uuid,
-                    // status : 1 
+                    status : 1 
                 }
                 var key = ["CAST(agent_contact_uuid AS CHAR(16)) AS agent_contact_uuid","mobile","CAST(operator_uuid AS CHAR(16)) AS operator_uuid","operator_name AS operatorName","mobile_type AS type","recieve_notification AS revieveNoti","status"]
                 var orderby = "mobile_type"
@@ -678,7 +678,7 @@ class agentLoginFunction {
                     var { type,revieveNoti,status,...others} = result
                     others.type = type == 1 ? "Primary" : "Alternate"
                     others.revieveNoti = revieveNoti == 1 ? "Yes" : "No"
-                    others.status = "Active"
+                    others.status = status==1 ? "Active" : "In-active"
                     return others
                 })
             
@@ -702,7 +702,7 @@ class agentLoginFunction {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('agentLoginFun/updateContactNumber',JSON.stringify(req.body), JSON.stringify(req.query))
+                // console.log('agentLoginFun/updateContactNumber',JSON.stringify(req.body), JSON.stringify(req.query))
                 let operator_uuid = '', operatorName = ''
 
                 switch(req.body.mobile.slice(0,3)){
@@ -737,17 +737,17 @@ class agentLoginFunction {
                         break;
                 }
     
-                // if(operator_uuid != req.body.operator_uuid && operatorName != req.body.operatorName){
-                //     return res.status(400).json({ errors: [ {msg : "Mobile number does not match with selected operator"}] });
-                // }
+                    if(!operator_uuid  && !operatorName ){
+                    return res.status(400).json({ errors: [ {msg : "Mobile number does not match with selected operator"}] });
+            }
 
             // check operator uuid and name
                 var boolCheckOperator = await commonQueryCommon.checkOperator(operator_uuid,operatorName)
                 if (!boolCheckOperator) return res.status(400).json({ errors: [ {msg :"operator not found"}] });
 
                 var searchKeyValue = {
-                    operator_uuid: operator_uuid || req.body.operator_uuid, //str operator uuid
-                    operator_name: operatorName || req.body.operatorName,
+                    operator_uuid: operator_uuid ,//str operator uuid
+                    operator_name: operatorName ,
                     active: 1,
                     SMPP : 1
                 }
@@ -787,9 +787,9 @@ class agentLoginFunction {
                     oldValue.push("type "+ liscontactDetails[0].mobile_type)
                     newValue.push("type "+ req.body.mobileType)
                 }
-                if((req.body.operator_uuid || operator_uuid) != liscontactDetails[0].operator_uuid) {
+                if( operator_uuid != liscontactDetails[0].operator_uuid) {
                     oldValue.push(liscontactDetails[0].operator_uuid)
-                    newValue.push(req.body.operator_uuid || operator_uuid)
+                    newValue.push( operator_uuid)
                 }
                 if(req.body.recieveNotification != liscontactDetails[0].recieve_notification) {
                     oldValue.push("noti "+ liscontactDetails[0].recieve_notification)
@@ -840,8 +840,8 @@ class agentLoginFunction {
             // update mobile number
                 var param = {
                     mobile: req.body.mobile, //int mobile number
-                    operator_uuid: req.body.operator_uuid || operator_uuid, //str operator uuid
-                    operator_name: req.body.operatorName || operatorName, //str operator name
+                    operator_uuid:  operator_uuid, //str operator uuid
+                    operator_name:  operatorName, //str operator name
                     mobile_type: req.body.mobileType, //str operator type
                     recieve_notification: req.body.recieveNotification, //bool recieve notification
                     udpated_by_type : ( req.body.user_detials.type == role.SubAdmin || req.body.user_detials.type == role.Admin) ? 1 : 2,

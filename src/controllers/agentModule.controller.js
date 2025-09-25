@@ -511,7 +511,7 @@ class moduleController {
 
                 // get agent permission list
                     var lisResponce1 = await sqlQueryReplica.searchQueryNoLimit(this.tableName2,searchKeyValue, key,"agent_module_id","ASC")
-                    if(lisResponce1.length == 0) return res.status(400).json({ errors: [ {msg : "Agent dont have any permission, create insted"}] });
+                    if(lisResponce1.length == 0) return res.status(400).json({ errors: [ {msg : "Agent don't have any permission, create insted"}] });
 
                 // go in the listResponce1 one by one and update one by one module
                     var oldModuleList = req.body.moduleList
