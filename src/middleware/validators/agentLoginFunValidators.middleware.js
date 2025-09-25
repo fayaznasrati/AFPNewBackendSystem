@@ -183,13 +183,13 @@ exports.addContactNumber = [
     query('username')
     .exists().withMessage('Username is required')
     .notEmpty().withMessage('Username must be filled'),
-    body("operator_uuid")
-    .exists().withMessage('Select an Operator')
-    .trim().isLength({ min : 16, max : 16}).withMessage("Select an Operator"),
-    body('operatorName')
-    .exists().withMessage('Select an Operator')
-    .trim().isLength({ min : 3, max : 50}).withMessage('Select an Operator')
-    .isString().withMessage('Select an Operator'),
+    // body("operator_uuid")
+    // .exists().withMessage('Select an Operator')
+    // .trim().isLength({ min : 16, max : 16}).withMessage("Select an Operator"),
+    // body('operatorName')
+    // .exists().withMessage('Select an Operator')
+    // .trim().isLength({ min : 3, max : 50}).withMessage('Select an Operator')
+    // .isString().withMessage('Select an Operator'),
     body('mobileType')
     .exists().withMessage('Select mobile number type as Primary or Alternate')
     .isIn([1,0]).withMessage('Select mobile number type as Primary or Alternate'),
