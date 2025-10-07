@@ -34,10 +34,10 @@ class subAdminModel {
                         FROM ${this.tableName1} JOIN ${this.tableName2} ON ${this.tableName1}.sub_admin_module_id = ${this.tableName2}.sub_admin_module_id
                                                 JOIN ${this.tableName3} ON ${this.tableName1}.sub_admin_module_id = ${this.tableName3}.sub_admin_module_id
                         WHERE CAST(${this.tableName3}.department_uuid AS  CHAR(16)) = ? ORDER BY ${this.tableName1}.sub_admin_module_id ASC,  ${this.tableName2}.sub_admin_sub_module_id ASC`
-            // console.log(sql)      
+            console.log(sql)      
 
             const result = await dbConnectionReplica.query(sql,[department_uuid]);
-            // console.log(result);
+            console.log(result);
             return result
         }
 }
