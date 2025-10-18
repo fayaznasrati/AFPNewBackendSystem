@@ -210,7 +210,7 @@ class subAdminModuleController {
         }
     }
 
-    // module and sub module list 
+    // module and sub module list to hundle user permission and sidebar access
     getAllModuleList = async(req,res) => {
         try{
             // verify the req body and query
@@ -218,13 +218,14 @@ class subAdminModuleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('subAdminModule/getAllModuleList',JSON.stringify(req.body), JSON.stringify(req.query))
+                console.log('subAdminModule/getAllModuleList',JSON.stringify(req.body), JSON.stringify(req.query))
             // limit and offset
                 // var offset = req.query.start
                 // var limit = req.query.end - offset
 
             // get the module list
-                var lisResponce1 = await subAdminModule.getAllModuleList();
+                // var lisResponce1 = await subAdminModule.getAllModuleList();
+                var lisResponce1 = await subAdminModule.getAllModuleWithSubModules();
                 if(lisResponce1.length == 0) return res.status(204).send({ message:"Module and sub module list not found"})
 
             // modify the responce
@@ -250,6 +251,7 @@ class subAdminModuleController {
                     }
                 }
         
+                console.log("Modules and SubModules:", result)
             // send responce 
                 res.status(200).send(result)    
 
@@ -259,7 +261,7 @@ class subAdminModuleController {
         }
     }
 
-    departmentAssignRights = async(req,res) =>{
+    olddepartmentAssignRights = async(req,res) =>{
         try{
             // verify the req body and query
                 const errors = validationResult(req);
@@ -382,6 +384,128 @@ class subAdminModuleController {
             res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
+    
+    departmentAssignRights = async (req, res) => {
+    try {
+        // verify the request body and query
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+        }
+
+        console.log("subAdminModule/departmentAssignRights", JSON.stringify(req.body), JSON.stringify(req.query));
+
+        // check if permissions already exist
+        const existingPermissions = await sqlQueryReplica.searchQueryNoLimit(
+        this.tableName3,
+        { department_uuid: req.body.department_uuid },
+        [
+            "sub_admin_module_name",
+            "sub_admin_sub_module_perm",
+            "perm_view",
+            "sub_admin_module_id",
+            "department_id",
+        ],
+        "sub_admin_per_id",
+        "ASC"
+        );
+
+        // ==================== 🧩 CASE 1: if permissions already exist, remove old records completely ====================
+
+        
+        if (existingPermissions.length > 0) {
+        await sqlQuery.deleteQuery(this.tableName3, { department_uuid: req.body.department_uuid });
+        console.log(`Old permissions removed for department ${req.body.department_uuid}`);
+        }
+        
+
+        // ==================== 🧩 CASE 2: INSERT NEW PERMISSIONS ====================
+
+        // get department ID
+        const departmentData = await sqlQueryReplica.searchQuery(
+        this.tableName4,
+        { department_uuid: req.body.department_uuid },
+        ["department_id"],
+        "department_id",
+        "ASC",
+        1,
+        0
+        );
+
+        if (departmentData.length === 0)
+        return res.status(400).json({ errors: [{ msg: "Department not found" }] });
+
+        const departmentId = departmentData[0].department_id;
+
+        // get modules that have submodules
+        const moduleWithSubmodules = await sqlQueryReplica.customQuery()
+
+
+        if (moduleWithSubmodules.length === 0) {
+        return res.status(400).json({ errors: [{ msg: "No modules with submodules found" }] });
+        }
+
+        const oldModuleList = req.body.moduleList;
+        const newModuleList = [];
+        let currentModule = null;
+
+        for (const item of moduleWithSubmodules) {
+        const found = oldModuleList.find(
+            (m) =>
+            m.moduleName === item.sub_admin_module_name &&
+            m.subModuleName === item.sub_admin_sub_module_name
+        );
+        if (!found) continue;
+
+        // check if new module started
+        if (!currentModule || currentModule.sub_admin_module_name !== item.sub_admin_module_name) {
+            // parent permission object
+            const parentPerm = oldModuleList.find(
+            (m) => m.moduleName === item.sub_admin_module_name && !m.subModuleName
+            );
+
+            currentModule = {
+            department_id: departmentId,
+            department_uuid: req.body.department_uuid,
+            sub_admin_module_id: item.sub_admin_module_id,
+            sub_admin_module_name: item.sub_admin_module_name,
+            perm_view: parentPerm?.viewPerm ? 1 : 0,
+            //   perm_add: parentPerm?.viewPerm ? parentPerm.addPerm : 0,
+            //   perm_edit: parentPerm?.viewPerm ? parentPerm.eidtPerm : 0,
+            //   perm_delete: parentPerm?.viewPerm ? parentPerm.deletePerm : 0,
+            sub_admin_sub_module_perm: { sub_module_perm_list: [] },
+            };
+
+            newModuleList.push(currentModule);
+        }
+
+        // push submodule permissions
+        currentModule.sub_admin_sub_module_perm.sub_module_perm_list.push({
+            sub_admin_sub_module_id: item.sub_admin_sub_module_id,
+            subModuleName: item.sub_admin_sub_module_name,
+            permView: found.viewPerm,
+            permAdd: found.viewPerm ? found.addPerm : 0,
+            permEdit: found.viewPerm ? found.editPerm  : 0,
+            permDelete: found.viewPerm ? found.deletePerm : 0,
+        });
+
+        // if any submodule has view = 1, parent view = 1
+        if (found.viewPerm === 1) currentModule.perm_view = 1;
+        }
+
+        if (newModuleList.length === 0)
+        return res.status(400).json({ errors: [{ msg: "No valid module/submodule to assign" }] });
+
+        // insert data
+        await sqlQuery.multiInsert(this.tableName3, newModuleList);
+
+        res.status(201).send({ message: "Data added successfully" });
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+    };
+
 
     getSubMododuleByDepartmentId = async(req,res) => {
         try{
@@ -438,7 +562,8 @@ class subAdminModuleController {
                 console.log(lisResponce1)
                 if(lisResponce1.length == 0) {
                     // get the module list
-                        var lisResponce2 = await subAdminModule.getAllModuleList();
+                        // var lisResponce2 = await subAdminModule.getAllModuleList();
+                        var lisResponce2 = await subAdminModule.getAllModuleWithSubModules();
                         if(lisResponce2.length == 0) return res.status(204).send({ message:"Module and sub module list not found"})
 
                     // modify the responce
