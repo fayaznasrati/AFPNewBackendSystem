@@ -289,11 +289,11 @@ class AdminController {
             ],
             "sub_admin_per_id",
             "ASC",
-            10,
+            16,
             0
           );
 
-          if (listModulePermission.length != 10) {
+          if (listModulePermission.length != 16) {
             listModulePermission = { isAdmin: false, permissions: [] };
           } else {
             // parse sub_module_perm from string → object
