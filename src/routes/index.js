@@ -41,6 +41,7 @@ const ebundleTopup = require('./ebundleTopup.routes')
 const bundleManagementRoute = require('./bundleManagment.route')
 const bundleRechargeRoutes = require('./bundleRecharge.routes')
 const companyManagementRoute = require('./company.routes')
+const subCompanyManagementRoute = require('./subCompany.routes')
 
 
 router.use('/admin', adminRouter);
@@ -83,6 +84,7 @@ router.use('/bundle-recharge',bundleRechargeRoutes)
 router.use('/ebundle-topup',agentRoute)
 router.use('/bundle-management', bundleManagementRoute)
 router.use('/company', companyManagementRoute)
+router.use('/sub-company', subCompanyManagementRoute)
 
 
 module.exports = router;

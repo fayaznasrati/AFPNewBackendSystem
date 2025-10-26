@@ -54,6 +54,25 @@ class sqlQueryCommon {
         }
 
     }
+    
+      customQuery = async () => {
+        const sql = `   SELECT 
+            m.sub_admin_module_id,
+            m.sub_admin_module_name,
+            sm.sub_admin_sub_module_id,
+            sm.sub_admin_sub_module_name
+        FROM er_sub_admin_module AS m
+        LEFT JOIN er_sub_admin_sub_module AS sm 
+            ON m.sub_admin_module_id = sm.sub_admin_module_id
+        ORDER BY m.sub_admin_module_id ASC, sm.sub_admin_sub_module_id ASC
+        `;
+    
+        console.log(sql);
+    
+        const result = await dbConnection.query(sql);
+        console.log(result);
+        return result;
+      };
 
     searchQueryTimeout = async(tableName, searchKeyValue, key, orderby, ordertype, limit, offset) => {
         try {

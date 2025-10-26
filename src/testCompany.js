@@ -3,13 +3,13 @@ require('dotenv').config();
 
 const body = {
   mobile: "0730720001",
-  amount: 5,
-  transaction_id:"com240825180044566"
+  amount: 7,
+  transaction_id:"com240825180044567"
 };
 
 
 // 🔐 Replace with valid encrypted secret and key
-const secretKey = "1c36491c990fb7f3eae68562092a772b:e60bb48c781752fb1ca35f9347cd79057e064e6c4594a3793fc75ce4c29696428a8b833985d5df4395427473c01893f1a8ea102a9b1f6aa04040126a0866398f522963dc9d3b05598ef0ef8a73119ef8";
+const secretKey = "a0f31d3f9325cf1f3164b9fad47b62f8:7e1ca257a6a01f70c476ba7d44cd4d409516298e5aeff0b4e47148638a8f1ea38ed63307ff952f5d3cfcc7a69e76ce28ca3e7635af04750b6f35a4a6581ff4b404d61da34234639d44d1ffdee4786a6b";
 
 
 (async () => {
