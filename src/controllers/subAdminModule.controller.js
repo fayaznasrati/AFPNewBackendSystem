@@ -48,7 +48,7 @@ class subAdminModuleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('subAdminModule/getAllModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
+                // console.log('subAdminModule/getAllModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
             // search key list 
                 var key = ["sub_admin_module_id","sub_admin_module_name AS moduleName","sub_admin_module_title AS moduleTitle"]
 
@@ -218,7 +218,7 @@ class subAdminModuleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('subAdminModule/getAllModuleList',JSON.stringify(req.body), JSON.stringify(req.query))
+                // console.log('subAdminModule/getAllModuleList',JSON.stringify(req.body), JSON.stringify(req.query))
             // limit and offset
                 // var offset = req.query.start
                 // var limit = req.query.end - offset
@@ -555,7 +555,7 @@ class subAdminModuleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('subAdminModule/getAssignedModule',JSON.stringify(req.body), JSON.stringify(req.query))
+                // console.log('subAdminModule/getAssignedModule',JSON.stringify(req.body), JSON.stringify(req.query))
             // get the module list from module permission
                 // const lisResponse1 = await sqlQuery.searchQueryNoLimit(this.tableName2,{user_uuid : req.query.user_uuid },["agent_module_id","agent_module_name","perm_view","sub_module_perm"],"agent_module_id","ASC")
                     const lisResponce1 = await subAdminModule.subAdminAssignRights(req.query.department_uuid)

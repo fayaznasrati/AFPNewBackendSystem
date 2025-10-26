@@ -7,7 +7,7 @@ const redisMaster = require("../common/master/radisMaster.common"); // adjust pa
 dotenv.config();
 
 const ERS_BASE_URL =
-  process.env.ERS_511_BASE_URL || "https://testapi1.afghan-pay.com/api/v1";
+  process.env.ERS_511_BASE_URL;
 
 // ---------------------------------------------------------------------------
 // 🧠 Helper: Build Redis key unique to each user/password
