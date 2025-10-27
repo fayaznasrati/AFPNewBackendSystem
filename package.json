@@ -1,7 +1,7 @@
 {
-  "name": "afghan-api",
+  "name": "afghan-pay-top-up-api",
   "version": "1.0.0",
-  "description": "AfghanPay API",
+  "description": "AfghanPay Top-Up API",
   "main": "src/server.js",
   "scripts": {
     "local": "set NODE_ENV=local&& nodemon src/server.js",

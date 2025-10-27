@@ -1,0 +1,60 @@
+Since you’ve already made changes in your project, updating the Docker image involves rebuilding the image and restarting the container.
+Here’s the safe workflow:
+
+Step 1 — Rebuild the Docker image
+
+From your project root (/var/www/html/AFPNewBackendSystem):
+
+docker build -t afghan-pay-top-up-api:0.0.2-RELEASE .
+
+
+I recommend bumping the version (here 0.0.2-RELEASE) so you can track versions easily.
+
+Docker will cache unchanged layers, so rebuilds are usually fast.
+
+Step 2 — Stop the old container
+docker stop afghan-pay-top-up-api
+docker rm afghan-pay-top-up-api
+
+
+Stops and removes the old container to free the port (5001 in your case).
+
+Step 3 — Run the new container
+docker run -d \
+  --name afghan-pay-top-up-api \
+  --env-file .env \
+  -p 5001:5000 \
+  -v /var/www/html/AFPNewBackendSystem/the_topup_reports:/usr/src/app/the_topup_reports \
+  afghan-pay-top-up-api:0.0.2-RELEASE \
+  pm2-runtime src/server.js
+
+
+This will start the container with your latest code changes.
+
+Step 4 — Verify
+docker ps
+docker logs -f afghan-pay-top-up-api
+
+
+Ensure your app starts successfully and changes are reflected.
+
+💡 Tip: If you expect to do frequent updates, you can use:
+
+docker build --no-cache -t afghan-pay-top-up-api:latest .
+
+
+Forces Docker to rebuild all layers (ignores cache), so changes in dependencies are always picked up.
+
+to see the Running Docker image run:
+
+ docker ps
+ 
+ Eg:
+  CONTAINER ID   IMAGE                                 COMMAND                  CREATED         STATUS         PORTS                                                   NAMES
+2bcf553d824a   afghan-pay-top-up-api:0.0.1-RELEASE   "docker-entrypoint.s…"   3 minutes ago   Up 3 minutes   3000/tcp, 0.0.0.0:5001->5000/tcp, [::]:5001->5000/tcp   afghan-pay-top-up-api
+
+
+After running, check if it’s running:
+
+docker ps
+docker logs -f afghan-pay-top-up-api
