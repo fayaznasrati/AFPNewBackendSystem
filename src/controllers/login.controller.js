@@ -662,7 +662,7 @@ class loginController {
                 userid: objResult.insertId,
                 Active : 1
             }
-            var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid","parent_id",'usertype_id']
+            var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid","parent_id",'usertype_id', "username"]
             var orderby = "user_uuid"
             var ordertype = "ASC"
 
@@ -835,6 +835,7 @@ class loginController {
             res.status(201).send({
                 message: 'user created successfully !',
                 user_uuid: lisResponse[0].user_uuid, //str
+                username: lisResponse[0].username,
                 commisionTypeList : commisionTypeList
             });
 
@@ -849,96 +850,248 @@ class loginController {
         }
     }
 
-    getParentName = async(req, res, next) => {
-        try {
-            const errors = validationResult(req);
-            if (!errors.isEmpty()) {
-                return res.status(400).json({ errors: errors.array() });
-            }
-            console.log('login/getParentName',JSON.stringify(req.body), JSON.stringify(req.query))
-            // var offset = req.query.start
-            // var limit = req.query.end - offset
+    // getParentName = async(req, res, next) => {
+    //     try {
+    //         const errors = validationResult(req);
+    //         if (!errors.isEmpty()) {
+    //             return res.status(400).json({ errors: errors.array() });
+    //         }
+    //         console.log('login/getParentName',JSON.stringify(req.body), JSON.stringify(req.query))
+    //         // sql query parameter
+    //         var param = {
+    //             // parent_id : req.body.user_detials.userid,
+    //             Active : 1
+    //         }
+    //         if(req.body.user_detials.type == userList.Admin || req.body.user_detials.type == userList.SubAdmin ) {
+    //             // param.region_ids = req.body.user_detials.region_list.join(',');
+    //             if(req.body.user_detials.region_list.length != 7){
+    //                 param.region_ids = req.body.user_detials.region_list.join(',')
+    //             }
+    //         }else{
+    //             param.child_ids =  req.body.user_detials.child_list.join(',');
+    //         }
 
-            // var searchKeyValue = {
-            //     user_uuid: req.body.user_detials.user_uuid
-            // }
-            // var key = ["userid"]
-            // var orderby = "full_name"
-            // var ordertype = "ASC"
+    //         if(req.query.rgion_uuid){
+    //             param.region_uuid = req.query.rgion_uuid
+    //         }
 
-            // // fire sql query to get str user_uuid, str full_name
-            // const lisResponce1 = await sqlQuery.searchQuery(this.tableName1, searchKeyValue, key, orderby, ordertype, limit, offset)
-
-
-            //send agent lis with agnet type -1
-            // sql query parameter
-            var param = {
-                // parent_id : req.body.user_detials.userid,
-                Active : 1
-            }
-            if(req.body.user_detials.type == userList.Admin || req.body.user_detials.type == userList.SubAdmin ) {
-                // param.region_ids = req.body.user_detials.region_list.join(',');
-                if(req.body.user_detials.region_list.length != 7){
-                    param.region_ids = req.body.user_detials.region_list.join(',')
-                }
-            }else{
-                param.child_ids =  req.body.user_detials.child_list.join(',');
-            }
-
-            if(req.query.rgion_uuid){
-                param.region_uuid = req.query.rgion_uuid
-            }
-
-            //get according to user type id if provided
-            if(req.query.agent_type_uuid){
-                var searchKeyValue = {
-                    agent_type_uuid: req.query.agent_type_uuid,
-                    active: 1,
-                }
-                var key = ["agent_type_id"] // parameter to get from data base
-                var orderby = "agent_type_id"
-                var ordertype = "ASC"
+    //         //get according to user type id if provided
+    //         if(req.query.agent_type_uuid){
+    //             var searchKeyValue = {
+    //                 agent_type_uuid: req.query.agent_type_uuid,
+    //                 active: 1,
+    //             }
+    //             var key = ["agent_type_id"] // parameter to get from data base
+    //             var orderby = "agent_type_id"
+    //             var ordertype = "ASC"
     
-                // 2) sql query to get strAgent_type_uuid, strName
-                const lisResponce = await sqlQueryReplica.searchQuery(this.tableName3, searchKeyValue, key, orderby, ordertype, 1, 0)
-                if (lisResponce.length === 0) {
-                    return res.status(400).json({ errors: [ {msg : 'Agent type not found'}] });
-                }
-                param.get_upper_parent_ids = parseInt(lisResponce[0].agent_type_id) 
-            }
+    //             // 2) sql query to get strAgent_type_uuid, strName
+    //             const lisResponce = await sqlQueryReplica.searchQuery(this.tableName3, searchKeyValue, key, orderby, ordertype, 1, 0)
+    //             if (lisResponce.length === 0) {
+    //                 return res.status(400).json({ errors: [ {msg : 'Agent type not found'}] });
+    //             }
+    //             // param.get_upper_parent_ids = parseInt(lisResponce[0].agent_type_id) 
+    //             param.get_equal_parent_ids = parseInt(lisResponce[0].agent_type_id) 
+    //         }
 
-            // commission type
-            if(req.query.commissionType){
-                param.comm_type = req.query.commissionType == "pre_paid" ? 1 : (req.query.commissionType == "post_paid" ? 2 : 0)
-            }
+          
 
-            var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid", "username AS id", "full_name as name","CAST(region_uuid AS CHAR(16)) AS region_uuid", "region_name as regionName"]
-            var orderby = "usertype_id"
-            var ordertype = "ASC"
+    
+    
 
-            // fire sql query to get str user_uuid, str full_name
-            const lisResults = await sqlQueryReplica.searchQueryNoLimit(this.tableName1, param, key, orderby, ordertype)
+    //            // 1) get agent from radis
+    //                      redisMaster.get('AdminUser', async(err, reply) => {
+             
+    //                          if (err) {
+    //                              throw new HttpException(500, 'Something went wrong');
+    //                          }
+             
+    //                          // 2-A) check if radis is empty get data form the MySQL database and add to radis
+    //                          if (reply === null || reply === undefined) {
+    //                             var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid", "username AS id", "full_name as name","CAST(region_uuid AS CHAR(16)) AS region_uuid", "region_name as regionName"]
+    //                             var orderby = "usertype_id"
+    //                             var ordertype = "ASC"
 
-            // check sql rsponce
-            if (lisResults.length === 0) {
-                return res.status(204).send({message : 'no user found'})
-            }
-            const onlyTen =  lisResults; // First 10 records
+    //                             var searchKeyValue = {
+    //                                         usertype_id : 0,
+    //                                         Active : 1
+    //                                     }
+    //                              // 1) search parameter for MySQL data base
+    //                               const adminUser = await sqlQueryReplica.searchQueryNoLimit(this.tableName1, searchKeyValue, key, orderby, ordertype)
+             
+    //                              // 3) convert json data to string and add to radis
+    //                              const strResponse = JSON.stringify(adminUser)
+    //                              redisMaster.post('AdminUser', strResponse)
+             
+    //                                                 // commission type
+    //                                 if(req.query.commissionType){
+    //                                     param.comm_type = req.query.commissionType == "pre_paid" ? 1 : (req.query.commissionType == "post_paid" ? 2 : 0)
+    //                                 }
+
+
+    //                                 var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid", "username AS id", "full_name as name","CAST(region_uuid AS CHAR(16)) AS region_uuid", "region_name as regionName"]
+    //                                 var orderby = "usertype_id"
+    //                                 var ordertype = "ASC"
+                                    
+    //                                 // fire sql query to get str user_uuid, str full_name
+    //                                 const lisResults = await sqlQueryReplica.searchQueryNoLimit(this.tableName1, param, key, orderby, ordertype)
+    //                                         // check sql rsponce
+    //                                 if (lisResults.length === 0) {
+    //                                     return res.status(204).send({message : 'no user found'})
+    //                                 }
+
+    //                                 const onlyTen =  lisResults; // First 10 records
+    //                                 res.status(200).send({
+    //                                 reportList : onlyTen,
+    //                             })
+    //                          }
+
+             
+    //                      })
+
+    //         res.status(200).send({
+    //             reportList : onlyTen,
+    //         })
             
-            //send responce to front end
-            // res.status(200).send(lisResults)
-            res.status(200).send({
-                reportList : onlyTen,
-            })
-            
 
-        } catch (error) {
-            console.log(error);
-            return res.status(400).json({ errors: [ {msg : error.message}] });
-        }
-    }
+    //     } catch (error) {
+    //         console.log(error);
+    //         return res.status(400).json({ errors: [ {msg : error.message}] });
+    //     }
+    // }
 
     //function to get all the details about user
+   
+   getParentName = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    console.log('login/getParentName', JSON.stringify(req.body), JSON.stringify(req.query));
+
+    // Build query parameters
+    const param = { Active: 1 };
+    const userType = req.body.user_detials.type;
+    const userDetails = req.body.user_detials;
+
+    if (userType === userList.Admin || userType === userList.SubAdmin) {
+      if (userDetails.region_list.length !== 7) {
+        param.region_ids = userDetails.region_list.join(',');
+      }
+    } else {
+      param.child_ids = userDetails.child_list.join(',');
+    }
+
+    if (req.query.rgion_uuid) {
+      param.region_uuid = req.query.rgion_uuid;
+    }
+
+    // Get according to agent_type_uuid if provided
+    if (req.query.agent_type_uuid) {
+      const searchKeyValue = {
+        agent_type_uuid: req.query.agent_type_uuid,
+        active: 1,
+      };
+      const key = ['agent_type_id'];
+      const lisResponse = await sqlQueryReplica.searchQuery(
+        this.tableName3,
+        searchKeyValue,
+        key,
+        'agent_type_id',
+        'ASC',
+        1,
+        0
+      );
+
+      if (lisResponse.length === 0) {
+        return res.status(400).json({ errors: [{ msg: 'Agent type not found' }] });
+      }
+
+      param.get_equal_parent_ids = parseInt(lisResponse[0].agent_type_id);
+    }
+
+    // Add commission type filter if any
+    if (req.query.commissionType) {
+      param.comm_type =
+        req.query.commissionType === 'pre_paid'
+          ? 1
+          : req.query.commissionType === 'post_paid'
+          ? 2
+          : 0;
+    }
+
+    // Try to get from Redis cache
+    const redisData = await new Promise((resolve, reject) => {
+      redisMaster.get('AdminUser', (err, reply) => {
+        if (err) return reject(err);
+        return resolve(reply);
+      });
+    });
+
+    let adminUsers;
+
+    // If not in Redis, fetch from DB and store
+    if (!redisData) {
+      console.log('AdminUser cache empty — fetching from DB...');
+      const key = [
+        'CAST(user_uuid AS CHAR(16)) AS user_uuid',
+        'username AS id',
+        'full_name as name',
+        'CAST(region_uuid AS CHAR(16)) AS region_uuid',
+        'region_name as regionName',
+      ];
+
+      const adminUserFromDb = await sqlQueryReplica.searchQueryNoLimit(
+        this.tableName1,
+        { usertype_id: 0, Active: 1 },
+        key,
+        'usertype_id',
+        'ASC'
+      );
+
+      // Store result in Redis for next calls (with expiration e.g. 10 mins)
+      redisMaster.post('AdminUser', JSON.stringify(adminUserFromDb));
+      // or redisMaster.setex('AdminUser', 600, JSON.stringify(adminUserFromDb));
+
+      adminUsers = adminUserFromDb;
+    } else {
+      adminUsers = JSON.parse(redisData);
+    }
+
+    // Now fetch agent list according to params
+    const key = [
+      'CAST(user_uuid AS CHAR(16)) AS user_uuid',
+      'username AS id',
+      'full_name as name',
+      'CAST(region_uuid AS CHAR(16)) AS region_uuid',
+      'region_name as regionName',
+    ];
+
+    const lisResults = await sqlQueryReplica.searchQueryNoLimit(
+      this.tableName1,
+      param,
+      key,
+      'usertype_id',
+      'ASC'
+    );
+
+    if (lisResults.length === 0) {
+      return res.status(204).json({ message: 'no user found' });
+    }
+ console.log('AdminUser fetched successfully with', [...adminUsers,...lisResults], 'records.');
+    return res.status(200).json({
+      reportList: [...adminUsers,...lisResults]
+     
+    });
+  } catch (error) {
+    console.error('Error in getParentName:', error);
+    return res.status(400).json({ errors: [{ msg: error.message }] });
+  }
+};
+
+   
     getAgentDetails = async(req, res, next) => {
         try {
             const errors = validationResult(req);

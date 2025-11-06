@@ -4941,12 +4941,23 @@ class rechargeController {
             // check date for start and end 
             if ((req.query.startDate && !req.query.endDate) || (req.query.endDate && !req.query.startDate)) return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
 
-            if (req.query.startDate) {
-                searchKeyValue.start_date = req.query.startDate //dt start date
+           if (req.query.startDate) {
+            searchKeyValue.start_date = req.query.startDate; // user-provided start date
+            } else {
+            // Default: 30 days ago from today
+            const start = new Date();
+            start.setDate(start.getDate() - 30);
+            searchKeyValue.start_date = start.toISOString().split('T')[0];
             }
+
             if (req.query.endDate) {
-                searchKeyValue.end_date = req.query.endDate //dt end date
+            searchKeyValue.end_date = req.query.endDate; // user-provided end date
+            } else {
+            // Default: today
+            const end = new Date();
+            searchKeyValue.end_date = end.toISOString().split('T')[0];
             }
+
             if (req.query.operator_uuid) {
                 const lisResponce1 = await commonQueryCommon.getOperatorById(req.query.operator_uuid)
                 if (lisResponce1 == 0) return res.status(400).json({ errors: [{ msg: "operator id not found" }] });

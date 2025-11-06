@@ -1036,32 +1036,63 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/verifyAndUpdateNumber]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      console.log("[Admin/verifyAndUpdateNumber]",JSON.stringify(req.body),JSON.stringify(req.query));
+          let operator_uuid = '', operatorName = ''
+
+            switch (req.body.mobileNumber.slice(0, 3)) {
+                case "078":
+                case "073":
+                    // Etisalat
+                    operator_uuid = "70b9906d-c2ba-11"
+                    operatorName = "Etisalat"
+                    break;
+                case "079":
+                case "072":
+                    // Roshan
+                    operator_uuid = "9edb602c-c2ba-11"
+                    operatorName = "Roshan"
+                    break;
+                case "077":
+                case "076":
+                    // MTN
+                    operator_uuid = "456a6b47-c2ba-11",
+                        operatorName = "MTN"
+                    break;
+                case "074":
+                    // Salaam
+                    operator_uuid = "1e0e1eeb-c2a6-11"
+                    operatorName = "Salaam"
+                    break;
+                case "070":
+                case "071":
+                    // AWCC
+                    operator_uuid = "6a904d84-c2a6-11"
+                    operatorName = "AWCC"
+                    break;
+            }
 
       var date = new Date();
       date.setHours(date.getHours() + 4, date.getMinutes() + 30);
-      var isodate = date.toISOString();
+      // var isodate = date.toISOString();
+      // Convert to MySQL-compatible DATETIME format: YYYY-MM-DD HH:MM:SS
+      var isodate = date.toISOString().slice(0, 19).replace('T', ' ');
 
       // sql varibles
       var param = {
         mobile: req.body.mobileNumber,
-        operator_uuid: req.body.operator_uuid,
-        operator_name: req.body.operatorName,
+        operator_uuid: operator_uuid,
+        operator_name: operatorName,
         new_mobile_number_request: 0,
         mobile_verification_expire_on: "0000-00-00 00:00:00",
       };
 
       var searchKeyValue = {
-        new_mobile_number_request: 1,
+        // new_mobile_number_request: 0,
         mobile_verification_otp: req.body.otp,
         admin_userid: req.body.user_detials.id, //str country uuid
         new_mobile_number: req.body.mobileNumber,
-        mobile_verification_otp_operator_uuid: req.body.operator_uuid,
-        mobile_verification_otp_operator_name: req.body.operatorName,
+       mobile_verification_otp_operator_uuid: operator_uuid,
+        mobile_verification_otp_operator_name: operatorName,
         mobile_verification_expire_in: isodate,
         status: 1,
         active: 1,
@@ -1120,7 +1151,7 @@ class AdminController {
           old_mobile_number: lisResponce[0].mobile,
           old_mobile_operator: lisResponce[0].operator_uuid,
           new_mobile_number: req.body.mobileNumber,
-          new_mobile_operator: req.body.operator_uuid,
+          new_mobile_operator: operator_uuid,
         };
 
         // amke the api call
