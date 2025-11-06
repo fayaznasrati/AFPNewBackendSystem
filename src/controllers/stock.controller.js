@@ -1171,7 +1171,12 @@ class stockController {
                 const userid = req.query.user_id;
                 searchKeyValue.sender_username = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
               }
-            if (req.query.name) searchKeyValue.reciever_username = req.query.name //str full name
+
+                 if (req.query.receiver_id) {
+                const receiverId = req.query.receiver_id;
+                searchKeyValue.reciever_username = receiverId.startsWith("AFP-") ? receiverId : `AFP-${receiverId}`;
+              }
+            // if (req.query.receiver_id) searchKeyValue.reciever_username = req.query.receiver_id //str full name
             if (req.query.start_date) searchKeyValue.start_date = req.query.start_date //dt start date
             if (req.query.end_date) searchKeyValue.end_date = req.query.end_date // dt end date
             if (req.query.province_uuid) searchKeyValue.province_uuid = req.query.province_uuid //str uuid

@@ -62,7 +62,8 @@ const accessManager = (userType) => {
                     // checking permission list
                         if(permissions == apiMethod.view){
                             if(permissionList[moduleId[1]-1].permView == 1) return next()
-                            else return res.status(400).json({ errors: [ {msg : "view permission denied"}] });
+                            else 
+                              return res.status(400).json({ errors: [ {msg : "view permission denied"}] });
                         }
                         if(permissions == apiMethod.add){
                             if(permissionList[moduleId[1]-1].permAdd == 1) return next()

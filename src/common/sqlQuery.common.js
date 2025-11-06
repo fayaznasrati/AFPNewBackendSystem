@@ -237,7 +237,7 @@ class sqlQueryCommon {
             const sql = `UPDATE ${tableName} SET ${upColumnSet} WHERE ${seColumnSet}`;
             if (boolConsole) console.log(sql, upColumnSet, upValues, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [...upValues, ...sevalues]);
-            // console.log(result)
+            console.log(result)
             return result;
         } catch (error) {
             console.log(error);

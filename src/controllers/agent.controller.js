@@ -2015,22 +2015,25 @@ class agentController {
                 if(userDetails.length == 0) return res.status(400).json({ errors: [ {msg : "user not found"}] });
 
             // search parent details
-                let parentId,parentName,parentMobile
+                let parentId,parentName,parentMobile,parentType
                 if(userDetails[0].parent_id == 1){
                     parentId = req.body.user_detials.username
                     parentName = req.body.user_detials.name
                     parentMobile = req.body.user_detials.mobile
+                    parentType = req.body.user_detials.userid == 1 ? 'Admin' : 'Sub Admin'
+
                 }else{ 
                     var searchKeyValue = {
                         userid : userDetails[0].parent_id,
                         Active : 1
                     }
-                    var key = ['CAST(user_uuid AS CHAR(16)) AS parentUser_uuid','username AS parentUserid','mobile AS parentMobile','full_name AS parentName','comm_type as parentCommission']
+                    var key = ['CAST(user_uuid AS CHAR(16)) AS parentUser_uuid','usertype_id', 'username AS parentUserid','mobile AS parentMobile','full_name AS parentName','comm_type as parentCommission']
                     const parentDetails = await sqlQueryReplica.searchQuery(this.tableName2, searchKeyValue, key,'userid','ASC',1,0)
                     if(parentDetails.length == 0) return res.status(400).json({ errors: [ {msg : "parent not found"}] });
                     parentId = parentDetails[0].parentUserid
                     parentName = parentDetails[0].parentName
                     parentMobile = parentDetails[0].parentMobile
+                    parentType = parentDetails[0].usertype_id == 0 ? 'Admin' : parentDetails[0].usertype_id == 1 ? 'Master Disterbuter' : parentDetails[0].usertype_id == 2 ? 'Disterbuter' :parentDetails[0].usertype_id == 3 ? 'Reseller': 'Retailer'
                 }
 
             // get aegnt type list
@@ -2049,6 +2052,7 @@ class agentController {
                     parentUserid : parentId,
                     parentName : parentName,
                     parentMobile : parentMobile,
+                    parentType: parentType,
                 }
 
             // check commission type and get details from respocetive tables
@@ -2119,7 +2123,7 @@ class agentController {
                 var searchKeyValue = {
                     user_uuid : req.body.parentUser_uuid,
                     // region_ids : req.body.user_detials.region_list.join(','),
-                    comm_type : 1,
+                    comm_type : req.body.parentUser_uuid == "5ad59565-cd7c-11" ? 2 : 1,
                     Active : 1
                 }
 

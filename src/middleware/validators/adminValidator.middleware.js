@@ -274,14 +274,14 @@ exports.requestForOtp = [
     .isNumeric().withMessage('should be a number')
     .matches(/^[0-9\s]+$/).withMessage('Mobile Number must contain only number 0-9')
     .trim().isLength({ min: 10, max: 15 }).withMessage('MobileNumber maximum length is 15'),
-    body('operator_uuid')
-    .exists().withMessage('operator_uuid is required')
-    .isString().withMessage('should be a string')
-    .trim().isLength({ min: 16, max: 16 }).withMessage('operator_uuid maximum limit is 16 words'),
-    body('operatorName')
-    .exists().withMessage('operatorName is required')
-    .isString().withMessage('operatorName be a string')
-    .trim().isLength({ min: 1, max: 50 }).withMessage('operatorName maximum limit is 50 words'),
+    // body('operator_uuid')
+    // .exists().withMessage('operator_uuid is required')
+    // .isString().withMessage('should be a string')
+    // .trim().isLength({ min: 16, max: 16 }).withMessage('operator_uuid maximum limit is 16 words'),
+    // body('operatorName')
+    // .exists().withMessage('operatorName is required')
+    // .isString().withMessage('operatorName be a string')
+    // .trim().isLength({ min: 1, max: 50 }).withMessage('operatorName maximum limit is 50 words'),
     body('user_detials')
     .custom(value => {
         if (value === undefined) {
@@ -328,14 +328,14 @@ exports.verifyAndUpdateNumber = [
     .isNumeric().withMessage('should be a number')
     .matches(/^[0-9\s]+$/).withMessage('Mobile Number must contain only number 0-9')
     .trim().isLength({ min: 10, max: 15 }).withMessage('MobileNumber maximum length is 15'),
-    body('operator_uuid')
-    .exists().withMessage('operator_uuid is required')
-    .isString().withMessage('should be a string')
-    .trim().isLength({ min: 16, max: 16 }).withMessage('operator_uuid maximum limit is 16 words'),
-    body('operatorName')
-    .exists().withMessage('operatorName is required')
-    .isString().withMessage('operatorName be a string')
-    .trim().isLength({ min: 1, max: 50 }).withMessage('operatorName maximum limit is 50 words'),
+    // body('operator_uuid')
+    // .exists().withMessage('operator_uuid is required')
+    // .isString().withMessage('should be a string')
+    // .trim().isLength({ min: 16, max: 16 }).withMessage('operator_uuid maximum limit is 16 words'),
+    // body('operatorName')
+    // .exists().withMessage('operatorName is required')
+    // .isString().withMessage('operatorName be a string')
+    // .trim().isLength({ min: 1, max: 50 }).withMessage('operatorName maximum limit is 50 words'),
     body('otp')
     .exists().withMessage('OTP Number is required')
     .isNumeric().withMessage('should be a number')
