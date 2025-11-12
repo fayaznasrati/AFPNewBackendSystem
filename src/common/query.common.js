@@ -154,6 +154,8 @@ exports.multipleAndColumnSet = (object) => {
         if(key == 'agent_login_otp_expire_out') return `date(agent_login_otp_expire_on) > ?`
         if(key == 'created_on') return `date(created_on) = ?`
         if(key == 'lower_agent_type_id') return `agent_type_id > ?`
+        if(key == 'greater_agent_type_id') return `agent_type_id < ?`
+        if(key == 'greater_and_equal_agent_type_id') return `agent_type_id <= ?`
         if(key == 'wall1_comm_gat') return `wallet1_comm >= ?`
         if(key == 'wall2_comm_gat') return `wallet2_comm >= ?`
         if(key == 'wall3_comm_gat') return `wallet3_comm >= ?`

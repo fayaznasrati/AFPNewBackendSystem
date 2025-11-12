@@ -161,7 +161,65 @@ class agentController {
                 if(agentTypeid.length == 0) return res.status(400).json({ errors: [ {msg : 'user not found'}] });
 
             // search agent type list 
-                const listAgentType = await sqlQueryReplica.searchQueryNoLimit(this.tableName4,{lower_agent_type_id : agentTypeid[0].usertype_id,active:1},['CAST(agent_type_uuid AS CHAR(16)) AS agenttype_uuid', 'agent_type_name AS name'], 'agent_type_id','ASC')
+                const listAgentType = await sqlQueryReplica.searchQueryNoLimit(this.tableName4,{lower_agent_type_id : agentTypeid[0].usertype_id,active:1},['CAST(agent_type_uuid AS CHAR(16)) AS agent_type_uuid', 'agent_type_name AS name'], 'agent_type_id','ASC')
+                if(listAgentType.length == 0) return res.status(204).send({ message : 'no user type found'})
+
+                res.status(200).send(listAgentType)
+
+        }catch(error){
+            console.log(error);
+            return res.status(400).json({ errors: [ {msg : error.message}] });
+        }
+    }
+
+      getGreaterAgentType = async (req, res) => {
+        try{
+            
+            // verify body and query
+                const errors = validationResult(req);
+                if (!errors.isEmpty()) {
+                    return res.status(400).json({ errors: errors.array() });
+                }
+                // console.log('Agent/getGreaterAgentType',JSON.stringify(req.body), JSON.stringify(req.query))
+            // limit offset
+                // var offset = req.query.start
+                // var limit = req.query.end - offset
+
+            // get agent tyep id
+                const agentTypeid = await sqlQueryReplica.searchQuery(this.tableName2,{user_uuid : req.query.user_uuid,Active:1, user_status: 1},['usertype_id'],'userid','ASC',1,0)
+                if(agentTypeid.length == 0) return res.status(400).json({ errors: [ {msg : 'user not found'}] });
+
+            // search agent type list 
+                const listAgentType = await sqlQueryReplica.searchQueryNoLimit(this.tableName4,{greater_agent_type_id : agentTypeid[0].usertype_id,active:1},['CAST(agent_type_uuid AS CHAR(16)) AS agent_type_uuid', 'agent_type_name AS name'], 'agent_type_id','ASC')
+                if(listAgentType.length == 0) return res.status(204).send({ message : 'no user type found'})
+
+                res.status(200).send(listAgentType)
+
+        }catch(error){
+            console.log(error);
+            return res.status(400).json({ errors: [ {msg : error.message}] });
+        }
+    }
+
+        getGreaterAndEqualAgentType = async (req, res) => {
+        try{
+            
+            // verify body and query
+                const errors = validationResult(req);
+                if (!errors.isEmpty()) {
+                    return res.status(400).json({ errors: errors.array() });
+                }
+                // console.log('Agent/getGreaterAgentType',JSON.stringify(req.body), JSON.stringify(req.query))
+            // limit offset
+                // var offset = req.query.start
+                // var limit = req.query.end - offset
+
+            // get agent tyep id
+                const agentTypeid = await sqlQueryReplica.searchQuery(this.tableName2,{user_uuid : req.query.user_uuid,Active:1, user_status: 1},['usertype_id'],'userid','ASC',1,0)
+                if(agentTypeid.length == 0) return res.status(400).json({ errors: [ {msg : 'user not found'}] });
+
+            // search agent type list 
+                const listAgentType = await sqlQueryReplica.searchQueryNoLimit(this.tableName4,{greater_and_equal_agent_type_id : agentTypeid[0].usertype_id,active:1},['CAST(agent_type_uuid AS CHAR(16)) AS agent_type_uuid', 'agent_type_name AS name'], 'agent_type_id','ASC')
                 if(listAgentType.length == 0) return res.status(204).send({ message : 'no user type found'})
 
                 res.status(200).send(listAgentType)

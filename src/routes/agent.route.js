@@ -47,7 +47,7 @@ const {
 
 const {
     allTypeSchema,createTypeSchema,updateTypeSchema,
-    deleteTypeSchema,getAgentByAgentType,getLowerAgentType
+    deleteTypeSchema,getAgentByAgentType,getLowerAgentType,getGreaterAgentType,getGreaterAndEqualAgentType
 } = require('../middleware/validators/agentValidator.middleware')
 
 // Agent Type APIs
@@ -56,6 +56,8 @@ router.post('/type', createTypeSchema, auth(role.Admin), awaitHandlerFactory(age
 router.put('/type', updateTypeSchema, auth(role.Admin), awaitHandlerFactory(agentController.updateType));
 router.delete('/type', deleteTypeSchema, auth(role.Admin), awaitHandlerFactory(agentController.deleteType));
 router.get('/type/userid', getLowerAgentType, auth(), awaitHandlerFactory(agentController.getLowerAgentType));
+router.get('/greater/type/userid', getGreaterAgentType, auth(), awaitHandlerFactory(agentController.getGreaterAgentType));
+router.get('/greater-and-equal/type/userid', getGreaterAndEqualAgentType, auth(), awaitHandlerFactory(agentController.getGreaterAndEqualAgentType));
 
 //API to get agent by agent type id
 router.get('/by-agent-type',getAgentByAgentType, auth(), awaitHandlerFactory(agentController.getAgentByAgentType))
