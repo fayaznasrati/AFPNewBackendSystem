@@ -66,6 +66,54 @@ exports.getLowerAgentType = [
     })
     .withMessage('wrong request')
 ]
+exports.getGreaterAgentType = [
+    query('username')
+    .exists()
+    .withMessage('username is required')
+    .isString()
+    .withMessage('should be string')
+    .trim().isLength({ min: 1, max: 50 })
+    .withMessage('username maximum limit is 50 words'),
+    query('user_uuid')
+    .exists()
+    .withMessage('user_uuid is required')
+    .isString()
+    .withMessage('should be string')
+    .trim().isLength({ min: 1, max: 50 })
+    .withMessage('user_uuid maximum limit is 50 words'),
+    body('user_detials')
+    .custom(value => {
+        if (value === undefined) {
+            return true
+        }
+        return false
+    })
+    .withMessage('wrong request')
+]
+exports.getGreaterAndEqualAgentType = [
+    query('username')
+    .exists()
+    .withMessage('username is required')
+    .isString()
+    .withMessage('should be string')
+    .trim().isLength({ min: 1, max: 50 })
+    .withMessage('username maximum limit is 50 words'),
+    query('user_uuid')
+    .exists()
+    .withMessage('user_uuid is required')
+    .isString()
+    .withMessage('should be string')
+    .trim().isLength({ min: 1, max: 50 })
+    .withMessage('user_uuid maximum limit is 50 words'),
+    body('user_detials')
+    .custom(value => {
+        if (value === undefined) {
+            return true
+        }
+        return false
+    })
+    .withMessage('wrong request')
+]
 
 exports.updateTypeSchema = [
     query('username')

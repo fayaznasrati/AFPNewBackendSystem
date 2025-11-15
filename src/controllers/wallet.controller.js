@@ -2292,40 +2292,31 @@ class walletController {
             const sheet = workbook.addWorksheet('Rollback Details');
 
             // Add header
-          sheet.columns = [
-                            { header: 'Transaction ID', key: 'transactionId', width: 25 },
-                            { header: 'Username', key: 'userid', width: 20 },
-                            { header: 'Full Name', key: 'name', width: 25 },
-                            { header: 'User Type', key: 'userType', width: 20 },
-                            { header: 'Reverted To (ID)', key: 'revertByUserId', width: 25 },
-                            { header: 'Reverted To (Name)', key: 'revertByUserName', width: 25 },
-                            { header: 'Amount', key: 'amount', width: 15 },
-                            { header: 'Commission', key: 'commission', width: 15 },
-                            { header: 'Date', key: 'Date', width: 20 },
-                        ];
+           // Add header columns
+            sheet.columns = [
+            { header: 'Sr No', key: 'srNo', width: 10 },
+            { header: 'Transaction ID', key: 'transactionId', width: 25 },
+            { header: 'Username', key: 'userid', width: 20 },
+            { header: 'Full Name', key: 'name', width: 25 },
+            { header: 'User Type', key: 'userType', width: 20 },
+            { header: 'Revert By User ID', key: 'revertByUserId', width: 25 },
+            { header: 'Revert By Name', key: 'revertByUserName', width: 25 },
+            { header: 'Amount', key: 'amount', width: 15 },
+            { header: 'Commission', key: 'commission', width: 15 },
+            { header: 'Date', key: 'Date', width: 20 },
+            ];
 
-// 
+            // Add Sr No to each row
+            const dataWithSrNo = results.map((item, index) => ({
+            srNo: index + 1,
+            ...item
+            }));
 
-            sheet.addRows(results);
+            sheet.addRows(dataWithSrNo);
 
-                    // Create Excel file
-                    // const workbook = new ExcelJS.Workbook();
-                    // const sheet = workbook.addWorksheet('Rollback Details');
+            sheet.getRow(1).font = { bold: true }; // Optional: make header row bold
 
-                    // // Dynamically define columns based on keys from the first object
-                    // if (results.length > 0) {
-                    //     const sampleRow = results[0];
-                    //     sheet.columns = Object.keys(sampleRow).map((key) => ({
-                    //         header: key.charAt(0).toUpperCase() + key.slice(1), // Capitalized header
-                    //         key: key,
-                    //         width: 20
-                    //     }));
-                    // }
-
-                    // sheet.addRows(results);
-                    sheet.getRow(1).font = { bold: true }; // Optional: make header row bold
-
-                    await workbook.xlsx.writeFile(filePath);
+            await workbook.xlsx.writeFile(filePath);
 
 
 
@@ -2372,7 +2363,7 @@ class walletController {
             });
         }
     }
-};
+    };
 
 
     getAgentRollbackReport = async (req,res) =>{
