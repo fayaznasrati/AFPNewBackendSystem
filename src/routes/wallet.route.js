@@ -33,6 +33,7 @@ router.get('/agent/download-report',getAgentBalanceReport,auth(role.Admin,role.S
 //transaction report
 router.get('/transaction/report',transactionReport,auth(role.Admin,role.SubAdmin,1,2,3,4,5,6), accessManager({subAdmin : { module: [2,15], permission: apiMethod.view } , agent: { module: [5,4], permission: apiMethod.view }}), awaitHandlerFactory(walletController.transactionReport))
 router.get('/download-transaction/report',transactionReport,auth(role.Admin,role.SubAdmin,1,2,3,4,5,6), accessManager({subAdmin : { module: [2,15], permission: apiMethod.view } , agent: { module: [5,4], permission: apiMethod.view }}), awaitHandlerFactory(walletController.downloadTransactionReport))
+router.get('/download-transaction/report-pdf',transactionReport,auth(role.Admin,role.SubAdmin,1,2,3,4,5,6), accessManager({subAdmin : { module: [2,15], permission: apiMethod.view } , agent: { module: [5,4], permission: apiMethod.view }}), awaitHandlerFactory(walletController.downloadTransactionReportpdf))
 router.get('/transaction-summery/report',getTransactionSummeryReport,auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [2,16], permission: apiMethod.view }}), awaitHandlerFactory(walletController.getTransactionSummeryReport))
 router.get('/download-transaction-summery/report',getTransactionSummeryReport,auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [2,16], permission: apiMethod.view }}), awaitHandlerFactory(walletController.downloadTransactionSummeryReport))
 
