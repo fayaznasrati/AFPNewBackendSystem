@@ -134,6 +134,23 @@ class walletModel {
         return result
     }
 
+        transactionReportpdf = async (param, limit, offset) => {
+        
+        const {sevalues,seColumnSet} = await this.queryGen(param);
+        // console.log(sevalues,seColumnSet);
+
+        let sql = `SELECT /*+ MAX_EXECUTION_TIME(${process.env.SQL_QUERY_TIME_OUT}) */ ${this.tablename1}.username AS User_ID,
+                             CAST(${this.tablename2}.trans_date_time AS CHAR(18)) AS Transaction_Date, ${this.tablename2}.amount, ${this.tablename2}.balance_amount AS closing_Balance, ${this.tablename2}.trans_type AS type, `
+            sql = sql +  ` ${this.tablename2}.narration AS Description `
+            sql = sql +  ` FROM ${this.tablename1} JOIN ${this.tablename2}
+                    ON ${this.tablename1}.userid = ${this.tablename2}.userid
+                    WHERE ${seColumnSet} ORDER BY ${this.tablename2}.wallet_txn_id DESC LIMIT ${limit} OFFSET ${offset}`
+        // console.log(sql,sevalues);
+        const result = await dbConnectionReplica.query(sql,[...sevalues]);
+        // console.log(result);
+        return result
+    }
+
     getAgentAcountBalanceForRollbackCount = async(param) => {
         const {sevalues,seColumnSet} = await this.queryGen(param);
         console.log(sevalues,seColumnSet);

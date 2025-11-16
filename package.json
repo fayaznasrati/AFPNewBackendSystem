@@ -32,6 +32,7 @@
     "mysql2": "^3.14.0",
     "node-cron": "^3.0.0",
     "node-dataset": "^1.3.42",
+    "pdfkit": "^0.17.2",
     "randomstring": "^1.2.1",
     "redis": "^3.1.2",
     "redis-connection-pool": "^1.7.4",

@@ -5,7 +5,7 @@ const varRandomString = require('../utils/randomString.utils');
 
 const commonQueryCommon = require('../common/commonQuery.common');
 const httpRequestMakerCommon = require('../common/httpRequestMaker.common');
-
+const generatePDFReport = require('../utils/PDFGenerator.utils');
 const sqlQuery = require('../common/sqlQuery.common')
 const sqlQueryReplica = require('../common/sqlQueryReplica.common')
 
@@ -1030,6 +1030,140 @@ class walletController {
         }
     }
     };
+
+   downloadTransactionReportpdf = async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        const param = { Active: 1 };
+
+        // Region-based filtering
+        const user = req.body.user_detials;
+        if (user.type === role.Admin || user.type === role.SubAdmin) {
+            user.region_list.push('0');
+            if (user.region_list.length !== 8) {
+                param.region_ids = user.region_list.join(',');
+            }
+        } else {
+            param.userid = req.query.username;
+        }
+
+        // User filters
+        if (req.query.userid) {
+            const userid = req.query.userid;
+            param.userid = userid.startsWith('AFP-') ? userid : `AFP-${userid}`;
+        }
+        if (req.query.name) param.userName = req.query.name;
+        if (req.query.mobile) param.number = req.query.mobile;
+        if (req.query.region_uuid) param.region_uuid = req.query.region_uuid;
+        if (req.query.province_uuid) param.province_uuid = req.query.province_uuid;
+        if (req.query.district_uuid) param.district_uuid = req.query.district_uuid;
+
+        // Date validation
+        if ((req.query.start_date && !req.query.end_date) || (req.query.end_date && !req.query.start_date)) {
+            return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+        }
+        if (req.query.start_date) param.start_date = req.query.start_date;
+        if (req.query.end_date) param.end_date = req.query.end_date;
+
+        // Transaction filters
+        if (req.query.transactionId) param.transactionId = req.query.transactionId;
+        if (req.query.transactionType) param.transactionType = req.query.transactionType;
+
+        if (Object.keys(param).length === 0) {
+            return res.status(404).json({ errors: [{ msg: 'Improper search parameter' }] });
+        }
+
+        const lisTotalRecords = await walletModel.transactionReportCount(param);
+        const intTotlaRecords = Number(lisTotalRecords[0].count);
+        const pageLimit = Number(process.env.PER_PAGE_COUNT);
+        const intPageCount = intTotlaRecords % pageLimit === 0 ? intTotlaRecords / pageLimit : Math.floor(intTotlaRecords / pageLimit) + 1;
+        const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
+        const limit = req.query.pageNumber > 0 ? pageLimit : intTotlaRecords;
+
+        const lisResponce1 = await walletModel.transactionReportpdf(param, limit, offset);
+        const results = lisResponce1.map(result => {
+            const { type, ...other } = result;
+            return { ...other, type: type === 1 ? 'Credit' : 'Debit' };
+        });
+
+     
+
+        // If paginated request, return JSON
+        if (req.query.pageNumber > 0) {
+            return res.status(200).json({
+                reportList: {...results,},
+                totalRepords: intTotlaRecords,
+                pageCount: intPageCount,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit,
+                totalAmount: lisTotalRecords[0].totalAmount || 0
+            });
+        }
+
+        const now = new Date();
+        const dateStr = new Date().toISOString().split('T')[0];
+        const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+        const fileName = `Transaction_Report_${dateStr}_${timeStr}.pdf`; // Changed to .pdf
+        const filePath = path.join(REPORT_DIR, fileName);
+
+        // ✅ Reuse PDF file if created within last 30 minutes
+        if (fs.existsSync(filePath)) {
+            const stats = fs.statSync(filePath);
+            const ageMinutes = (Date.now() - stats.mtimeMs) / (60 * 1000);
+            if (ageMinutes < 30) {
+                console.log("Reusing cached PDF report:", fileName);
+                return res.json({ 
+                    success: true, 
+                    downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}`,
+                    reused: true
+                });
+            }
+        }
+
+        // ✅ Generate new PDF file using the helper function
+        try {
+            const totalAmount =  lisTotalRecords[0].totalAmount || 0;
+            const finalResult = {results ,totalAmount}
+            await generatePDFReport("Account Statement",finalResult, filePath);
+        } catch (pdfErr) {
+            console.error('PDF generation failed:', pdfErr);
+            return res.status(500).json({ error: 'PDF generation failed' });
+        }
+
+        // ⏱ Delete PDF file after 30 minutes
+        setTimeout(() => {
+            fs.unlink(filePath, (err) => {
+                if (err) console.error('Error deleting PDF file:', filePath, err);
+                else console.log('Deleted expired PDF report file:', fileName);
+            });
+        }, 30 * 60 * 1000);
+
+        return res.json({ 
+            success: true, 
+            downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}`,
+            reused: false
+        });
+
+    } catch (error) {
+        console.error('transactionReport error:', error);
+        if (req.query.pageNumber == 0) {
+            res.status(200).send([{}]);
+        } else {
+            res.status(200).json({
+                reportList: [{}],
+                totalRepords: 0,
+                pageCount: 0,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: Number(process.env.PER_PAGE_COUNT),
+                totalAmount: 0
+            });
+        }
+    }
+};
 
     // transaction summery report
     getTransactionSummeryReport = async (req,res) => {

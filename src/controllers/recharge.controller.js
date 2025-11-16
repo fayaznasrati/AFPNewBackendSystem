@@ -5,7 +5,7 @@ const varRandomString = require('../utils/randomString.utils');
 const multer = require('multer');
 const upload = multer({ dest: 'bulk_topup_files/' }); // temp folder
 const xlsx = require('xlsx'); // ✅ CommonJS syntax
-
+const generatePDFReport = require('../utils/PDFGenerator.utils');
 
 const sqlQuery = require('../common/sqlQuery.common')
 const sqlQueryReplica = require('../common/sqlQueryReplica.common')
@@ -4331,7 +4331,7 @@ class rechargeController {
 
             while (true) {
                 const offset = (page - 1) * perPage;
-                const chunk = await rechargeModel.agentTopupReport(searchKeyValue, perPage, offset);
+                const chunk = await rechargeModel.downloadAgentTopupReport(searchKeyValue, perPage, offset);
                 if (!chunk.length) break;
 
                 if (isFirstBatch) {
@@ -4365,6 +4365,171 @@ class rechargeController {
     };
 
 
+    downloadAgentTopupReportpdf = async (req, res) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+
+            const searchKeyValue = { Active: 1 };
+            const filters = [];
+
+            if (req.body.user_detials?.region_list?.length !== 7) {
+                searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+                filters.push(`region_ids=${searchKeyValue.region_ids}`);
+            }
+
+            if (req.query.contactNumber) {
+                if (req.query.contactNumber.length === 10) {
+                    searchKeyValue.mobile_number = req.query.contactNumber;
+                    filters.push(`mobile=${req.query.contactNumber}`);
+                } else {
+                    searchKeyValue.trans_number = req.query.contactNumber;
+                    filters.push(`txn=${req.query.contactNumber}`);
+                }
+            }
+
+            if (req.query.userId) {
+                const userId = req.query.userId.startsWith("AFP-") ? req.query.userId : `AFP-${req.query.userId}`;
+                searchKeyValue.username = userId;
+                filters.push(`userId=${userId}`);
+            }
+
+            if (req.query.userName) {
+                if (!isNaN(req.query.userName)) {
+                    searchKeyValue.request_mobile_no = [req.query.userName, "0" + req.query.userName];
+                    filters.push(`userPhone=${req.query.userName}`);
+                } else {
+                    searchKeyValue.full_name = req.query.userName;
+                    filters.push(`userName=${req.query.userName}`);
+                }
+            }
+
+            if (req.query.region_uuid) {
+                searchKeyValue.region_uuid = req.query.region_uuid;
+                filters.push(`region=${req.query.region_uuid}`);
+            }
+
+            if (req.query.province_uuid) {
+                searchKeyValue.province_uuid = req.query.province_uuid;
+                filters.push(`province=${req.query.province_uuid}`);
+            }
+
+            if (req.query.district_uuid) {
+                searchKeyValue.district_uuid = req.query.district_uuid;
+                filters.push(`district=${req.query.district_uuid}`);
+            }
+
+            if (!searchKeyValue.trans_number) {
+                if ((req.query.startDate && !req.query.endDate) || (!req.query.startDate && req.query.endDate)) {
+                    return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+                }
+                if (req.query.startDate) {
+                    searchKeyValue.start_date = req.query.startDate;
+                    filters.push(`from=${req.query.startDate}`);
+                }
+                if (req.query.endDate) {
+                    searchKeyValue.end_date = req.query.endDate;
+                    filters.push(`to=${req.query.endDate}`);
+                }
+            }
+
+            if (req.query.operator_uuid) {
+                const operator = await commonQueryCommon.getOperatorById(req.query.operator_uuid);
+                if (!operator || operator.length === 0) {
+                    return res.status(400).json({ errors: [{ msg: "operator id not found" }] });
+                }
+                searchKeyValue.operator_id = operator[0].operator_id;
+                filters.push(`op=${req.query.operator_uuid}`);
+            }
+
+            if (req.query.status) {
+                if (req.query.status == 4) {
+                    searchKeyValue.rollback_status = 3;
+                } else {
+                    if (req.query.status == 2) {
+                        searchKeyValue.isIn = {
+                            key: 'rollback_status',
+                            value: '0,1,2,4'
+                        };
+                    }
+                    searchKeyValue.status = req.query.status;
+                }
+                filters.push(`status=${req.query.status}`);
+            }
+
+            // Generate timestamp for filename
+            const now = new Date();
+            const dateStr = new Date().toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+            const fileName = `topup_report_${dateStr}_${timeStr}.pdf`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            // ✅ Reuse file if created within last 30 minutes
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                const ageMinutes = (Date.now() - stats.mtimeMs) / (60 * 1000);
+                if (ageMinutes < 30) {
+                    console.log("Reusing cached PDF report:", fileName);
+                    return res.json({
+                        success: true,
+                        downloadUrl: `${process.env.THE_DOMAIN_NAME}/api/v1/recharge/admin-report/files/${fileName}`,
+                        reused: true
+                    });
+                }
+            }
+
+                      // let sum and count
+            const lisTotalRecords = await rechargeModel.agentTopupSumCountReport(searchKeyValue)
+            if (lisTotalRecords.length == 0) return res.status(400).send({ message: "Calculation error" })
+
+            let intTotlaRecords = Number(lisTotalRecords[0].count)
+            let intPageCount = (intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
+            let sumRechargeAmount = Number(lisTotalRecords[0].amount) || 0
+            let sumDebitedAmount = Number(lisTotalRecords[0].deductAdmount) || 0
+            console.log("sumRechargeAmount",sumRechargeAmount,"sumDebitedAmount",sumDebitedAmount)
+
+
+            // ✅ Otherwise, generate new PDF file
+            const perPage = 1000;
+            let page = 1;
+            let allData = [];
+
+            // Fetch all data
+            while (true) {
+                const offset = (page - 1) * perPage;
+                const chunk = await rechargeModel.downloadAgentTopupReportpdf(searchKeyValue, perPage, offset);
+                if (!chunk.length) break;
+                
+                allData = allData.concat(chunk);
+                if (chunk.length < perPage) break;
+                page++;
+            }
+           // Generate the PDF report
+            try {
+                await generatePDFReport("Top Up",allData, filePath);
+            } catch (pdfErr) {
+                console.error('PDF generation failed:', pdfErr);
+                return res.status(500).json({ error: 'PDF generation failed' });
+            }
+
+            // ⏱ Delete file after 30 minutes
+            setTimeout(() => {
+                fs.unlink(filePath, err => {
+                    if (err) console.error('Error deleting PDF file:', filePath, err);
+                    else console.log('Deleted expired PDF report file:', fileName);
+                });
+            }, 30 * 60 * 1000);
+
+            const downloadUrl = `${process.env.THE_DOMAIN_NAME}/api/v1/recharge/admin-report/files/${fileName}`;
+            res.json({ success: true, downloadUrl, reused: false });
+
+        } catch (err) {
+            console.error("PDF export error:", err);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    };
 
 
 
