@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+uploads
+logs
+bulk_topup_files
+the_topup_reports
+.git
+.env
+/node_modules
+/src/.env
+.node_modules
