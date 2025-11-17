@@ -1395,6 +1395,127 @@ class loginController {
         }
     }
 
+        //function to get all all user wuth basic details
+    downloadAllAgent = async(req, res, next) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+            console.log('login/getAllAgent',JSON.stringify(req.body), JSON.stringify(req.query))
+            if ( ! req.query.pageNumber ) req.query.pageNumber = 0
+            console.log("req.Query", req.query);
+
+            // variable for sql query
+            // var offset = req.query.start
+            // var limit = req.query.end - offset
+            
+            var searchKeyValue = {
+                parent_id: req.body.user_detials.userid,
+                Active : 1
+            }
+
+            // if admin or sub admin then search by region if agent search by agent ids
+            if(req.body.user_detials.type == userList.Admin || req.body.user_detials.type == userList.SubAdmin ) {
+                // searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+                if(req.body.user_detials.region_list.length != 7){
+                    searchKeyValue.region_ids = req.body.user_detials.region_list.join(',')
+                }
+            }else{
+                searchKeyValue.child_ids =  req.body.user_detials.child_list.join(',');
+            }
+            //different serach option
+            // if (req.query.userId) searchKeyValue.username = req.query.userId //str username
+            if (req.query.userId) {
+                const userId = req.query.userId;
+                searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
+              }
+            if (req.query.name) searchKeyValue.full_name = req.query.name //str full name
+            if (req.query.mobileNumber) searchKeyValue.mobile = req.query.mobileNumber //int mobile number              
+            if (req.query.userType_uuid) {
+                const lisResponce = await this.checkAgentType(req.query.userType_uuid)
+                if (lisResponce.length === 0) return res.status(400).json({ errors: [ {msg : 'User type not found'}] });
+                searchKeyValue.usertype_id = lisResponce[0].agent_type_id //int user typeId
+            }
+            if (req.query.region_uuid) searchKeyValue.region_uuid = req.query.region_uuid // str region_uuid
+            if (req.query.province_uuid) searchKeyValue.province_uuid = req.query.province_uuid // str region_uuid
+            if (req.query.status) searchKeyValue.user_status = Number(req.query.status) // tinyint 1,2
+
+            if (Object.keys(searchKeyValue).length == 2) {
+                if((req.query.start_date && !req.query.end_date )||(req.query.end_date && !req.query.start_date )) return res.status(400).json({ errors: [ {msg : 'Date range is not proper'}] });
+                if (req.query.start_date) searchKeyValue.start_date = req.query.start_date //dt start date
+                if (req.query.end_date) searchKeyValue.end_date = req.query.end_date // dt end date
+            } //return res.status(400).json({ errors: [ {msg : 'Improper values of search parameter'}] });
+
+            const lisTotalRecords = await agentModule.searchAgentCount(searchKeyValue)
+
+            let intTotlaRecords = Number(lisTotalRecords.length)
+            let intPageCount = ( intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0 ) ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT) : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1
+
+            let offset = req.query.pageNumber > 0 ? Number(req.query.pageNumber - 1) * Number(process.env.PER_PAGE_COUNT) : 0
+            let limit = req.query.pageNumber > 0 ? Number(process.env.PER_PAGE_COUNT) : intTotlaRecords
+
+            // console.log("searchKeyValue",searchKeyValue)
+            const lisResults = await agentModule.downloadAgentListQuery(searchKeyValue, limit, offset)
+
+
+
+             // Handle Download
+        if (req.query.pageNumber == 0) {
+               const now = new Date();
+                const dateStr = new Date().toISOString().split('T')[0];
+                const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-mm-ss
+                const fileName = `agent_list_${dateStr}_${timeStr}.xlsx`;
+            const filePath = path.join(REPORT_DIR, fileName);
+
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                if (Date.now() - stats.mtimeMs < 30 * 60 * 1000) {
+                    return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+                }
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Agents');
+
+            if (lisResults.length > 0) {
+                worksheet.columns = Object.keys(lisResults[0]).map((key) => ({
+                    header: key,
+                    key: key,
+                    width: key.length < 20 ? 20 : key.length + 5
+                }));
+                worksheet.addRows(lisResults);
+            }
+
+            await workbook.xlsx.writeFile(filePath);
+            fs.chmodSync(filePath, 0o644);
+
+            // Delete file after 30 minutes
+            setTimeout(() => {
+                fs.unlink(filePath, (err) => {
+                    if (err) console.error('Error deleting file:', fileName);
+                    else console.log('Deleted agent report file:', fileName);
+                });
+            }, 30 * 60 * 1000); // 30 min
+
+            return res.json({ success: true, downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}` });
+        
+            }else{
+                res.status(200).send({
+                    reportList : lisResults,
+                    totalRepords : intTotlaRecords,
+                    pageCount : intPageCount,
+                    currentPage : Number(req.query.pageNumber),
+                    pageLimit : Number(process.env.PER_PAGE_COUNT)
+                })
+            }
+
+        } catch (error) {
+            console.log(error);
+            return res.status(400).json({ errors: [ {msg : error.message}] });
+        }
+    }
+
 
     downloadDwonlineAgent = async (req, res) => {
     try {
