@@ -77,6 +77,25 @@ class stockModule {
         return result
     }
 
+        DownloadAdminStocksDetials = async(details, limit, offset) => {
+
+        const {seColumnSet, sevalues} = this.multipleAndColumnSet(details,this.tableName1,this.tableName2)
+        let sql = `SELECT ${this.tableName1}.username AS User_Id, ${this.tableName1}.full_name AS Agent_Name,  
+         IF(${this.tableName1}.usertype_id = 1,'Master Distributor',IF(${this.tableName1}.usertype_id = 2,'Distributor',IF(${this.tableName1}.usertype_id = 3,'Reseller','Retailer'))) as User_type, 
+         ${this.tableName1}.province_Name AS province, ${this.tableName1}.region_name AS region, ${this.tableName2}.trans_number AS Transaction_Id, `
+        if(!details.child_ids) sql = sql + ` ${this.tableName2}.transfer_amt AS Transfar_Amount, ${this.tableName2}.transfer_comm AS commission, ` 
+        else sql = sql + ` ${this.tableName2}.transfer_amt + ${this.tableName2}.transfer_comm AS Transfar_Amount, `
+                            
+        sql = sql +         ` CAST(${this.tableName2}.created_on AS CHAR(20)) AS transactionDateTime
+                            FROM ${this.tableName2} LEFT JOIN ${this.tableName1}
+                            on ${this.tableName2}.reciever_id = ${this.tableName1}.userid
+                            WHERE ${seColumnSet}
+                            ORDER BY ${this.tableName2}.id DESC limit ${limit} OFFSET ${offset}`
+        // console.log(sql)
+        const result = await dbConnectionReplica.query(sql,[...sevalues]);
+        return result
+    }
+
     stockRecievedReportCount = async (details) =>{
         const {seColumnSet, sevalues} = this.multipleAndColumnSet(details,this.tableName1,this.tableName2)
         const sql = `SELECT COUNT(1) AS count, SUM(${this.tableName2}.transfer_amt) AS transactionAmount, SUM(${this.tableName2}.transfer_comm) AS commissionAmount
@@ -131,6 +150,27 @@ class stockModule {
                             on ${this.tableName2}.reciever_id = parentId.userid 
                             WHERE ${seColumnSet} 
                             ORDER BY ${this.tableName2}.id DESC LIMIT ${limit} OFFSET ${offset}`
+        // console.log(sql,sevalues)
+        const result = await dbConnectionReplica.query(sql,[...sevalues]);
+        return result
+    }
+
+      downloadAgentStockTransferQuery = async(details, limit, offset) => {
+
+        const {seColumnSet, sevalues} = this.multipleAndColumnSet(details,this.tableName1,this.tableName2)
+        const sql = `SELECT 
+${this.tableName1}.full_name AS Sender_Name,
+${this.tableName1}.username AS Sender_Id, 
+${this.tableName2}.transfer_amt AS Transfar_Amount,
+CAST(${this.tableName2}.created_on AS CHAR(20)) AS transactionDateTime,
+parentId.full_name as Reciever_Name, 
+parentId.username as Reciever_Id
+FROM ${this.tableName2} JOIN ${this.tableName1}
+on ${this.tableName2}.sender_id = ${this.tableName1}.userid 
+JOIN ${this.tableName1} AS parentId
+on ${this.tableName2}.reciever_id = parentId.userid 
+WHERE ${seColumnSet} 
+ORDER BY ${this.tableName2}.id DESC LIMIT ${limit} OFFSET ${offset}`
         // console.log(sql,sevalues)
         const result = await dbConnectionReplica.query(sql,[...sevalues]);
         return result
