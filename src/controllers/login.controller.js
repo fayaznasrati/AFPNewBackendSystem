@@ -1604,7 +1604,7 @@ class loginController {
         const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
         const limit = req.query.pageNumber > 0 ? pageLimit : totalRecords;
 
-        const lisResults = await agentModule.searchAgent(searchKeyValue, limit, offset);
+        const lisResults = await agentModule.downloadAgentListQuery(searchKeyValue, limit, offset);
 
         // Handle Download
         if (req.query.pageNumber == 0) {

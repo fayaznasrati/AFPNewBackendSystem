@@ -512,7 +512,7 @@ class rechargeController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
+            // console.log('recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
             let operator_uuid = '', operatorName = ''
 
             switch (req.body.mobile.slice(0, 3)) {
@@ -575,7 +575,7 @@ class rechargeController {
             }
 
             let responce
-            console.log('data', data)
+            // console.log('data', data)
             let stockTransferStatus = await this.#checkStockTransferStatus()
             if (stockTransferStatus.length == 0 || stockTransferStatus[0].stock_transfer == 0) {
                 responce = { status: 400, message: 'Recharge is not allowed for a while.' }
@@ -4522,8 +4522,12 @@ class rechargeController {
                 });
             }, 30 * 60 * 1000);
 
-            const downloadUrl = `${process.env.THE_DOMAIN_NAME}/api/v1/recharge/admin-report/files/${fileName}`;
-            res.json({ success: true, downloadUrl, reused: false });
+
+              return res.json({ 
+            success: true, 
+            downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}`,
+            reused: false
+        });
 
         } catch (err) {
             console.error("PDF export error:", err);
