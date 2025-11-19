@@ -4316,7 +4316,7 @@ class rechargeController {
                     console.log("Reusing cached report:", fileName);
                     return res.json({
                         success: true,
-                        downloadUrl: `${process.env.THE_DOMAIN_NAME}/api/v1/recharge/admin-report/files/${fileName}`,
+                        downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}`,
                         reused: true
                     });
                 }
@@ -4355,7 +4355,7 @@ class rechargeController {
                 });
             }, 30 * 60 * 1000);
 
-            const downloadUrl = `${process.env.THE_DOMAIN_NAME}/api/v1/recharge/admin-report/files/${fileName}`;
+            const downloadUrl = `/api/v1/recharge/admin-report/files/${fileName}`;
             res.json({ success: true, downloadUrl, reused: false });
 
         } catch (err) {
@@ -4474,7 +4474,7 @@ class rechargeController {
                     console.log("Reusing cached PDF report:", fileName);
                     return res.json({
                         success: true,
-                        downloadUrl: `${process.env.THE_DOMAIN_NAME}/api/v1/recharge/admin-report/files/${fileName}`,
+                        downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}`,
                         reused: true
                     });
                 }
