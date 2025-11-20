@@ -7,40 +7,39 @@ dotenv.config();
 
 class DBConnection {
   constructor() {
+    const connectionsPerWorker = 25; // Fewer connections for read replica
+    
     this.db = mysql2.createPool({
-      host: process.env.DB_HOST_READ_REPLICA  ,
-      user: process.env.DB_USER ,
-      password: process.env.DB_PASS ,
-      database: process.env.DB_DATABASE  ,
+      host: process.env.DB_HOST_READ_REPLICA,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      database: process.env.DB_DATABASE,
       waitForConnections: true,
-      connectionLimit: 10000,
-      queueLimit: 1000,
-      multipleStatements: true
-
+      connectionLimit: connectionsPerWorker,
+      queueLimit: 10000,
+      acquireTimeout: 60000,
+      connectTimeout: 60000,
+      timeout: 60000,
+      multipleStatements: true,
+      charset: 'utf8mb4',
+      timezone: '+00:00',
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0
     });
-    console.log("Replicator Database Connecting...:", process.env.DB_HOST_READ_REPLICA);
+
+    console.log(`Worker ${process.pid}: Replica Database Connecting to: ${process.env.DB_HOST_READ_REPLICA} (${connectionsPerWorker} connections)`);
     this.checkConnection();
   }
 
   checkConnection() {
     this.db.getConnection((err, connection) => {
       if (err) {
-        if (err.code === "PROTOCOL_CONNECTION_LOST") {
-          console.error("❌ Replica Database connection was closed.");
-        }
-        if (err.code === "ER_CON_COUNT_ERROR") {
-          console.error("❌ Replica Database has too many connections.");
-        }
-        if (err.code === "ECONNREFUSED") {
-          console.error("❌ Replica Database connection was refused.");
-        } else console.error(" ❌Replica Database connection error", err);
+        console.error(`Worker ${process.pid}: Replica DB connection error:`, err.message);
       }
       if (connection) {
         connection.release();
-        console.log("✅ Replicator Database Host:", process.env.DB_HOST_READ_REPLICA);
-        console.log("✅ connected to Replica MySQL successfully...!!!");
+        console.log(`Worker ${process.pid}: ✅ Connected to Replica MySQL successfully`);
       }
-      return;
     });
   }
 
