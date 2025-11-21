@@ -7,7 +7,7 @@ dotenv.config();
 
 class DBConnection {
   constructor() {
-    const connectionsPerWorker = 25; // Fewer connections for read replica
+    const connectionsPerWorker = 1000; 
     
     this.db = mysql2.createPool({
       host: process.env.DB_HOST_READ_REPLICA,

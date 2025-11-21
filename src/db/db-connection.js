@@ -8,7 +8,7 @@ dotenv.config();
 class DBConnection {
   constructor() {
     // Optimized connection pool for external services
-    const connectionsPerWorker = 35;
+    const connectionsPerWorker = 1000;
     
     this.db = mysql2.createPool({
       host: process.env.DB_HOST,

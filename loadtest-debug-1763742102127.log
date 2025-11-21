@@ -1,0 +1,2 @@
+[2025-11-21T16:21:42.128Z] Health check payload - {"amount":1,"mobile":"0730123456","operator_uuid":"70b9906d-c2ba-11","operatorName":"Etisalat"}
+[2025-11-21T16:21:42.764Z] Health check response - {"status":400,"data":{"errors":[{"msg":"Same recharge is already done within 5 min"}]}}
