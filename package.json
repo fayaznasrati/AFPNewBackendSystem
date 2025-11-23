@@ -6,8 +6,25 @@
   "scripts": {
     "local": "set NODE_ENV=local&& nodemon src/server.js",
     "dev": "NODE_ENV=development pm2 start src/server.js --watch 'src/' --ignore-watch 'src/uploads'",
-    "stage": "NODE_ENV=stage pm2 start pm2 start src/server.js --watch 'src/' --ignore-watch 'src/uploads'",
-    "pro": "NODE_ENV=production pm2 start src/server.js"
+    "stage": "NODE_ENV=stage pm2 start src/server.js --watch 'src/' --ignore-watch 'src/uploads'",
+    "pro": "NODE_ENV=production pm2 start src/server.js",
+    "pro-cluster": "NODE_ENV=production node src/server.js",
+    "start": "node src/server.js",
+    "start-cluster": "NODE_ENV=production node src/server.js",
+    "test-performance": "npx autocannon -c 100 -d 30 http://localhost:5000/api",
+    "load-test:quick": "node src/load-test-master.js --quick",
+    "load-test:full": "node src/load-test-master.js",
+    "load-test:stress": "node src/load-test-master.js --stress",
+    "load-test:cluster": "node src/load-test-master.js --cluster",
+    "load-test:rabbitmq": "node src/load-test-master.js --rabbitmq",
+    "test:performance": "npx autocannon -c 100 -d 30 http://localhost:5000/api/health",
+    "load-test:etisalat": "node src/load-test-etisalat.js",
+    "load-test:etisalat-quick": "node src/load-test-etisalat.js --quick",
+    "load-test:etisalat-stress": "node src/load-test-etisalat.js --stress",
+    "load-test:5000rps": "node src/load-test-5000rps.js",
+    "load-test:1000rps": "node src/load-test-5000rps.js --quick",
+    "load-test:10000rps": "node src/load-test-5000rps.js --extreme",
+    "load-test:production": "NODE_ENV=production node src/load-test-5000rps.js"
   },
   "keywords": [],
   "author": "Exioms",
@@ -18,6 +35,7 @@
     "aws-sdk": "^2.1009.0",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
     "crypto-random-string": "^4.0.0",
     "dotenv": "^9.0.2",
@@ -41,6 +59,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "autocannon": "^7.15.0",
     "eslint": "^7.26.0",
     "nodemon": "^2.0.14"
   }

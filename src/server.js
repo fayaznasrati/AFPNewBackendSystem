@@ -1,87 +1,200 @@
+const cluster = require("cluster");
+const os = require("os");
 const express = require("express");
-const dotenv = require('dotenv');
+const dotenv = require("dotenv");
 const cors = require("cors");
-const helmet = require('helmet');
-const bodyParser = require('body-parser');
-const errorMiddleware = require('./middleware/error. middleware');
-const cleanOldReportFiles = require('./utils/delete_report_files_after_30_minuts'); // adjust path as needed
-//cron
-const cron = require('./common/node-cron')
-// Init express
-const app = express();
+const helmet = require("helmet");
+const compression = require("compression");
+const bodyParser = require("body-parser");
+// const errorMiddleware = require('./middleware/error.middleware');
+const errorMiddleware = require("./middleware/error. middleware");
+const cleanOldReportFiles = require("./utils/delete_report_files_after_30_minuts");
+
 // configer env
-dotenv.config()
-// parse requests of content-type: application/json
-// parses incoming requests with JSON payloads
-app.use(express.json());
-app.use(cors());
-// Enable pre-flight// enabling cors for all requests by using cors middleware
-app.options("*", cors());
-// static functions
-app.use(express.static(__dirname + '/uploads'))
-app.use(helmet());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+dotenv.config();
 
-const port = Number(process.env.PORT)||5000;
+// Check if we should run in cluster mode
+const runInCluster = cluster.isMaster && process.env.NODE_ENV === "prod";
 
-// Add headers
-app.use(function(req, res, next) {
+if (runInCluster) {
+  // Master process - Cluster management
+  const numCPUs = os.cpus().length;
+  const workerCount = Math.min(numCPUs, 7); // Use 7 of 8 cores
 
-    // Website you wish to allow to connect
-    res.setHeader('Access-Control-Allow-Origin', '*');
+  console.log(`🖥️  Server Specifications:`);
+  console.log(`   CPU Cores: ${numCPUs}`);
+  console.log(`   Optimal Workers: ${workerCount}`);
+  console.log(
+    `   Memory: ${(os.totalmem() / 1024 / 1024 / 1024).toFixed(2)} GB`
+  );
+  console.log(`📡 External Services: RabbitMQ & Redis on separate servers`);
 
-    // Request methods you wish to allow
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+  // Fork workers with staggered startup
+  for (let i = 0; i < workerCount; i++) {
+    setTimeout(() => {
+      const worker = cluster.fork();
+      console.log(`✅ Worker ${worker.process.pid} started`);
+    }, i * 300);
+  }
 
-    // Request headers you wish to allow
-    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
-
-    // Set to true if you need the website to include cookies in the requests sent
-    // to the API (e.g. in case you use sessions)
-    res.setHeader('Access-Control-Allow-Credentials', true);
-
-    // Pass to next layer of middleware
-    next();
-});
-
-
-
-var apiRouter = require('./routes/index'); 
-app.use('/api/v1', apiRouter);
-// Error middleware
-app.use(errorMiddleware);
-app.get("/api", (req, res) => {
-    res.json({ message: "Welcome to AFP application." });
-});
-
-// Static file path serving for reports 
-app.use('/api/v1/recharge/admin-report/files', express.static('/var/www/html/AFPNewBackendSystem/the_topup_reports'));
-app.use('/api/v1/recharge/agent-report/files', express.static('/var/www/html/AFPNewBackendSystem/the_topup_reports'));
-// call to clean old report files every 30 minutes
-setInterval(cleanOldReportFiles, 30 * 60 * 1000);
-
-// 404 error
-app.all('*', (req, res, next) => {
-    console.error("Unknown URL HIT : ",req.url)
-    res.status(404).json({ errors: [ {msg : 'Endpoint Not Found'}] });
-});
-
-app.listen(port, () => {
-  console.log(`🚀 Server running on port ${port}!`);
-  const used = process.memoryUsage();
-  console.log(`======== Memory Usage Status !======`);
-  console.log(`Heap Total: ${(used.heapTotal / 1024 / 1024).toFixed(2)} MB`);
-  console.log(`Heap Used: ${(used.heapUsed / 1024 / 1024).toFixed(2)} MB`);
-  console.log(`RSS: ${(used.rss / 1024 / 1024).toFixed(2)} MB`);
-  console.log(`External: ${(used.external / 1024 / 1024).toFixed(2)} MB`);
-
-  // Check disk usage at startup
-  const { exec } = require("child_process");
-  console.log(`======== Server Storage Status !======`);
-  exec("df -h", (err, stdout) => {
-    if (err) return console.error(err);
-    console.log("[DISK USAGE]\n" + stdout);
+  cluster.on("exit", (worker, code, signal) => {
+    console.log(
+      `♻️  Worker ${worker.process.pid} died (${signal || code}). Restarting...`
+    );
+    setTimeout(() => cluster.fork(), 1000);
   });
+
+  cluster.on("online", (worker) => {
+    console.log(`🔗 Worker ${worker.process.pid} is online`);
+  });
+} else {
+  // Worker process - Your existing application with optimizations
+  const app = express();
+
+  // High-performance middleware stack
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    })
+  );
+
+  app.use(
+    compression({
+      level: 6,
+      threshold: 1024,
+    })
+  );
+
+  app.use(cors());
+
+  // Optimized body parsing
+  app.use(
+    express.json({
+      limit: "5mb",
+      verify: (req, res, buf) => {
+        req.rawBody = buf;
+      },
+    })
+  );
+
+  app.use(
+    express.urlencoded({
+      extended: true,
+      limit: "5mb",
+      parameterLimit: 5000,
+    })
+  );
+
+  // Add headers
+  app.use(function (req, res, next) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "X-Requested-With,content-type,Authorization"
+    );
+    res.setHeader("Access-Control-Allow-Credentials", true);
+    next();
+  });
+
+  // Your routes
+  var apiRouter = require("./routes/index");
+  app.use("/api/v1", apiRouter);
+
+  // Error middleware
+  app.use(errorMiddleware);
+
+  app.get("/api", (req, res) => {
+    res.json({
+      message: "Welcome to AFP application.",
+      worker: `Worker ${process.pid}`,
+      port: port,
+    });
+  });
+
+// Health check endpoint for load testing
+app.get("/api/health", (req, res) => {
+    res.status(200).json({
+        status: "healthy",
+        service: "AFP TopUp API",
+        worker: process.pid,
+        port: port,
+        timestamp: new Date().toISOString(),
+        uptime: `${process.uptime().toFixed(2)} seconds`,
+        memory: {
+            heapUsed: `${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB`,
+            heapTotal: `${(process.memoryUsage().heapTotal / 1024 / 1024).toFixed(2)} MB`,
+            rss: `${(process.memoryUsage().rss / 1024 / 1024).toFixed(2)} MB`
+        },
+        environment: process.env.NODE_ENV || 'development'
+    });
 });
- 
+
+// Simple ping endpoint
+app.get("/api/ping", (req, res) => {
+    res.status(200).json({ 
+        message: "pong", 
+        worker: process.pid,
+        timestamp: new Date().toISOString()
+    });
+});
+
+  // Static file path serving for reports
+  app.use(
+    "/api/v1/recharge/admin-report/files",
+    express.static("/var/www/html/AFPNewBackendSystem/the_topup_reports", {
+      maxAge: "1h",
+      etag: false,
+    })
+  );
+  app.use(
+    "/api/v1/recharge/agent-report/files",
+    express.static("/var/www/html/AFPNewBackendSystem/the_topup_reports", {
+      maxAge: "1h",
+      etag: false,
+    })
+  );
+
+  // call to clean old report files every 30 minutes
+  setInterval(cleanOldReportFiles, 30 * 60 * 1000);
+
+  // 404 error
+  app.all("*", (req, res, next) => {
+    console.error(`Worker ${process.pid}: Unknown URL HIT:`, req.url);
+    res.status(404).json({ errors: [{ msg: "Endpoint Not Found" }] });
+  });
+
+  // Calculate port for this worker - FIXED VERSION
+  const basePort = Number(process.env.PORT) || 5000;
+  const workerId = cluster.worker ? cluster.worker.id - 1 : 0;
+  const port = basePort + workerId;
+
+  const server = app.listen(port, "0.0.0.0", () => {
+    console.log(`🚀 Worker ${process.pid} running on port ${port}!`);
+
+    // Worker-specific memory logging
+    const used = process.memoryUsage();
+    console.log(`📊 Worker ${process.pid} Memory Status:`);
+    console.log(
+      `   Heap Total: ${(used.heapTotal / 1024 / 1024).toFixed(2)} MB`
+    );
+    console.log(`   Heap Used: ${(used.heapUsed / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`   RSS: ${(used.rss / 1024 / 1024).toFixed(2)} MB`);
+  });
+
+  // Optimize server timeouts
+  server.keepAliveTimeout = 65000;
+  server.headersTimeout = 66000;
+
+  // Graceful shutdown
+  process.on("SIGINT", () => {
+    console.log(`👋 Worker ${process.pid} shutting down gracefully`);
+    server.close(() => {
+      process.exit(0);
+    });
+  });
+}

@@ -552,8 +552,8 @@ class rechargeController {
             }
 
             let data = {
-                operatorName: req.body.operatorName,
-                operator_uuid: req.body.operator_uuid,
+                operatorName: operatorName,
+                operator_uuid: operator_uuid,
                 amount: req.body.amount,
                 mobile: req.body.mobile,
                 userid: req.body.user_detials.userid,

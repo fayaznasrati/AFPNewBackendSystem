@@ -7,109 +7,135 @@ dotenv.config();
 
 class DBConnection {
   constructor() {
+    // Optimized connection pool for external services
+    const connectionsPerWorker = 1000;
+    
     this.db = mysql2.createPool({
-      host: process.env.DB_HOST ,
-      user: process.env.DB_USER ,
-      password: process.env.DB_PASS ,
-      database: process.env.DB_DATABASE  ,
-        waitForConnections: true,
-        connectionLimit: 10000,
-        queueLimit: 1000,
-        multipleStatements: true,
-      // =============================================
-
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      database: process.env.DB_DATABASE,
+      waitForConnections: true,
+      connectionLimit: connectionsPerWorker,
+      queueLimit: 10000,
+      acquireTimeout: 60000, // Valid option
+      connectTimeout: 60000, // Connection timeout
+      timeout: 60000, // Query timeout
+      multipleStatements: true,
+      charset: 'utf8mb4',
+      timezone: '+00:00',
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0
     });
 
-    console.log("Master Database Connecting...:", process.env.DB_HOST);
+    console.log(`Worker ${process.pid}: Master Database Connecting to: ${process.env.DB_HOST} (${connectionsPerWorker} connections)`);
     this.checkConnection();
+    this.setupPoolMonitoring();
+  }
+
+  setupPoolMonitoring() {
+    this.db.on('acquire', (connection) => {
+      // Connection acquired
+    });
+    
+    this.db.on('release', (connection) => {
+      // Connection released
+    });
+    
+    this.db.on('enqueue', () => {
+      console.warn(`Worker ${process.pid}: DB connection queue growing`);
+    });
   }
 
   checkConnection() {
     this.db.getConnection((err, connection) => {
       if (err) {
-        if (err.code === "PROTOCOL_CONNECTION_LOST") {
-          console.error("❌ Database connection was closed.");
-        }
-        if (err.code === "ER_CON_COUNT_ERROR") {
-          console.error("❌ Database has too many connections.");
-        }
-        if (err.code === "ECONNREFUSED") {
-          console.error("❌ Database connection was refused.");
-        } else console.error("❌ Database connection error", err);
+        console.error(`Worker ${process.pid}: Master DB connection error:`, err.message);
       }
       if (connection) {
         connection.release();
-        console.log("✅ Master Database Host:", process.env.DB_HOST);
-        console.log("✅ connected to Master MySQL successfully...!!!");
+        console.log(`Worker ${process.pid}: ✅ Connected to Master MySQL successfully`);
       }
-      return;
     });
   }
 
-  execute = async (sql, values) => {
-    // console.log(sql, values);
+  execute = async (sql, values, timeout = 15000) => {
     return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`Query timeout after ${timeout}ms`));
+      }, timeout);
+
       const callback = (error, result) => {
+        clearTimeout(timeoutId);
         if (error) {
           reject(error);
           return;
         }
         resolve(result);
       };
-      // execute will internally call prepare and query
+      
       this.db.execute(sql, values, callback);
     }).catch((err) => {
       const mysqlErrorList = Object.keys(HttpStatusCodes);
-      // convert mysql errors which in the mysqlErrorList list to http status code
       err.status = mysqlErrorList.includes(err.code)
         ? HttpStatusCodes[err.code]
         : err.status;
 
+      console.error(`Worker ${process.pid}: DB Execute Error:`, err.message);
       throw err;
     });
   };
 
-  query = async (sql, values) => {
-    // console.log(sql, values);
+  query = async (sql, values, timeout = 15000) => {
     return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`Query timeout after ${timeout}ms`));
+      }, timeout);
+
       const callback = (error, result) => {
+        clearTimeout(timeoutId);
         if (error) {
           reject(error);
           return;
         }
         resolve(result);
       };
-      // execute will internally call prepare and query
+      
       this.db.query(sql, values, callback);
     }).catch((err) => {
       const mysqlErrorList = Object.keys(HttpStatusCodes);
-      // convert mysql errors which in the mysqlErrorList list to http status code
       err.status = mysqlErrorList.includes(err.code)
         ? HttpStatusCodes[err.code]
         : err.status;
 
+      console.error(`Worker ${process.pid}: DB Query Error:`, err.message);
       throw err;
     });
   };
 
-  simpleQuery = async (sql) => {
+  simpleQuery = async (sql, timeout = 15000) => {
     return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`Query timeout after ${timeout}ms`));
+      }, timeout);
+
       const callback = (error, result) => {
+        clearTimeout(timeoutId);
         if (error) {
           reject(error);
           return;
         }
         resolve(result);
       };
-      // execute will internally call prepare and query
+      
       this.db.query(sql, callback);
     }).catch((err) => {
       const mysqlErrorList = Object.keys(HttpStatusCodes);
-      // convert mysql errors which in the mysqlErrorList list to http status code
       err.status = mysqlErrorList.includes(err.code)
         ? HttpStatusCodes[err.code]
         : err.status;
 
+      console.error(`Worker ${process.pid}: DB SimpleQuery Error:`, err.message);
       throw err;
     });
   };
@@ -123,15 +149,15 @@ class DBConnection {
         }
         resolve(result);
       };
-      // execute will internally call prepare and query
+      
       this.db.beginTransaction(callback);
     }).catch((err) => {
       const mysqlErrorList = Object.keys(HttpStatusCodes);
-      // convert mysql errors which in the mysqlErrorList list to http status code
       err.status = mysqlErrorList.includes(err.code)
         ? HttpStatusCodes[err.code]
         : err.status;
 
+      console.error(`Worker ${process.pid}: Start Transaction Error:`, err.message);
       throw err;
     });
   };
@@ -145,15 +171,15 @@ class DBConnection {
         }
         resolve(result);
       };
-      // execute will internally call prepare and query
+      
       this.db.commit(callback);
     }).catch((err) => {
       const mysqlErrorList = Object.keys(HttpStatusCodes);
-      // convert mysql errors which in the mysqlErrorList list to http status code
       err.status = mysqlErrorList.includes(err.code)
         ? HttpStatusCodes[err.code]
         : err.status;
 
+      console.error(`Worker ${process.pid}: Commit Transaction Error:`, err.message);
       throw err;
     });
   };
@@ -167,15 +193,15 @@ class DBConnection {
         }
         resolve(result);
       };
-      // execute will internally call prepare and query
+      
       this.db.rollback(callback);
     }).catch((err) => {
       const mysqlErrorList = Object.keys(HttpStatusCodes);
-      // convert mysql errors which in the mysqlErrorList list to http status code
       err.status = mysqlErrorList.includes(err.code)
         ? HttpStatusCodes[err.code]
         : err.status;
 
+      console.error(`Worker ${process.pid}: Rollback Transaction Error:`, err.message);
       throw err;
     });
   };
