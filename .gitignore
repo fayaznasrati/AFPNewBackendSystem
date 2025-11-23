@@ -5,3 +5,11 @@
 # Snyk Security Extension - AI Rules (auto-generated)
 .github/instructions/snyk_rules.instructions.md
 /src/testCompany
+/src/testCompany.js
+/src/testConnections.js
+/src/testStatusCompany.js
+/src/load-test-etisalat.js
+/the_topup_report
+.the_topup_report
+/bulk_topup_report
+.bulk_topup_report

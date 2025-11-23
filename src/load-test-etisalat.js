@@ -7,7 +7,7 @@ class EtisalatLoadTest {
             baseUrl: 'https://newtopuptest.afghan-pay.com/api/v1/recharge/single',
             username: 'AFP-77454',
             testDuration: 60, // 1 minute quick test
-            requestsPerSecond: 10,
+            requestsPerSecond: 100,
             concurrentUsers: 5
         };
 
