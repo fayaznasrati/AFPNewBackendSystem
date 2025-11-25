@@ -19,7 +19,9 @@ const runInCluster = cluster.isMaster && process.env.NODE_ENV === "prod";
 if (runInCluster) {
   // Master process - Cluster management
   const numCPUs = os.cpus().length;
-  const workerCount = Math.min(numCPUs, 7); // Use 7 of 8 cores
+  // Configurable worker count (default to 4 if not specified)
+  const maxWorkers = process.env.WORKER_COUNT ? parseInt(process.env.WORKER_COUNT) : 4;
+  const workerCount = Math.min(numCPUs, maxWorkers);
 
   console.log(`🖥️  Server Specifications:`);
   console.log(`   CPU Cores: ${numCPUs}`);
