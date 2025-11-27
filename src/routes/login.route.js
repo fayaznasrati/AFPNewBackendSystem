@@ -41,6 +41,7 @@ router.get('/ad-search', advanceSearch, auth(role.Admin,role.SubAdmin,1,2,3,4,5)
 router.get('/upline-list',getUplineAgentList, auth(role.Admin,role.SubAdmin,1,2,3,4,5),accessManager({subAdmin : { module: [1,2], permission: apiMethod.view } , agent: { module: [1,2], permission: apiMethod.view }}), awaitHandlerFactory(loginController.getUplineAgentList))
 router.get('/parent', getParentName, auth(), awaitHandlerFactory(loginController.getParentName))
 router.get('/equal-parent', getParentName, auth(), awaitHandlerFactory(loginController.getEqualParentName))
+router.get('/equal-and-grate-parent', getParentName, auth(), awaitHandlerFactory(loginController.getEqualAndGraterParentName))
 router.put('/active', changeAgentActiveState, auth(), awaitHandlerFactory(loginController.changeAgentActiveState))  // child condition applyed
 router.post('/', createLoginSchema, auth(role.Admin,role.SubAdmin,1,2,3,4,5),accessManager({subAdmin : { module: [1,1], permission: apiMethod.add } , agent: { module: [1,1], permission: apiMethod.add }}), awaitHandlerFactory(loginController.createLoginUser));
 router.put('/', updateAgentDetialsSchema, auth(role.Admin,role.SubAdmin,1,2,3,4,5), accessManager({subAdmin : { module: [1,1], permission: apiMethod.edit } , agent: { module: [1,1], permission: apiMethod.edit }}), awaitHandlerFactory(loginController.updateAgentDetials)) // child condition applyed

@@ -34,288 +34,9 @@ const redisMaster = require('../common/master/radisMaster.common');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
 const REPORT_DIR = '/var/www/html/AFPNewBackendSystem/the_topup_reports';
+const AgentsDefaultRights = require('../utils/defaultAgentsRights.utils');
 
-let moduleList =  [
-    {
-        "subModuleName": "Agent",
-        "subModuleTitle": "Agent",
-        "ModuleName": "Agent Manager",
-        "viewPerm" : 1,
-        "addPerm" : 1,
-        "eidtPerm" : 1,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Downline members",
-        "subModuleTitle": "Downline members",
-        "ModuleName": "Agent Manager",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Single Recharge",
-        "subModuleTitle": "Single Recharge",
-        "ModuleName": "Recharge",
-        "viewPerm" : 1,
-        "addPerm" : 1,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Group Recharge",
-        "subModuleTitle": "Group Recharge",
-        "ModuleName": "Group",
-        "viewPerm" : 0,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Members",
-        "subModuleTitle": "Members",
-        "ModuleName": "Group",
-        "viewPerm" : 0,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Group",
-        "subModuleTitle": "Group",
-        "ModuleName": "Group",
-        "viewPerm" : 0,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Wallet",
-        "subModuleTitle": "Wallet",
-        "ModuleName": "Wallet",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Top Up Report",
-        "subModuleTitle": "Top Up Report",
-        "ModuleName": "Reports",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Downline Top Up Report",
-        "subModuleTitle": "Downline Top Up Report",
-        "ModuleName": "Reports",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Group Top Up Report",
-        "subModuleTitle": "Group Top Up Report",
-        "ModuleName": "Reports",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Transaction Report",
-        "subModuleTitle": "Transaction Report",
-        "ModuleName": "Reports",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Activity Log Report",
-        "subModuleTitle": "Activity Log Report",
-        "ModuleName": "Reports",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Telco Wise Topup Summary Report",
-        "subModuleTitle": "Telco Wise Topup Summary Report",
-        "ModuleName": "Reports",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Rollback Report",
-        "subModuleTitle": "Rollback Report",
-        "ModuleName": "Reports",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Stock Transfer",
-        "subModuleTitle": "Stock Transfer",
-        "ModuleName": "Stock Transfer",
-        "viewPerm" : 1,
-        "addPerm" : 1,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Stock Transfer Report",
-        "subModuleTitle": "Stock Transfer Report",
-        "ModuleName": "Stock Transfer",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Pending Stock Request Received",
-        "subModuleTitle": "Pending Stock Request Received",
-        "ModuleName": "Stock Transfer",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Stock Received Report",
-        "subModuleTitle": "Stock Received Report",
-        "ModuleName": "Stock Transfer",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Stock Reverse Report",
-        "subModuleTitle": "Stock Reverse Report",
-        "ModuleName": "Stock Transfer",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Request Fund",
-        "subModuleTitle": "Request Fund",
-        "ModuleName": "Stock Request",
-        "viewPerm" : 0,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Stock Requested Report",
-        "subModuleTitle": "Stock Requested Report",
-        "ModuleName": "Stock Request",
-        "viewPerm" : 0,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "My Commission",
-        "subModuleTitle": "My Commission",
-        "ModuleName": "Commission Manager",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "My Commission Report",
-        "subModuleTitle": "My Commission Report",
-        "ModuleName": "Commission Manager",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Agent Commission Report",
-        "subModuleTitle": "Agent Commission Report",
-        "ModuleName": "Commission Manager",
-        "viewPerm" : 0,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Create Slab",
-        "subModuleTitle": "Create Slab",
-        "ModuleName": "Commission Manager",
-        "viewPerm" : 0,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Slab Manager",
-        "subModuleTitle": "Slab Manager",
-        "ModuleName": "Commission Manager",
-        "viewPerm" : 0,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Set Default Slab",
-        "subModuleTitle": "Set Default Slab",
-        "ModuleName": "Commission Manager",
-        "viewPerm" : 0,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Raise Ticket",
-        "subModuleTitle": "Raise Ticket",
-        "ModuleName": "Ticket Manager",
-        "viewPerm" : 0,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Ticket Manager",
-        "subModuleTitle": "Ticket Manager",
-        "ModuleName": "Ticket Manager",
-        "viewPerm" : 0,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "View Downline Members Tickets",
-        "subModuleTitle": "View Downline Members Tickets",
-        "ModuleName": "Ticket Manager",
-        "viewPerm" : 0,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    },
-    {
-        "subModuleName": "Chat History",
-        "subModuleTitle": "Chat History",
-        "ModuleName": "Ticket Manager",
-        "viewPerm" : 1,
-        "addPerm" : 0,
-        "eidtPerm" : 0,
-        "deletePerm" : 0
-    }
-]
+let moduleList =[];
 
 class loginController {
     // table name
@@ -338,204 +59,203 @@ class loginController {
     tableName17 = 'er_agent_stock_transfer_channel'
 
     constructor () {
-        // setTimeout(() =>{ 
-        //     this.registrationFix()
-        // },1000*5)
+        moduleList = AgentsDefaultRights.moduleList;
     }
 
-    registrationFix = async() => { 
+    // registrationFix = async() => { 
 
-        var date = new Date();
-        date.setHours(date.getHours() + 4, date.getMinutes() + 30);
-        var isodate = date.toISOString();
+    //     var date = new Date();
+    //     date.setHours(date.getHours() + 4, date.getMinutes() + 30);
+    //     var isodate = date.toISOString();
 
 
-        let objResult = {
-            insertId : 4587
-        }
+    //     let objResult = {
+    //         insertId : 4587
+    //     }
 
-        //9)-search user by id and send uuid
-        var searchKeyValue = {
-            userid: objResult.insertId,
-            Active : 1
-        }
-        var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid","parent_id",'usertype_id']
-        var orderby = "user_uuid"
-        var ordertype = "ASC"
+    //     //9)-search user by id and send uuid
+    //     var searchKeyValue = {
+    //         userid: objResult.insertId,
+    //         Active : 1
+    //     }
+    //     var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid","parent_id",'usertype_id']
+    //     var orderby = "user_uuid"
+    //     var ordertype = "ASC"
 
-        // fire sql query to get user id
-        var lisResponse = await sqlQuery.searchQuery(this.tableName1, searchKeyValue, key, orderby, ordertype, 1, 0)
+    //     // fire sql query to get user id
+    //     var lisResponse = await sqlQuery.searchQuery(this.tableName1, searchKeyValue, key, orderby, ordertype, 1, 0)
 
-        // check if the result is there and responce accordingly
-        if (lisResponse.length === 0) {
-            // rollback 
-            let rollback = await sqlQuery.specialCMD('rollback')
-            return res.status(400).json({ errors: [ {msg : 'User not found'}] });
-        }
+    //     // check if the result is there and responce accordingly
+    //     if (lisResponse.length === 0) {
+    //         // rollback 
+    //         let rollback = await sqlQuery.specialCMD('rollback')
+    //         return res.status(400).json({ errors: [ {msg : 'User not found'}] });
+    //     }
 
-        let param = {
-            parent_id : lisResponse[0].parent_id
-        }
+    //     let param = {
+    //         parent_id : lisResponse[0].parent_id
+    //     }
 
-        // giv permission to new user
+    //     // giv permission to new user
 
-        // get sub module list
-            const lisresponce2 = await sqlQuery.searchQueryNoConNolimit(this.tableName16,["agent_sub_module_id","agent_sub_module_name","agent_module_id","agent_module_name"],"agent_sub_module_id",'ASC')
-            if (lisresponce2.length == 0) {
-                // rollback 
-                let rollback = await sqlQuery.specialCMD('rollback')
-                return res.status(400).json({ errors: [ {msg : "Sub-Module List not found to verify data"}] })
-            };
+    //     // get sub module list
+    //         const lisresponce2 = await sqlQuery.searchQueryNoConNolimit(this.tableName16,["agent_sub_module_id","agent_sub_module_name","agent_module_id","agent_module_name"],"agent_sub_module_id",'ASC')
+    //         if (lisresponce2.length == 0) {
+    //             // rollback 
+    //             let rollback = await sqlQuery.specialCMD('rollback')
+    //             return res.status(400).json({ errors: [ {msg : "Sub-Module List not found to verify data"}] })
+    //         };
 
-        // get defaukt perimission
-        if( param.parent_id == 1 ){
-            const oldModuleList = moduleList
-            let i = 0, j = -1
-            let newModuleList = [], newSubModuleList = []
+    //     // get defaukt perimission
+    //     if( param.parent_id == 1 ){
+    //         const oldModuleList = moduleList
+    //         let i = 0, j = -1
+    //         let newModuleList = [], newSubModuleList = []
 
-            for (i = 0; i < oldModuleList.length; i++){
+    //         for (i = 0; i < oldModuleList.length; i++){
 
-                if(lisresponce2[i].agent_sub_module_name != oldModuleList[i].subModuleName ){
-                    // rollback 
-                    let rollback = await sqlQuery.specialCMD('rollback')
-                    return res.status(400).json({ errors: [ {msg : "sub module list error"}] });
-                }
+    //             if(lisresponce2[i].agent_sub_module_name != oldModuleList[i].subModuleName ){
+    //                 // rollback 
+    //                 let rollback = await sqlQuery.specialCMD('rollback')
+    //                 return res.status(400).json({ errors: [ {msg : "sub module list error"}] });
+    //             }
 
-                if(lisresponce2[i].agent_module_name != oldModuleList[i].ModuleName ) {
-                    // rollback 
-                    let rollback = await sqlQuery.specialCMD('rollback')
-                    return res.status(400).json({ errors: [ {msg : "module list error"}] });
-                }
+    //             if(lisresponce2[i].agent_module_name != oldModuleList[i].ModuleName ) {
+    //                 // rollback 
+    //                 let rollback = await sqlQuery.specialCMD('rollback')
+    //                 return res.status(400).json({ errors: [ {msg : "module list error"}] });
+    //             }
                 
-                if( j == -1 || newModuleList[j].agent_module_name != oldModuleList[i].ModuleName ){
-                    newModuleList.push({ 
-                        userid : objResult.insertId,
-                        user_uuid : lisResponse[0].user_uuid,
-                        agent_module_id : lisresponce2[i].agent_module_id,
-                        agent_module_name : lisresponce2[i].agent_module_name,
-                        perm_view : 0, 
-                        sub_module_perm : {
-                            sub_module_perm_list:[]
-                        }
-                    })
-                    j += 1
-                }
-                newModuleList[j].sub_module_perm.sub_module_perm_list.push({
-                    agent_sub_module_id : lisresponce2[i].agent_sub_module_id,
-                    subModuleName : lisresponce2[i].agent_sub_module_name,
-                    permView : oldModuleList[i].viewPerm,
-                    permAdd : oldModuleList[i].addPerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0,
-                    permEdit : oldModuleList[i].eidtPerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0,
-                    permDelete : oldModuleList[i].deletePerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0
-                })
+    //             if( j == -1 || newModuleList[j].agent_module_name != oldModuleList[i].ModuleName ){
+    //                 newModuleList.push({ 
+    //                     userid : objResult.insertId,
+    //                     user_uuid : lisResponse[0].user_uuid,
+    //                     agent_module_id : lisresponce2[i].agent_module_id,
+    //                     agent_module_name : lisresponce2[i].agent_module_name,
+    //                     perm_view : 0, 
+    //                     sub_module_perm : {
+    //                         sub_module_perm_list:[]
+    //                     }
+    //                 })
+    //                 j += 1
+    //             }
+    //             newModuleList[j].sub_module_perm.sub_module_perm_list.push({
+    //                 agent_sub_module_id : lisresponce2[i].agent_sub_module_id,
+    //                 subModuleName : lisresponce2[i].agent_sub_module_name,
+    //                 permView : oldModuleList[i].viewPerm,
+    //                 permAdd : oldModuleList[i].addPerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0,
+    //                 permEdit : oldModuleList[i].eidtPerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0,
+    //                 permDelete : oldModuleList[i].deletePerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0
+    //             })
 
-                if( oldModuleList[i].viewPerm == 1 ) newModuleList[j].perm_view = 1
+    //             if( oldModuleList[i].viewPerm == 1 ) newModuleList[j].perm_view = 1
             
-            }
+    //         }
 
-            // make a join operation between er_agent_module, er_agent_sub_module, model list
+    //         // make a join operation between er_agent_module, er_agent_sub_module, model list
 
-            // console.log("newModuleList ",newModuleList)
+    //         // console.log("newModuleList ",newModuleList)
 
-        // add data in module permission
-            let response = await sqlQuery.multiInsert(this.tableName15,newModuleList)
-        }else{
-            // get parent permission mode and user same permission mode from child
-            let permissionMode = await sqlQuery.searchQueryNoLimit(this.tableName15,{userid : param.parent_id}, ['agent_module_id','agent_module_name','perm_view','sub_module_perm'],'agent_module_id','ASC')
-            permissionMode = permissionMode.map((permission)=>{
-                permission.userid = objResult.insertId
-                permission.user_uuid  = lisResponse[0].user_uuid
-                return permission
-            })
-            let response = await sqlQuery.multiInsert(this.tableName15,permissionMode)
-        }
+    //     // add data in module permission
+    //         let response = await sqlQuery.multiInsert(this.tableName15,newModuleList)
+    //     }else{
+    //         // get parent permission mode and user same permission mode from child
+    //         let permissionMode = await sqlQuery.searchQueryNoLimit(this.tableName15,{userid : param.parent_id}, ['agent_module_id','agent_module_name','perm_view','sub_module_perm'],'agent_module_id','ASC')
+    //         permissionMode = permissionMode.map((permission)=>{
+    //             permission.userid = objResult.insertId
+    //             permission.user_uuid  = lisResponse[0].user_uuid
+    //             return permission
+    //         })
+    //         let response = await sqlQuery.multiInsert(this.tableName15,permissionMode)
+    //     }
     
 
-        // create new user wallet
-        let walletDetails = {
-            wallet_uuid : 'uuid()',
-            userid : objResult.insertId,
-            user_uuid : lisResponse[0].user_uuid, //str
-            ex_wallet : 0,
-            min_wallet : 100,
-            comm_wallet : 0,
-            canTransfer : 1
-        }
+    //     // create new user wallet
+    //     let walletDetails = {
+    //         wallet_uuid : 'uuid()',
+    //         userid : objResult.insertId,
+    //         user_uuid : lisResponse[0].user_uuid, //str
+    //         ex_wallet : 0,
+    //         min_wallet : 100,
+    //         comm_wallet : 0,
+    //         canTransfer : 1
+    //     }
 
-        let createWallet = await sqlQuery.createQuery(this.tableName14, walletDetails)
+    //     let createWallet = await sqlQuery.createQuery(this.tableName14, walletDetails)
 
-        var commisionTypeList = []
+    //     var commisionTypeList = []
 
-        if (lisResponse[0].parent_id == 1){
-            commisionTypeList = ["Pre-Paid","Post-Paid","Pre-Paid as 1st transaction"]
-        }else{
-            // get parent commission type
-            var lisParentCommissionType1 = await sqlQuery.searchQuery(this.tableName1, {userid : lisResponse[0].parent_id,Active : 1}, ["comm_type"], 'userid','ASC', 1, 0)
-            var strCommType = lisParentCommissionType1[0].comm_type == 1 ? "Pre-Paid" : lisParentCommissionType1[0].comm_type == 2 ? "Post-Paid" : "Pre-Paid as 1st transaction"
-            if(lisParentCommissionType1[0].comm_type == 1){
+    //     if (lisResponse[0].parent_id == 1){
+    //         commisionTypeList = ["Pre-Paid","Post-Paid","Pre-Paid as 1st transaction"]
+    //     }else{
+    //         // get parent commission type
+    //         var lisParentCommissionType1 = await sqlQuery.searchQuery(this.tableName1, {userid : lisResponse[0].parent_id,Active : 1}, ["comm_type"], 'userid','ASC', 1, 0)
+    //         var strCommType = lisParentCommissionType1[0].comm_type == 1 ? "Pre-Paid" : lisParentCommissionType1[0].comm_type == 2 ? "Post-Paid" : "Pre-Paid as 1st transaction"
+    //         if(lisParentCommissionType1[0].comm_type == 1){
 
-                const lisOperatorIds = await commonQueryCommon.getAllOperatorWithId()
+    //             const lisOperatorIds = await commonQueryCommon.getAllOperatorWithId()
 
-                // create commission policy with 0 commission
-                let commissionDetails = {
-                    commission_value: 0,
-                    last_updated_by_type: 1 ,
-                    last_updated_by : 1, //str user id
-                    last_updated_on : isodate
-                }
+    //             // create commission policy with 0 commission
+    //             let commissionDetails = {
+    //                 commission_value: 0,
+    //                 last_updated_by_type: 1 ,
+    //                 last_updated_by : 1, //str user id
+    //                 last_updated_on : isodate
+    //             }
 
-                for(let i = 0;i< lisOperatorIds.length;i++){
+    //             for(let i = 0;i< lisOperatorIds.length;i++){
             
-                    // console.log(lisCommisionDetails[i].operator_uuid , lisOperatorIds[i].operatorUuid)
-                    commissionDetails["op"+lisOperatorIds[i].operator_id+"_uuid"] = lisOperatorIds[i].operatorUuid
-                    commissionDetails["op"+lisOperatorIds[i].operator_id+"_name"] = lisOperatorIds[i].operator_name
-                    commissionDetails["op"+lisOperatorIds[i].operator_id+"_wallet_active"] = 0
-                    commissionDetails["op"+lisOperatorIds[i].operator_id+"_wallet_limit"] = 0
-                }
+    //                 // console.log(lisCommisionDetails[i].operator_uuid , lisOperatorIds[i].operatorUuid)
+    //                 commissionDetails["op"+lisOperatorIds[i].operator_id+"_uuid"] = lisOperatorIds[i].operatorUuid
+    //                 commissionDetails["op"+lisOperatorIds[i].operator_id+"_name"] = lisOperatorIds[i].operator_name
+    //                 commissionDetails["op"+lisOperatorIds[i].operator_id+"_wallet_active"] = 0
+    //                 commissionDetails["op"+lisOperatorIds[i].operator_id+"_wallet_limit"] = 0
+    //             }
 
-                commissionDetails.userid = objResult.insertId, 
-                commissionDetails.user_uuid = lisResponse[0].user_uuid //str user uuid
-                commissionDetails.usertype_id = lisResponse[0].usertype_id, // int usertype_id
-                commissionDetails.parent_id = lisResponse[0].parent_id,
-                commissionDetails.created_by_type = 1 
-                commissionDetails.created_by=1 , //str user id
-                commissionDetails.created_on = isodate
+    //             commissionDetails.userid = objResult.insertId, 
+    //             commissionDetails.user_uuid = lisResponse[0].user_uuid //str user uuid
+    //             commissionDetails.usertype_id = lisResponse[0].usertype_id, // int usertype_id
+    //             commissionDetails.parent_id = lisResponse[0].parent_id,
+    //             commissionDetails.created_by_type = 1 
+    //             commissionDetails.created_by=1 , //str user id
+    //             commissionDetails.created_on = isodate
 
-                // fire sql query to create new country
-                const objresult = await sqlQuery.createQuery(this.tableName10, commissionDetails)
+    //             // fire sql query to create new country
+    //             const objresult = await sqlQuery.createQuery(this.tableName10, commissionDetails)
 
-            }
-            commisionTypeList = [strCommType]
-        }
+    //         }
+    //         commisionTypeList = [strCommType]
+    //     }
 
-        // add stock transfer channel 
-            let lisStockTransferChannel = ['Mobile','SMS','USSD','Web']
+    //     // add stock transfer channel 
+    //         let lisStockTransferChannel = ['Mobile','SMS','USSD','Web']
 
-        // check if the result is there and responce accordingly
-            for (let i =0; i < lisStockTransferChannel.length;i++){
+    //     // check if the result is there and responce accordingly
+    //         for (let i =0; i < lisStockTransferChannel.length;i++){
 
-                //create channel as not found
-                var channelParam = {
-                    agent_ostc_uuid: "uuid()",
-                    userid: objResult.insertId, //str userid 
-                    user_uuid: lisResponse[0].user_uuid, //str user uuid
-                    channel: lisStockTransferChannel[i], //str channel
-                    status: 1, //bool status
-                    threshold: 0 //double threshold
-                }
-                // fire sql query to create channel
-                const stockChannelRes = await sqlQuery.createQuery(this.tableName17, channelParam)
-            }
+    //             //create channel as not found
+    //             var channelParam = {
+    //                 agent_ostc_uuid: "uuid()",
+    //                 userid: objResult.insertId, //str userid 
+    //                 user_uuid: lisResponse[0].user_uuid, //str user uuid
+    //                 channel: lisStockTransferChannel[i], //str channel
+    //                 status: 1, //bool status
+    //                 threshold: 0 //double threshold
+    //             }
+    //             // fire sql query to create channel
+    //             const stockChannelRes = await sqlQuery.createQuery(this.tableName17, channelParam)
+    //         }
 
-        // update parent list
-        let updatePrarentList = await this.addChildInParentList(param.parent_id, objResult.insertId)
+    //     // update parent list
+    //     let updatePrarentList = await this.addChildInParentList(param.parent_id, objResult.insertId)
 
-        // rollback 
-        let commit = await sqlQuery.specialCMD('commit')
-    }
+    //     // rollback 
+    //     let commit = await sqlQuery.specialCMD('commit')
+    // }
 
     //function to edit login table 
     //create login user id
+    
     createLoginUser = async(req, res, next) => {
         try {
 
@@ -740,13 +460,63 @@ class loginController {
                 let response = await sqlQuery.multiInsert(this.tableName15,newModuleList)
             }else{
                 // get parent permission mode and user same permission mode from child
-                let permissionMode = await sqlQuery.searchQueryNoLimit(this.tableName15,{userid : param.parent_id}, ['agent_module_id','agent_module_name','perm_view','sub_module_perm'],'agent_module_id','ASC')
-                permissionMode = permissionMode.map((permission)=>{
-                    permission.userid = objResult.insertId
-                    permission.user_uuid  = lisResponse[0].user_uuid
-                    return permission
-                })
-                let response = await sqlQuery.multiInsert(this.tableName15,permissionMode)
+                // let permissionMode = await sqlQuery.searchQueryNoLimit(this.tableName15,{userid : param.parent_id}, ['agent_module_id','agent_module_name','perm_view','sub_module_perm'],'agent_module_id','ASC')
+                // permissionMode = permissionMode.map((permission)=>{
+                //     permission.userid = objResult.insertId
+                //     permission.user_uuid  = lisResponse[0].user_uuid
+                //     return permission
+                // })
+
+                const oldModuleList = moduleList
+                let i = 0, j = -1
+                let newModuleList = [], newSubModuleList = []
+
+                for (i = 0; i < oldModuleList.length; i++){
+
+                    if(lisresponce2[i].agent_sub_module_name != oldModuleList[i].subModuleName ){
+                        // rollback 
+                        let rollback = await sqlQuery.specialCMD('rollback')
+                        return res.status(400).json({ errors: [ {msg : "sub module list error"}] });
+                    }
+
+                    if(lisresponce2[i].agent_module_name != oldModuleList[i].ModuleName ) {
+                        // rollback 
+                        let rollback = await sqlQuery.specialCMD('rollback')
+                        return res.status(400).json({ errors: [ {msg : "module list error"}] });
+                    }
+                    
+                    if( j == -1 || newModuleList[j].agent_module_name != oldModuleList[i].ModuleName ){
+                        newModuleList.push({ 
+                            userid : objResult.insertId,
+                            user_uuid : lisResponse[0].user_uuid,
+                            agent_module_id : lisresponce2[i].agent_module_id,
+                            agent_module_name : lisresponce2[i].agent_module_name,
+                            perm_view : 0, 
+                            sub_module_perm : {
+                                sub_module_perm_list:[]
+                            }
+                        })
+                        j += 1
+                    }
+                    newModuleList[j].sub_module_perm.sub_module_perm_list.push({
+                        agent_sub_module_id : lisresponce2[i].agent_sub_module_id,
+                        subModuleName : lisresponce2[i].agent_sub_module_name,
+                        permView : oldModuleList[i].viewPerm,
+                        permAdd : oldModuleList[i].addPerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0,
+                        permEdit : oldModuleList[i].eidtPerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0,
+                        permDelete : oldModuleList[i].deletePerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0
+                    })
+
+                    if( oldModuleList[i].viewPerm == 1 ) newModuleList[j].perm_view = 1
+                
+                }
+
+                // make a join operation between er_agent_module, er_agent_sub_module, model list
+
+                // console.log("newModuleList ",newModuleList)
+
+            // add data in module permission
+                let response = await sqlQuery.multiInsert(this.tableName15,newModuleList)
             }
         
 
@@ -850,118 +620,6 @@ class loginController {
         }
     }
 
-    // getParentName = async(req, res, next) => {
-    //     try {
-    //         const errors = validationResult(req);
-    //         if (!errors.isEmpty()) {
-    //             return res.status(400).json({ errors: errors.array() });
-    //         }
-    //         console.log('login/getParentName',JSON.stringify(req.body), JSON.stringify(req.query))
-    //         // sql query parameter
-    //         var param = {
-    //             // parent_id : req.body.user_detials.userid,
-    //             Active : 1
-    //         }
-    //         if(req.body.user_detials.type == userList.Admin || req.body.user_detials.type == userList.SubAdmin ) {
-    //             // param.region_ids = req.body.user_detials.region_list.join(',');
-    //             if(req.body.user_detials.region_list.length != 7){
-    //                 param.region_ids = req.body.user_detials.region_list.join(',')
-    //             }
-    //         }else{
-    //             param.child_ids =  req.body.user_detials.child_list.join(',');
-    //         }
-
-    //         if(req.query.rgion_uuid){
-    //             param.region_uuid = req.query.rgion_uuid
-    //         }
-
-    //         //get according to user type id if provided
-    //         if(req.query.agent_type_uuid){
-    //             var searchKeyValue = {
-    //                 agent_type_uuid: req.query.agent_type_uuid,
-    //                 active: 1,
-    //             }
-    //             var key = ["agent_type_id"] // parameter to get from data base
-    //             var orderby = "agent_type_id"
-    //             var ordertype = "ASC"
-    
-    //             // 2) sql query to get strAgent_type_uuid, strName
-    //             const lisResponce = await sqlQueryReplica.searchQuery(this.tableName3, searchKeyValue, key, orderby, ordertype, 1, 0)
-    //             if (lisResponce.length === 0) {
-    //                 return res.status(400).json({ errors: [ {msg : 'Agent type not found'}] });
-    //             }
-    //             // param.get_upper_parent_ids = parseInt(lisResponce[0].agent_type_id) 
-    //             param.get_equal_parent_ids = parseInt(lisResponce[0].agent_type_id) 
-    //         }
-
-          
-
-    
-    
-
-    //            // 1) get agent from radis
-    //                      redisMaster.get('AdminUser', async(err, reply) => {
-             
-    //                          if (err) {
-    //                              throw new HttpException(500, 'Something went wrong');
-    //                          }
-             
-    //                          // 2-A) check if radis is empty get data form the MySQL database and add to radis
-    //                          if (reply === null || reply === undefined) {
-    //                             var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid", "username AS id", "full_name as name","CAST(region_uuid AS CHAR(16)) AS region_uuid", "region_name as regionName"]
-    //                             var orderby = "usertype_id"
-    //                             var ordertype = "ASC"
-
-    //                             var searchKeyValue = {
-    //                                         usertype_id : 0,
-    //                                         Active : 1
-    //                                     }
-    //                              // 1) search parameter for MySQL data base
-    //                               const adminUser = await sqlQueryReplica.searchQueryNoLimit(this.tableName1, searchKeyValue, key, orderby, ordertype)
-             
-    //                              // 3) convert json data to string and add to radis
-    //                              const strResponse = JSON.stringify(adminUser)
-    //                              redisMaster.post('AdminUser', strResponse)
-             
-    //                                                 // commission type
-    //                                 if(req.query.commissionType){
-    //                                     param.comm_type = req.query.commissionType == "pre_paid" ? 1 : (req.query.commissionType == "post_paid" ? 2 : 0)
-    //                                 }
-
-
-    //                                 var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid", "username AS id", "full_name as name","CAST(region_uuid AS CHAR(16)) AS region_uuid", "region_name as regionName"]
-    //                                 var orderby = "usertype_id"
-    //                                 var ordertype = "ASC"
-                                    
-    //                                 // fire sql query to get str user_uuid, str full_name
-    //                                 const lisResults = await sqlQueryReplica.searchQueryNoLimit(this.tableName1, param, key, orderby, ordertype)
-    //                                         // check sql rsponce
-    //                                 if (lisResults.length === 0) {
-    //                                     return res.status(204).send({message : 'no user found'})
-    //                                 }
-
-    //                                 const onlyTen =  lisResults; // First 10 records
-    //                                 res.status(200).send({
-    //                                 reportList : onlyTen,
-    //                             })
-    //                          }
-
-             
-    //                      })
-
-    //         res.status(200).send({
-    //             reportList : onlyTen,
-    //         })
-            
-
-    //     } catch (error) {
-    //         console.log(error);
-    //         return res.status(400).json({ errors: [ {msg : error.message}] });
-    //     }
-    // }
-
-    //function to get all the details about user
-   
    getParentName = async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -1218,6 +876,135 @@ class loginController {
         console.error('Error in getParentName:', error);
         return res.status(400).json({ errors: [{ msg: error.message }] });
     }
+    };
+
+    getEqualAndGraterParentName = async (req, res, next) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+            }
+
+            console.log('login/getParentName', JSON.stringify(req.body), JSON.stringify(req.query));
+
+            // Build query parameters
+            const param = { Active: 1 };
+            const userType = req.body.user_detials.type;
+            const userDetails = req.body.user_detials;
+
+            if (userType === userList.Admin || userType === userList.SubAdmin) {
+            if (userDetails.region_list.length !== 7) {
+                param.region_ids = userDetails.region_list.join(',');
+            }
+            } else {
+            param.child_ids = userDetails.child_list.join(',');
+            }
+
+            if (req.query.rgion_uuid) {
+            param.region_uuid = req.query.rgion_uuid;
+            }
+
+            // Get according to agent_type_uuid if provided
+            if (req.query.agent_type_uuid) {
+            const searchKeyValue = {
+                agent_type_uuid: req.query.agent_type_uuid,
+                active: 1,
+            };
+            const key = ['agent_type_id'];
+            const lisResponse = await sqlQueryReplica.searchQuery(
+                this.tableName3,
+                searchKeyValue,
+                key,
+                'agent_type_id',
+                'ASC',
+                1,
+                0
+            );
+
+            if (lisResponse.length === 0) {
+                return res.status(400).json({ errors: [{ msg: 'Agent type not found' }] });
+            }
+
+            param.get_equal_and_grate_parent_ids = parseInt(lisResponse[0].agent_type_id);
+            }
+
+            // Add commission type filter if any
+            if (req.query.commissionType) {
+            param.comm_type =
+                req.query.commissionType === 'pre_paid'
+                ? 1
+                : req.query.commissionType === 'post_paid'
+                ? 2
+                : 0;
+            }
+
+            // Try to get from Redis cache
+            const redisData = await new Promise((resolve, reject) => {
+            redisMaster.get('AdminUser', (err, reply) => {
+                if (err) return reject(err);
+                return resolve(reply);
+            });
+            });
+
+            let adminUsers;
+
+            // If not in Redis, fetch from DB and store
+            if (!redisData) {
+            console.log('AdminUser cache empty — fetching from DB...');
+            const key = [
+                'CAST(user_uuid AS CHAR(16)) AS user_uuid',
+                'username AS id',
+                'full_name as name',
+                'CAST(region_uuid AS CHAR(16)) AS region_uuid',
+                'region_name as regionName',
+            ];
+
+            const adminUserFromDb = await sqlQueryReplica.searchQueryNoLimit(
+                this.tableName1,
+                { usertype_id: 0, Active: 1 },
+                key,
+                'usertype_id',
+                'ASC'
+            );
+
+            // Store result in Redis for next calls (with expiration e.g. 10 mins)
+            redisMaster.post('AdminUser', JSON.stringify(adminUserFromDb));
+            // or redisMaster.setex('AdminUser', 600, JSON.stringify(adminUserFromDb));
+
+            adminUsers = adminUserFromDb;
+            } else {
+            adminUsers = JSON.parse(redisData);
+            }
+
+            // Now fetch agent list according to params
+            const key = [
+            'CAST(user_uuid AS CHAR(16)) AS user_uuid',
+            'username AS id',
+            'full_name as name',
+            'CAST(region_uuid AS CHAR(16)) AS region_uuid',
+            'region_name as regionName',
+            ];
+
+            const lisResults = await sqlQueryReplica.searchQueryNoLimit(
+            this.tableName1,
+            param,
+            key,
+            'usertype_id',
+            'ASC'
+            );
+
+            if (lisResults.length === 0) {
+            return res.status(204).json({ message: 'no user found' });
+            }
+        console.log('AdminUser fetched successfully with', [...adminUsers,...lisResults], 'records.');
+            return res.status(200).json({
+            reportList: lisResults
+            
+            });
+        } catch (error) {
+            console.error('Error in getParentName:', error);
+            return res.status(400).json({ errors: [{ msg: error.message }] });
+        }
     };
 
    
