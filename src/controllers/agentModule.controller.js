@@ -7,9 +7,10 @@ const redisMaster = require('../common/master/radisMaster.common')
 
 const moduleModel = require('../models/agentModule.model');
 const agentModule = require('../models/agent.module');
-
+const AgentsDefaultRights = require('../utils/defaultAgentsRights.utils');
 const role = require('../utils/userRoles.utils')
 
+let moduleList =[];
 class moduleController {
     tableName1 = "er_agent_modules"
     tableName2 = "er_agent_modules_permission"
@@ -17,6 +18,9 @@ class moduleController {
     // tableName4 = "er_agent_sub_module_permission"
     tableName5 = "er_login"
 
+    constructor () {
+        moduleList = AgentsDefaultRights.moduleList;
+    }
     // basic crud operation for module
         addModule = async (req,res) => {
             try{
@@ -485,7 +489,8 @@ class moduleController {
             }
         }
 
-        updateAssignRights = async (req,res) => {
+
+       updateAssignRights = async (req,res) => {
             try{
                 // verify the req body and query
                     const errors = validationResult(req);
@@ -511,7 +516,10 @@ class moduleController {
 
                 // get agent permission list
                     var lisResponce1 = await sqlQueryReplica.searchQueryNoLimit(this.tableName2,searchKeyValue, key,"agent_module_id","ASC")
-                    if(lisResponce1.length == 0) return res.status(400).json({ errors: [ {msg : "Agent don't have any permission, create insted"}] });
+                    if(lisResponce1.length == 0){
+                            
+                        return res.status(400).json({ errors: [ {msg : "Agent don't have any permission, create insted"}] });
+                    }
 
                 // go in the listResponce1 one by one and update one by one module
                     var oldModuleList = req.body.moduleList
@@ -571,8 +579,133 @@ class moduleController {
             }
         }
 
-    // agent module permission list 
-        getParentModuleList = async (req,res) =>{ 
+        // //this function is use to remove the old permissions and create new permissions
+        // updateAssignRights = async (req,res) => {
+        //   let transaction;
+        //     try {
+        //         const errors = validationResult(req);
+        //         if (!errors.isEmpty()) {
+        //             return res.status(400).json({ errors: errors.array() });
+        //         }
+
+        //         console.log('agentModule/updateAssignRights', JSON.stringify(req.body), JSON.stringify(req.query));
+    
+        //         // Start transaction
+        //         transaction = await sqlQuery.specialCMD('transaction');
+
+        //         // Force logout agent
+        //         await sqlQuery.updateQuery(this.tableName5, { fource_logout: 1 }, { user_uuid: req.body.user_uuid, Active: 1 });
+
+        //         // Get user
+        //     var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid","parent_id",'usertype_id', "username","userid"]
+        //     var orderby = "user_uuid"
+        //     var ordertype = "ASC"
+        //         const searchKeyValue = { user_uuid: req.body.user_uuid };
+        //         // fire sql query to get user id
+        //     var theAgent = await sqlQuery.searchQuery(this.tableName5, searchKeyValue, key, orderby, ordertype, 1, 0)
+
+        //     // check if the result is there and responce accordingly
+        //     if (theAgent.length === 0) {
+        //         // rollback 
+        //        await sqlQuery.specialCMD('rollback')
+        //         return res.status(400).json({ errors: [ {msg : 'User not found'}] });
+        //     }
+        //         if (req.body.user_detials.type !== role.Admin && req.body.user_detials.type !== role.SubAdmin) {
+        //             searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
+        //         }
+
+        //         const currentPermissions = await sqlQueryReplica.searchQueryNoLimit(
+        //             this.tableName2, searchKeyValue, 
+        //             ["agent_module_name", "sub_module_perm", "perm_view", "agent_module_id"], 
+        //             "agent_module_id", "ASC"
+        //         );
+
+        //         // if (currentPermissions.length === 0) {
+        //         //     await sqlQuery.specialCMD('rollback');
+        //         //     return res.status(400).json({ errors: [{ msg: "Agent don't have any permission, create instead" }] });
+        //         // }
+
+        //         // Delete old permissions and clear cache
+        //         await sqlQuery.deleteQuery(this.tableName2, { user_uuid: req.body.user_uuid });
+
+        //         if(currentPermissions.length >0){
+        //         for (const perm of currentPermissions) {
+        //             const cacheKey = `AGENT_MODULE_PERMISSION_${perm.agent_module_id}_${req.body.user_uuid}`;
+        //             await redisMaster.delete(cacheKey);
+        //         }
+        //     }
+        //         // get sub module list
+                
+        //         const lisresponce2 = await sqlQuery.searchQueryNoConNolimit(this.tableName3,["agent_sub_module_id","agent_sub_module_name","agent_module_id","agent_module_name"],"agent_sub_module_id",'ASC')
+        //         if (lisresponce2.length == 0) {
+        //             // rollback 
+        //             await sqlQuery.specialCMD('rollback')
+        //             return res.status(400).json({ errors: [ {msg : "Sub-Module List not found to verify data"}] })
+        //         };
+        //             // const oldModuleList = req.body.moduleList
+        //             const oldModuleList = moduleList
+        //                 let i = 0, j = -1
+        //                 let newModuleList = [], newSubModuleList = []
+
+        //                 for (i = 0; i < oldModuleList.length; i++){
+
+        //                     if(lisresponce2[i].agent_sub_module_name != oldModuleList[i].subModuleName ){
+        //                         // rollback 
+        //                         let rollback = await sqlQuery.specialCMD('rollback')
+        //                         return res.status(400).json({ errors: [ {msg : "sub module list error"}] });
+        //                     }
+
+        //                     if(lisresponce2[i].agent_module_name != oldModuleList[i].ModuleName ) {
+        //                         // rollback 
+        //                         let rollback = await sqlQuery.specialCMD('rollback')
+        //                         return res.status(400).json({ errors: [ {msg : "module list error"}] });
+        //                     }
+                            
+        //                     if( j == -1 || newModuleList[j].agent_module_name != oldModuleList[i].ModuleName ){
+        //                         newModuleList.push({ 
+        //                             userid : theAgent[0].userid,
+        //                             user_uuid : req.body.user_uuid,
+        //                             agent_module_id : lisresponce2[i].agent_module_id,
+        //                             agent_module_name : lisresponce2[i].agent_module_name,
+        //                             perm_view : 0, 
+        //                             sub_module_perm : {
+        //                                 sub_module_perm_list:[]
+        //                             }
+        //                         })
+        //                         j += 1
+        //                     }
+        //                     newModuleList[j].sub_module_perm.sub_module_perm_list.push({
+        //                         agent_sub_module_id : lisresponce2[i].agent_sub_module_id,
+        //                         subModuleName : lisresponce2[i].agent_sub_module_name,
+        //                         permView : oldModuleList[i].viewPerm,
+        //                         permAdd : oldModuleList[i].addPerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0,
+        //                         permEdit : oldModuleList[i].eidtPerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0,
+        //                         permDelete : oldModuleList[i].deletePerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0
+        //                     })
+
+        //                     if( oldModuleList[i].viewPerm == 1 ) newModuleList[j].perm_view = 1
+                        
+        //                 }
+        //                // add data in module permission
+        //                let response = await sqlQuery.multiInsert(this.tableName2,newModuleList)
+        //                 res.status(200).send({ 
+        //                     response,
+        //                     message: "data updated successfully"})
+
+        //         }catch (error) {
+        //             console.log(error);
+        //             res.status(400).json({ errors: [ {msg : error.message}] });
+        //         }
+        // }
+
+    
+    
+    
+
+    
+    
+    
+    getParentModuleList = async (req,res) =>{ 
             try{
                 // verify the req body and query
                     const errors = validationResult(req);
