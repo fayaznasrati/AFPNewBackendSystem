@@ -13,7 +13,7 @@ const httpRequestMakerCommon = require("../common/httpRequestMaker.common");
 const smsFunction = require("../common/smsFunction.common");
 
 const redisMaster = require("../common/master/radisMaster.common");
-
+const generatePDFReport = require('../utils/PDFGenerator.utils');
 // const { toIsoString } = require('../common/timeFunction.common')
 
 const {
@@ -1501,6 +1501,181 @@ class stockController {
     }
   };
 
+  downloadPDFAdminStockTransferReport = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        const searchKeyValue = {
+            sender_id: req.body.user_detials.userid,
+            rollback: 0,
+        };
+
+        if (
+            req.body.user_detials.type == userList.Admin ||
+            req.body.user_detials.type == userList.SubAdmin
+        ) {
+            if (req.body.user_detials.region_list.length != 7) {
+                searchKeyValue.region_ids =
+                    req.body.user_detials.region_list.join(",");
+            }
+        }
+
+        if (
+            (req.query.startDate && !req.query.endDate) ||
+            (req.query.endDate && !req.query.startDate)
+        ) {
+            return res
+                .status(400)
+                .json({ errors: [{ msg: "Date range is not proper" }] });
+        }
+
+        if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
+        if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
+        if (req.query.name) searchKeyValue.full_name = req.query.name;
+        if (req.query.user_id) {
+            const userid = req.query.user_id;
+            searchKeyValue.username = userid.startsWith("AFP-")
+                ? userid
+                : `AFP-${userid}`;
+        }
+
+        if (req.query.user_type_uuid) {
+            const response = await commonQueryCommon.getAgentTypeId(
+                req.query.user_type_uuid
+            );
+            if (!response)
+                return res
+                    .status(400)
+                    .json({ errors: [{ msg: "Agent Type not found" }] });
+            searchKeyValue.usertype_id = response[0].agent_type_id;
+        }
+
+        if (req.query.mobile) searchKeyValue.mobile = req.query.mobile;
+        if (req.query.amount) searchKeyValue.transfer_amt = req.query.amount;
+
+        if (Object.keys(searchKeyValue).length === 0) {
+            return res
+                .status(400)
+                .json({ errors: [{ msg: "Search Parameter are not proper" }] });
+        }
+
+        const lisTotalRecords = await stockModule.adminStocksDetialsCount(
+            searchKeyValue
+        );
+        const intTotlaRecords = Number(lisTotalRecords[0].count);
+        const pageLimit = Number(process.env.PER_PAGE_COUNT);
+        const intPageCount = Math.ceil(intTotlaRecords / pageLimit);
+        const offset =
+            req.query.pageNumber > 0
+                ? (req.query.pageNumber - 1) * pageLimit
+                : 0;
+        const limit =
+            req.query.pageNumber > 0
+                ? pageLimit
+                : intTotlaRecords;
+
+        const lisResult = await stockModule.DownloadAdminStocksDetials(
+            searchKeyValue,
+            limit,
+            offset
+        );
+
+        // If paginated request, return JSON
+        if (req.query.pageNumber > 0) {
+            return res.status(200).send({
+                reportList: lisResult,
+                totalTransactionAmount: lisTotalRecords[0].transactionAmount || 0,
+                totalCommissionAmount: lisTotalRecords[0].commissionAmount || 0,
+                totalRepords: intTotlaRecords,
+                pageCount: intPageCount,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: pageLimit,
+            });
+        }
+
+        // PDF Generation for pageNumber = 0
+        if (lisResult.length === 0) {
+            return res.status(204).send({ message: "No data found" });
+        }
+
+        const now = new Date();
+        const dateStr = new Date().toISOString().split('T')[0];
+        const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+        const fileName = `admin_stock_transfer_report_${dateStr}_${timeStr}.pdf`;
+        const filePath = path.join(REPORT_DIR, fileName);
+
+        // ✅ Reuse PDF file if created within last 30 minutes
+        if (fs.existsSync(filePath)) {
+            const stats = fs.statSync(filePath);
+            const ageMinutes = (Date.now() - stats.mtimeMs) / (60 * 1000);
+            if (ageMinutes < 30) {
+                console.log("Reusing cached PDF report:", fileName);
+                return res.json({ 
+                    success: true, 
+                    downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`,
+                    reused: true
+                });
+            }
+        }
+
+        // ✅ Generate new PDF file using the helper function
+        try {
+            const totalTransactionAmount = lisTotalRecords[0].transactionAmount || 0;
+            const totalCommissionAmount = lisTotalRecords[0].commissionAmount || 0;
+            
+            // Prepare data for PDF generation
+            const pdfData = {
+                results: lisResult,
+                totalTransactionAmount: totalTransactionAmount,
+                totalCommissionAmount: totalCommissionAmount
+            };
+            
+            await generatePDFReport("Stock Transfer", pdfData, filePath);
+        } catch (pdfErr) {
+            console.error('PDF generation failed:', pdfErr);
+            return res.status(500).json({ error: 'PDF generation failed' });
+        }
+
+        // ⏱ Delete PDF file after 30 minutes
+        setTimeout(() => {
+            fs.unlink(filePath, (err) => {
+                if (err) console.error('Error deleting PDF file:', filePath, err);
+                else console.log('Deleted expired PDF report file:', fileName);
+            });
+        }, 30 * 60 * 1000);
+
+        return res.json({ 
+            success: true, 
+            downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`,
+            reused: false
+        });
+
+    } catch (error) {
+        console.error('downloadPDFAdminStockTransferReport error:', error);
+        if (req.query.pageNumber == 0) {
+            res.status(200).send([{}]);
+        } else {
+            res.status(200).json({
+                reportList: [{}],
+                totalRepords: 0,
+                pageCount: 0,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: Number(process.env.PER_PAGE_COUNT),
+                totalTransactionAmount: 0,
+                totalCommissionAmount: 0
+            });
+        }
+    }
+};
+
+
+
+
   stockRecievedReport = async (req, res) => {
     try {
       const errors = validationResult(req);
@@ -1995,6 +2170,210 @@ class stockController {
       return res.status(400).json({ errors: [{ msg: error.message }] });
     }
   };
+
+ downloadPDFDownlineStockTransferReport = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty())
+            return res.status(400).json({ errors: errors.array() });
+
+        if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+        let searchQkeys = Object.keys(req.query);
+        searchQkeys.forEach((key) => {
+            if (key.includes("user_id")) req.query.userId = key.slice(7);
+        });
+
+        let searchKeyValue = {
+            Active: 1,
+            rollback: 0,
+            "NOT sender_id": req.body.user_detials.userid,
+        };
+
+        if (req.query.parentAgentUuid) {
+            let agentList = await sqlQueryReplica.searchQuery(
+                this.tableName4,
+                {
+                    user_uuid: req.query.parentAgentUuid,
+                    Active: 1,
+                },
+                ["child_id"],
+                "userid",
+                "asc",
+                1,
+                0
+            );
+            if (agentList.length == 0)
+                return res
+                    .status(400)
+                    .json({ errors: [{ msg: "Parent Id not found" }] });
+            searchKeyValue.child_ids = agentList[0].child_id;
+        } else {
+            if (req.body.user_detials.region_list.length != 7) {
+                searchKeyValue.region_ids =
+                    req.body.user_detials.region_list.join(",");
+            }
+        }
+
+        if (
+            (req.query.start_date && !req.query.end_date) ||
+            (req.query.end_date && !req.query.start_date)
+        )
+            return res
+                .status(400)
+                .json({ errors: [{ msg: "Date range is not proper" }] });
+
+        if (req.query.userType_uuid) {
+            const lisResponce = await commonQueryCommon.checkAgentType(
+                req.query.userType_uuid
+            );
+            if (lisResponce == 0)
+                return res
+                    .status(400)
+                    .json({ errors: [{ msg: "user type uuid not found" }] });
+            searchKeyValue.usertype_id = lisResponce[0].agent_type_id;
+        }
+
+        if (req.query.sender_username) {
+            const userid = req.query.sender_username;
+            searchKeyValue.sender_username = userid.startsWith("AFP-")
+                ? userid
+                : `AFP-${userid}`;
+        }
+
+        if (req.query.reciever_username) {
+            const userid = req.query.reciever_username;
+            searchKeyValue.reciever_username = userid.startsWith("AFP-")
+                ? userid
+                : `AFP-${userid}`;
+        }
+
+        if (req.query.start_date)
+            searchKeyValue.start_date = req.query.start_date;
+        if (req.query.end_date) searchKeyValue.end_date = req.query.end_date;
+        if (req.query.province_uuid)
+            searchKeyValue.province_uuid = req.query.province_uuid;
+        if (req.query.status) searchKeyValue.Active = req.query.status;
+
+        if (Object.keys(searchKeyValue).length == 0)
+            return res
+                .status(400)
+                .json({ errors: [{ msg: "Search Parameter are not proper" }] });
+
+        const lisTotalRecords = await stockModule.agentStocksDetialsCount(
+            searchKeyValue
+        );
+        const intTotlaRecords = Number(lisTotalRecords[0].count);
+        const pageLimit = Number(process.env.PER_PAGE_COUNT);
+        const intPageCount = Math.ceil(intTotlaRecords / pageLimit);
+        const offset =
+            req.query.pageNumber > 0
+                ? (req.query.pageNumber - 1) * pageLimit
+                : 0;
+        const limit =
+            req.query.pageNumber > 0
+                ? pageLimit
+                : intTotlaRecords;
+
+        const lisResult = await stockModule.downloadAgentStockTransferQuery(
+            searchKeyValue,
+            limit,
+            offset
+        );
+
+        // If paginated request, return JSON
+        if (req.query.pageNumber > 0) {
+            return res.status(200).send({
+                reportList: lisResult,
+                totalRepords: intTotlaRecords,
+                pageCount: intPageCount,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: pageLimit,
+                totalAmount: lisTotalRecords[0].totalAmount || 0,
+                totalCommission: lisTotalRecords[0].totalCommission || 0,
+            });
+        }
+
+        // PDF Generation for pageNumber = 0
+        if (lisResult.length === 0) {
+            return res.status(204).send({ message: "No data found" });
+        }
+
+        // Calculate total of Transfar_Amount
+        const totalTransfarAmount = lisResult.reduce((sum, row) => {
+            return sum + (parseFloat(row.Transfar_Amount) || 0);
+        }, 0);
+
+        const now = new Date();
+        const dateStr = new Date().toISOString().split('T')[0];
+        const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+        const fileName = `downline_stock_transfer_report_${dateStr}_${timeStr}.pdf`;
+        const filePath = path.join(REPORT_DIR, fileName);
+
+        // ✅ Reuse PDF file if created within last 30 minutes
+        if (fs.existsSync(filePath)) {
+            const stats = fs.statSync(filePath);
+            const ageMinutes = (Date.now() - stats.mtimeMs) / (60 * 1000);
+            if (ageMinutes < 30) {
+                console.log("Reusing cached PDF report:", fileName);
+                return res.json({ 
+                    success: true, 
+                    downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`,
+                    reused: true
+                });
+            }
+        }
+
+        // ✅ Generate new PDF file using the helper function
+        try {
+            const totalAmount = lisTotalRecords[0].totalAmount || 0;
+            const totalCommission = lisTotalRecords[0].totalCommission || 0;
+            
+            // Prepare data for PDF generation
+            const pdfData = {
+                results: lisResult,
+                totalTransfarAmount: totalTransfarAmount,
+                totalAmount: totalAmount,
+                totalCommission: totalCommission
+            };
+            
+            await generatePDFReport("Downline Stock Transfer", pdfData, filePath);
+        } catch (pdfErr) {
+            console.error('PDF generation failed:', pdfErr);
+            return res.status(500).json({ error: 'PDF generation failed' });
+        }
+
+        // ⏱ Delete PDF file after 30 minutes
+        setTimeout(() => {
+            fs.unlink(filePath, (err) => {
+                if (err) console.error('Error deleting PDF file:', filePath, err);
+                else console.log('Deleted expired PDF report file:', fileName);
+            });
+        }, 30 * 60 * 1000);
+
+        return res.json({ 
+            success: true, 
+            downloadUrl: `/api/v1/recharge/agent-report/files/${fileName}`,
+            reused: false
+        });
+
+    } catch (error) {
+        console.error('downloadPDFDownlineStockTransferReport error:', error);
+        if (req.query.pageNumber == 0) {
+            res.status(200).send([{}]);
+        } else {
+            res.status(200).json({
+                reportList: [{}],
+                totalRepords: 0,
+                pageCount: 0,
+                currentPage: Number(req.query.pageNumber),
+                pageLimit: Number(process.env.PER_PAGE_COUNT),
+                totalAmount: 0,
+                totalCommission: 0
+            });
+        }
+    }
+};
 
   stocksRequests = async (req, res, next) => {
     try {
