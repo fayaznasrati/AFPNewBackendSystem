@@ -215,7 +215,7 @@ class walletModel {
         const agentSearch = await this.queryGen(other);
         let dateSearch
         if(start_date) dateSearch = await this.queryGen({start_date, end_date});
-        // console.log(dateSearch,agentSearch,limit,offset);
+        // console.log(dateSearch,agentSearch);
 
         // 1)- get all the user list according to search paremeter and limit
         // 2)- use join operation to get all the transaction made by them in given date range
@@ -223,7 +223,7 @@ class walletModel {
         let sql = `  SELECT /*+ MAX_EXECUTION_TIME(${process.env.SQL_QUERY_TIME_OUT}) */ COUNT(1) AS count FROM ${this.tablename1} WHERE ${agentSearch.seColumnSet}`
         // console.log("SQL = "+ sql)
 
-        let result = await dbConnectionReplica.query(sql,[...agentSearch.sevalues]);
+        let result = await dbConnectionReplica.query(sql,[...agentSearch.sevalues,...dateSearch.sevalues]);
         // console.log(result);
         return result
     }
@@ -304,7 +304,7 @@ class walletModel {
     }
 
     queryGen = async (object) =>{
-        console.log(object)
+        // console.log(object)
 
         let { region_ids, child_ids, between, timeDifferent, ...other } = object
        

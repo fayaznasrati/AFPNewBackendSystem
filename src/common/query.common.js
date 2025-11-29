@@ -144,6 +144,7 @@ exports.multipleAndColumnSet = (object) => {
         if (key == 'start_trans_date_time') return ` ? <=  date(trans_date_time)`
         if (key == 'end_trans_date_time') return `date(trans_date_time) <= ?`
         if (key == 'registerDate') return `date(created_on) = ?`
+        if (key == 'get_equal_and_grate_parent_ids') return `usertype_id <= ?`
         if (key == 'get_upper_parent_ids') return `usertype_id < ?`
         if (key == 'get_equal_parent_ids') return `usertype_id = ?`
         if (key == 'get_lower_parent_ids') return `usertype_id > ?`
