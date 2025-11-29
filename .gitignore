@@ -9,7 +9,5 @@
 /src/testConnections.js
 /src/testStatusCompany.js
 /src/load-test-etisalat.js
-/the_topup_report
-.the_topup_report
-/bulk_topup_report
-.bulk_topup_report
+
+the_topup_reports 

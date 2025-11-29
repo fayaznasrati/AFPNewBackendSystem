@@ -4883,7 +4883,11 @@ class rechargeController {
 
             // optional search paremeter
 
-            if (req.query.agentId) searchKeyValue.username = req.query.agentId
+            // if (req.query.agentId) searchKeyValue.username = req.query.agentId
+              if (req.query.agentId) {
+            const userid = req.query.agentId;
+            searchKeyValue.username = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+        }
             if (req.query.agentName) searchKeyValue.full_name = req.query.agentName
             if (req.query.agentMobile) searchKeyValue.mobile = req.query.agentMobile
             if (req.query.agentEmail) searchKeyValue.emailid = req.query.agentEmail
@@ -5007,7 +5011,10 @@ class rechargeController {
                 searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
             }
 
-            if (req.query.agentId) searchKeyValue.username = req.query.agentId;
+                 if (req.query.agentId) {
+            const userid = req.query.agentId;
+            searchKeyValue.username = userid.startsWith("AFP-") ? userid : `AFP-${userid}`;
+        }
             if (req.query.agentName) searchKeyValue.full_name = req.query.agentName;
             if (req.query.agentMobile) searchKeyValue.mobile = req.query.agentMobile;
             if (req.query.agentEmail) searchKeyValue.emailid = req.query.agentEmail;

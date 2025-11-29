@@ -580,11 +580,11 @@ class walletController {
         }
 
         // Date validation
-        if (req.query.start_date) param.start_date = req.query.start_date;
-        if (req.query.end_date) param.end_date = req.query.end_date;
-        if ((req.query.start_date && !req.query.end_date) || (req.query.end_date && !req.query.start_date)) {
-            return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
-        }
+        // if (req.query.start_date) param.start_date = req.query.start_date;
+        // if (req.query.end_date) param.end_date = req.query.end_date;
+        // if ((req.query.start_date && !req.query.end_date) || (req.query.end_date && !req.query.start_date)) {
+        //     return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+        // }
 
         const lisTotalRecordsBlance = await walletModel.getAgentBalanceReportCount(param);
         console.log('lisTotalRecordsBlance:', lisTotalRecordsBlance[0].totalBalance );
@@ -704,7 +704,7 @@ class walletController {
 
     if (req.query.parent_uuid) {
       const parentData = await sqlQueryReplica.searchQuery(
-        'er_user_details',
+        this.tableName2,
         { user_uuid: req.query.parent_uuid, Active: 1 },
         ['userid', 'child_id'],
         'userid',
@@ -719,12 +719,12 @@ class walletController {
       param.child_ids = child_ids;
     }
 
-    if ((req.query.start_date && !req.query.end_date) || (!req.query.start_date && req.query.end_date)) {
-      return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
-    }
+    // if ((req.query.start_date && !req.query.end_date) || (!req.query.start_date && req.query.end_date)) {
+    //   return res.status(400).json({ errors: [{ msg: 'Date range is not proper' }] });
+    // }
 
-    if (req.query.start_date) param.start_date = req.query.start_date;
-    if (req.query.end_date) param.end_date = req.query.end_date;
+    // if (req.query.start_date) param.start_date = req.query.start_date;
+    // if (req.query.end_date) param.end_date = req.query.end_date;
 
     const reportList = await walletModel.getAgentBalanceTotalReport(param);
 

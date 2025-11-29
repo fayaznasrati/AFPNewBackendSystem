@@ -1364,7 +1364,13 @@ class loginController {
             searchKeyValue.usertype_id = resUserType[0].agent_type_id;
         }
 
-        if (req.query.id) searchKeyValue.username = req.query.id;
+        // if (req.query.id) searchKeyValue.username = req.query.id;
+            if (req.query.id) {
+                const userid = req.query.id;
+                searchKeyValue.username = userid.startsWith("AFP-")
+                ? userid
+                : `AFP-${userid}`;
+            }
         if (req.query.name) {
             if (Number(req.query.name)) searchKeyValue.mobile = req.query.name;
             else searchKeyValue.full_name = req.query.name;
@@ -2814,7 +2820,13 @@ class loginController {
                 if (lisResponce.length === 0) return res.status(400).json({ errors: [ {msg : 'user type uuid not found'}] });
                 searchKeyValue.usertype_id = lisResponce[0].agent_type_id //int user typeId
             }
-            if (req.query.id) searchKeyValue.username = req.query.id //str username
+
+               if (req.query.id) {
+                    const userid = req.query.id;
+                    searchKeyValue.username = userid.startsWith("AFP-")
+                    ? userid
+                    : `AFP-${userid}`;
+                }
             if (req.query.name) {
                 if(Number(req.query.name)) searchKeyValue.mobile = req.query.name
                 else searchKeyValue.full_name = req.query.name

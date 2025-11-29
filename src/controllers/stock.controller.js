@@ -87,7 +87,13 @@ class stockController {
       }
 
       //optional serach parameter to check
-      if (req.query.user_id) searchKeyValue.username = req.query.user_id; // str user_uuid
+      // if (req.query.user_id) searchKeyValue.username = req.query.user_id; // str user_uuid
+          if (req.query.user_id) {
+        const userid = req.query.user_id;
+        searchKeyValue.username = userid.startsWith("AFP-")
+          ? userid
+          : `AFP-${userid}`;
+      }
       if (req.query.name) searchKeyValue.full_name = req.query.name; // str name
       if (req.query.number) searchKeyValue.mobile = req.query.number; // int number
 
@@ -206,7 +212,13 @@ class stockController {
         searchKeyValue.child_ids = req.body.user_detials.child_list.join(",");
       }
 
-      if (req.query.user_id) searchKeyValue.username = req.query.user_id;
+      // if (req.query.user_id) searchKeyValue.username = req.query.user_id;
+          if (req.query.user_id) {
+        const userid = req.query.user_id;
+        searchKeyValue.username = userid.startsWith("AFP-")
+          ? userid
+          : `AFP-${userid}`;
+      }
       if (req.query.name) searchKeyValue.full_name = req.query.name;
       if (req.query.number) searchKeyValue.mobile = req.query.number;
 
@@ -1256,7 +1268,15 @@ class stockController {
       }
       //other optional parameter
       if (req.query.name) searchKeyValue.full_name = req.query.name; //str
-      if (req.query.user_id) searchKeyValue.username = req.query.user_id;
+
+      // if (req.query.user_id) searchKeyValue.username = req.query.user_id;
+          if (req.query.user_id) {
+        const userid = req.query.user_id;
+        searchKeyValue.username = userid.startsWith("AFP-")
+          ? userid
+          : `AFP-${userid}`;
+      }
+
       if (req.query.user_type_uuid) {
         var responce = await commonQueryCommon.getAgentTypeId(
           req.query.user_type_uuid
@@ -1358,7 +1378,12 @@ class stockController {
       if (req.query.startDate) searchKeyValue.start_date = req.query.startDate;
       if (req.query.endDate) searchKeyValue.end_date = req.query.endDate;
       if (req.query.name) searchKeyValue.full_name = req.query.name;
-      if (req.query.user_id) searchKeyValue.username = req.query.user_id;
+          if (req.query.user_id) {
+        const userid = req.query.user_id;
+        searchKeyValue.username = userid.startsWith("AFP-")
+          ? userid
+          : `AFP-${userid}`;
+      }
 
       if (req.query.user_type_uuid) {
         const response = await commonQueryCommon.getAgentTypeId(
@@ -1797,14 +1822,20 @@ class stockController {
         searchKeyValue.usertype_id = lisResponce[0].agent_type_id;
       }
 
-      if (req.query.userid) {
-        const userid = req.query.userid;
+      if (req.query.sender_username) {
+        const userid = req.query.sender_username;
         searchKeyValue.sender_username = userid.startsWith("AFP-")
           ? userid
           : `AFP-${userid}`;
       }
 
-      if (req.query.name) searchKeyValue.reciever_username = req.query.name;
+        if (req.query.reciever_username) {
+        const userid = req.query.reciever_username;
+        searchKeyValue.reciever_username = userid.startsWith("AFP-")
+          ? userid
+          : `AFP-${userid}`;
+      }
+
       if (req.query.start_date)
         searchKeyValue.start_date = req.query.start_date;
       if (req.query.end_date) searchKeyValue.end_date = req.query.end_date;
@@ -1866,6 +1897,8 @@ class stockController {
               downloadLink: `/api/v1/recharge/agent-report/files/${fileName}`,
             });
           }
+        }{
+          console.log("Generating new Excel report:", fileName);
         }
 
         // generate workbook
@@ -2845,7 +2878,13 @@ class stockController {
 
       //other optional parameter
       if (req.query.name) searchKeyValue.full_name = req.query.name; //str
-      if (req.query.user_id) searchKeyValue.username = req.query.user_id;
+      // if (req.query.user_id) searchKeyValue.username = req.query.user_id;
+          if (req.query.user_id) {
+        const userid = req.query.user_id;
+        searchKeyValue.username = userid.startsWith("AFP-")
+          ? userid
+          : `AFP-${userid}`;
+      }
       if (req.query.mobile) searchKeyValue.mobile = req.query.mobile;
       if (
         req.query.stocktransferStatus != null &&
@@ -2975,7 +3014,12 @@ class stockController {
 
       // Optional filters
       if (req.query.name) searchKeyValue.full_name = req.query.name;
-      if (req.query.user_id) searchKeyValue.username = req.query.user_id;
+         if (req.query.user_id) {
+        const userid = req.query.user_id;
+        searchKeyValue.username = userid.startsWith("AFP-")
+          ? userid
+          : `AFP-${userid}`;
+      }
       if (req.query.mobile) searchKeyValue.mobile = req.query.mobile;
       if (
         req.query.stocktransferStatus !== undefined &&
