@@ -2111,7 +2111,7 @@ class stockController {
         });
 
         // Add total row
-        worksheet.addRow({}); // Empty row for separation
+        // worksheet.addRow({}); // Empty row for separation
 
         const totalRowValues = {
           SrNo: "", // Empty for SrNo column
