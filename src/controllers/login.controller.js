@@ -357,7 +357,8 @@ class loginController {
             param.prefer_lang = lisResponse[0].lang_id
 
             //7)-check parent 
-            var lisResponse = await this.checkParentId(req.body.parent_uuid,param.usertype_id,req.body.region_uuid)
+            // var lisResponse = await this.checkParentId(req.body.parent_uuid,param.usertype_id,req.body.region_uuid)
+            var lisResponse = await this.checkGraterAndEqualParentId(req.body.parent_uuid,param.usertype_id,req.body.region_uuid)
             if (lisResponse.length === 0) return res.status(400).json({ errors: [ {msg : 'Parent userid not found'}] });
             if (lisResponse[0].comm_type == 0) return res.status(400).json({ errors: [ {msg : 'Parent Commission not set'}] });
             
@@ -1329,7 +1330,8 @@ class loginController {
 
         if (req.query.parentAgentUuid) {
             let searchKeyValue1 = {
-                user_uuid: req.query.parentAgentUuid,
+                // user_uuid: req.query.parentAgentUuid,
+                username: req.query.parentAgentUuid,
                 Active: 1
             };
 
@@ -2782,10 +2784,11 @@ class loginController {
 
             // all optional search parameter
             if (req.query.parentAgentUuid) {
-
+            let userid = req.query.parentAgentUuid;
+             userid =     userid.startsWith("AFP-")? userid : `AFP-${userid}`;
                 // check if selected child is in your downline
                 var searchKeyValue1 = {
-                    user_uuid: req.query.parentAgentUuid,
+                    username: userid,
                     Active : 1
                 }
 
@@ -3232,6 +3235,27 @@ class loginController {
         var searchKeyValue = {
             user_uuid: parent_uuid,
             get_upper_parent_ids : agent_type_id,
+            Active : 1
+        }
+        if(process.env.USER_UUID != parent_uuid) searchKeyValue.region_uuid = region_uuid 
+        var key = ["userid","comm_type","oper1_status","oper2_status","oper3_status","oper4_status","oper5_status"]
+        var orderby = "userid"
+        var ordertype = "ASC"
+
+        // fire sql query to get user id
+        var lisResponse = await sqlQueryReplica.searchQuery(this.tableName1, searchKeyValue, key, orderby, ordertype, 1, 0)
+
+        // check if the result is there and responce accordingly
+        if (!lisResponse) {
+            throw new HttpException(500, 'Something went wrong');
+        }
+        return lisResponse
+    }
+
+      async checkGraterAndEqualParentId(parent_uuid,agent_type_id,region_uuid) {
+        var searchKeyValue = {
+            user_uuid: parent_uuid,
+            get_equal_and_grate_parent_ids : agent_type_id,
             Active : 1
         }
         if(process.env.USER_UUID != parent_uuid) searchKeyValue.region_uuid = region_uuid 

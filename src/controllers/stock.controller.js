@@ -1817,9 +1817,11 @@ class stockController {
       // all optional search parameter
       if (req.query.parentAgentUuid) {
         // searchKeyValue.parent_id = req.query.parentAgentUuid
+            let userid = req.query.parentAgentUuid;
+             userid =     userid.startsWith("AFP-")? userid : `AFP-${userid}`;
         let agentList = await sqlQueryReplica.searchQuery(
           this.tableName4,
-          { user_uuid: req.query.parentAgentUuid, Active: 1 },
+          { username: userid, Active: 1 },
           ["child_id"],
           "userid",
           "asc",
@@ -1953,13 +1955,14 @@ class stockController {
         "NOT sender_id": req.body.user_detials.userid,
       };
 
+        // all optional search parameter
       if (req.query.parentAgentUuid) {
+        // searchKeyValue.parent_id = req.query.parentAgentUuid
+            let userid = req.query.parentAgentUuid;
+             userid =     userid.startsWith("AFP-")? userid : `AFP-${userid}`;
         let agentList = await sqlQueryReplica.searchQuery(
           this.tableName4,
-          {
-            user_uuid: req.query.parentAgentUuid,
-            Active: 1,
-          },
+          { username: userid, Active: 1 },
           ["child_id"],
           "userid",
           "asc",
@@ -2190,19 +2193,19 @@ class stockController {
             "NOT sender_id": req.body.user_detials.userid,
         };
 
-        if (req.query.parentAgentUuid) {
-            let agentList = await sqlQueryReplica.searchQuery(
-                this.tableName4,
-                {
-                    user_uuid: req.query.parentAgentUuid,
-                    Active: 1,
-                },
-                ["child_id"],
-                "userid",
-                "asc",
-                1,
-                0
-            );
+          if (req.query.parentAgentUuid) {
+        // searchKeyValue.parent_id = req.query.parentAgentUuid
+            let userid = req.query.parentAgentUuid;
+             userid =     userid.startsWith("AFP-")? userid : `AFP-${userid}`;
+        let agentList = await sqlQueryReplica.searchQuery(
+          this.tableName4,
+          { username: userid, Active: 1 },
+          ["child_id"],
+          "userid",
+          "asc",
+          1,
+          0
+        );
             if (agentList.length == 0)
                 return res
                     .status(400)
