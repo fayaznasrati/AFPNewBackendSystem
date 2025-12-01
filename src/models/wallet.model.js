@@ -117,6 +117,28 @@ class walletModel {
         return result
     }
 
+        transactionReportCountSumsDebitAndCredit = async (param) => {
+        const { sevalues, seColumnSet } = await this.queryGen(param);
+
+        let sql = `
+            SELECT 
+                /*+ MAX_EXECUTION_TIME(${process.env.SQL_QUERY_TIME_OUT}) */
+                COUNT(1) AS count,
+                SUM(CASE WHEN ${this.tablename2}.trans_type = 1 THEN ${this.tablename2}.amount ELSE 0 END) AS totalCredit,
+                SUM(CASE WHEN ${this.tablename2}.trans_type = 2 THEN ${this.tablename2}.amount ELSE 0 END) AS totalDebit,
+                SUM(${this.tablename2}.amount) AS totalAmount
+            FROM ${this.tablename1}
+            JOIN ${this.tablename2}
+                ON ${this.tablename1}.userid = ${this.tablename2}.userid
+            WHERE ${seColumnSet}
+            ORDER BY ${this.tablename2}.wallet_txn_id DESC
+        `;
+
+        const result = await dbConnectionReplica.query(sql, [...sevalues]);
+        return result;
+    }
+
+
     transactionReport = async (param, limit, offset) => {
         
         const {sevalues,seColumnSet} = await this.queryGen(param);

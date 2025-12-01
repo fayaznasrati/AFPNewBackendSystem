@@ -67,8 +67,19 @@ generatePDFReport = async (title,the_data, filePath) => {
                 if (currentPage === totalPages && the_data?.totalAmount) {
                     doc.fontSize(10)
                     .fillColor('#000000')
-                    .text(`Total Amount: ${the_data.totalAmount}`, 50, 700, { align: 'right' });
+                    .text(`Total Amount: ${the_data?.totalAmount}`, 50, 700, { align: 'left' });
+                     }
+                        if (currentPage === totalPages && the_data?.totalDebit) {
+                          doc.fontSize(10)
+                    .fillColor('#000000')
+                    .text(`Total Debit: ${the_data?.totalDebit}`, 50, 700, { align: 'center' });
+                        }
+                        if (currentPage === totalPages && the_data?.totalCredit) {
+                          doc.fontSize(10)
+                    .fillColor('#000000')
+                    .text( `Total Credit: ${the_data?.totalCredit}`, 50, 700, { align: 'right' });
                 }
+                
             };
 
 

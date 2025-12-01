@@ -965,17 +965,17 @@ class walletController {
         return { ...other, type: type === 1 ? 'Credit' : 'Debit' };
         });
 
-        // If paginated request, return JSON
-        if (req.query.pageNumber > 0) {
-        return res.status(200).json({
-            reportList: results,
-            totalRepords: intTotlaRecords,
-            pageCount: intPageCount,
-            currentPage: Number(req.query.pageNumber),
-            pageLimit,
-            totalAmount: lisTotalRecords[0].totalAmount || 0
-        });
-        }
+        // // If paginated request, return JSON
+        // if (req.query.pageNumber > 0) {
+        // return res.status(200).json({
+        //     reportList: results,
+        //     totalRepords: intTotlaRecords,
+        //     pageCount: intPageCount,
+        //     currentPage: Number(req.query.pageNumber),
+        //     pageLimit,
+        //     totalAmount: lisTotalRecords[0].totalAmount || 0
+        // });
+        // }
 
         const now = new Date();
         const dateStr = new Date().toISOString().split('T')[0];
@@ -1077,10 +1077,10 @@ class walletController {
             return res.status(404).json({ errors: [{ msg: 'Improper search parameter' }] });
         }
 
-        const lisTotalRecords = await walletModel.transactionReportCount(param);
+        const lisTotalRecords = await walletModel.transactionReportCountSumsDebitAndCredit(param);
         const intTotlaRecords = Number(lisTotalRecords[0].count);
-        const pageLimit = Number(process.env.PER_PAGE_COUNT);
-        const intPageCount = intTotlaRecords % pageLimit === 0 ? intTotlaRecords / pageLimit : Math.floor(intTotlaRecords / pageLimit) + 1;
+        // const pageLimit = Number(process.env.PER_PAGE_COUNT);
+        // const intPageCount = intTotlaRecords % pageLimit === 0 ? intTotlaRecords / pageLimit : Math.floor(intTotlaRecords / pageLimit) + 1;
         const offset = req.query.pageNumber > 0 ? (req.query.pageNumber - 1) * pageLimit : 0;
         const limit = req.query.pageNumber > 0 ? pageLimit : intTotlaRecords;
 
@@ -1093,16 +1093,18 @@ class walletController {
      
 
         // If paginated request, return JSON
-        if (req.query.pageNumber > 0) {
-            return res.status(200).json({
-                reportList: {...results,},
-                totalRepords: intTotlaRecords,
-                pageCount: intPageCount,
-                currentPage: Number(req.query.pageNumber),
-                pageLimit,
-                totalAmount: lisTotalRecords[0].totalAmount || 0
-            });
-        }
+        // if (req.query.pageNumber > 0) {
+        //     return res.status(200).json({
+        //         reportList: {...results,},
+        //         totalRepords: intTotlaRecords,
+        //         pageCount: intPageCount,
+        //         currentPage: Number(req.query.pageNumber),
+        //         pageLimit,
+        //         totalAmount: lisTotalRecords[0].totalAmount || 0,
+        //         totalDebit: lisTotalRecords[0].totalDebit || 0,
+        //         totalCredit: lisTotalRecords[0].totalCredit || 0,
+        //     });
+        // }
 
         const now = new Date();
         const dateStr = new Date().toISOString().split('T')[0];
@@ -1126,8 +1128,10 @@ class walletController {
 
         // ✅ Generate new PDF file using the helper function
         try {
+              const totalDebit= lisTotalRecords[0].totalDebit || 0;
+             const  totalCredit= lisTotalRecords[0].totalCredit || 0;
             const totalAmount =  lisTotalRecords[0].totalAmount || 0;
-            const finalResult = {results ,totalAmount}
+            const finalResult = {results ,totalAmount,totalCredit,totalDebit}
             await generatePDFReport("Account Statement",finalResult, filePath);
         } catch (pdfErr) {
             console.error('PDF generation failed:', pdfErr);
