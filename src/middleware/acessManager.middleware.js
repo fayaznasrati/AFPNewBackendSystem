@@ -8,7 +8,7 @@ const path = require('path');
 dotenv.config()
 
 const sqlQuery = require('../common/sqlQuery.common')
-
+const sqlQueryReplica = require('../common/sqlQueryReplica.common')
 const userRoles = require('../utils/userRoles.utils');
 const apiMethod = require('../utils/apiMethod.utils')
 
@@ -95,7 +95,7 @@ const accessManager = (userType) => {
                         strModulePermission = await redisMaster.asyncGet(`AGENT_MODULE_PERMISSION_${moduleId[0]}_${req.body.user_detials.user_uuid}`)
                         if(strModulePermission == null) {
                             // get module permision list according to user id and module id
-                            listPermission = await sqlQuery.searchQuery(this.tableName1,{"agent_module_id" : moduleId[0], "userid" : req.body.user_detials.userid},["sub_module_perm"],'agent_module_per_id','ASC',1,0)
+                            listPermission = await sqlQueryReplica.searchQuery(this.tableName1,{"agent_module_id" : moduleId[0], "userid" : req.body.user_detials.userid},["sub_module_perm"],'agent_module_per_id','ASC',1,0)
                             if(listPermission.length == 0) return res.status(400).json({ errors: [ {msg : "Permission List not found"}] });
                             permissionList = JSON.parse(listPermission[0].sub_module_perm).sub_module_perm_list
 

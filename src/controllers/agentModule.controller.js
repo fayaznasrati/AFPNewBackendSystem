@@ -504,7 +504,7 @@ class moduleController {
                     };
 
                     // force logout agent temperary fix
-                    const forceLogOut = await sqlQuery.updateQuery(this.tableName5,{fource_logout : 1},{user_uuid: req.body.user_uuid,Active : 1})
+                    await sqlQuery.updateQuery(this.tableName5,{fource_logout : 1},{user_uuid: req.body.user_uuid,Active : 1})
 
                     if(req.body.user_detials.type == role.Admin || req.body.user_detials.type == role.SubAdmin ) {
                         // searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
@@ -517,8 +517,76 @@ class moduleController {
                 // get agent permission list
                     var lisResponce1 = await sqlQueryReplica.searchQueryNoLimit(this.tableName2,searchKeyValue, key,"agent_module_id","ASC")
                     if(lisResponce1.length == 0){
+
+                                // Get user
+                        var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid","parent_id",'usertype_id', "username","userid"]
+                        var orderby = "user_uuid"
+                        var ordertype = "ASC"
+                            const searchKeyValue = { user_uuid: req.body.user_uuid };
+                            // fire sql query to get user id
+                        var theAgent = await sqlQueryReplica.searchQuery(this.tableName5, searchKeyValue, key, orderby, ordertype, 1, 0)
+                        if (theAgent.length == 0) {
+                            return res.status(400).json({ errors: [ {msg : "User not found"}] });
+                        }
+                                
+                        // get sub module list
+                    
+                        const lisresponce2 = await sqlQueryReplica.searchQueryNoConNolimit(this.tableName3,["agent_sub_module_id","agent_sub_module_name","agent_module_id","agent_module_name"],"agent_sub_module_id",'ASC')
+                        if (lisresponce2.length == 0) {
+                            // rollback 
+                            await sqlQuery.specialCMD('rollback')
+                            return res.status(400).json({ errors: [ {msg : "Sub-Module List not found to verify data"}] })
+                        };
+                           const oldModuleList = req.body.moduleList
+                        //  const oldModuleList = moduleList
+                        let i = 0, j = -1
+                        let newModuleList = [], newSubModuleList = []
+
+                        for (i = 0; i < oldModuleList.length; i++){
+
+                            if(lisresponce2[i].agent_sub_module_name != oldModuleList[i].subModuleName ){
+                                // rollback 
+                                let rollback = await sqlQuery.specialCMD('rollback')
+                                return res.status(400).json({ errors: [ {msg : "sub module list error"}] });
+                            }
+
+                            if(lisresponce2[i].agent_module_name != oldModuleList[i].ModuleName ) {
+                                // rollback 
+                                let rollback = await sqlQuery.specialCMD('rollback')
+                                return res.status(400).json({ errors: [ {msg : "module list error"}] });
+                            }
                             
-                        return res.status(400).json({ errors: [ {msg : "Agent don't have any permission, create insted"}] });
+                            if( j == -1 || newModuleList[j].agent_module_name != oldModuleList[i].ModuleName ){
+                                newModuleList.push({ 
+                                    userid : theAgent[0].userid,
+                                    user_uuid : req.body.user_uuid,
+                                    agent_module_id : lisresponce2[i].agent_module_id,
+                                    agent_module_name : lisresponce2[i].agent_module_name,
+                                    perm_view : 0, 
+                                    sub_module_perm : {
+                                        sub_module_perm_list:[]
+                                    }
+                                })
+                                j += 1
+                            }
+                            newModuleList[j].sub_module_perm.sub_module_perm_list.push({
+                                agent_sub_module_id : lisresponce2[i].agent_sub_module_id,
+                                subModuleName : lisresponce2[i].agent_sub_module_name,
+                                permView : oldModuleList[i].viewPerm,
+                                permAdd : oldModuleList[i].addPerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0,
+                                permEdit : oldModuleList[i].eidtPerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0,
+                                permDelete : oldModuleList[i].deletePerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0
+                            })
+
+                            if( oldModuleList[i].viewPerm == 1 ) newModuleList[j].perm_view = 1
+                        
+                        }
+                       // add data in module permission
+                       let response = await sqlQuery.multiInsert(this.tableName2,newModuleList)
+                        res.status(200).send({ 
+                            response,
+                            message: "data updated successfully"})
+                        return console.log('New Module permissions created successfully');
                     }
 
                 // go in the listResponce1 one by one and update one by one module
@@ -533,170 +601,121 @@ class moduleController {
                         subModuleList = JSON.parse(lisResponce1[i].sub_module_perm).sub_module_perm_list
                         for (k = 0; k < subModuleList.length; k++) {
                             if(subModuleList[k].subModuleName != oldModuleList[j].subModuleName){
+                                console.log("sub module name : ",subModuleList[k].subModuleName, oldModuleList[j].subModuleName)
                                 j+=1
-                                if(subModuleList[k].subModuleName != oldModuleList[j].subModuleName) return res.status(400).json({ errors: [ {msg : "sub-module list is not proper"}] });
+                                if(subModuleList[k].subModuleName != oldModuleList[j].subModuleName){
+                                    console.log("sub module name after j update: ",subModuleList[k].subModuleName, oldModuleList[j].subModuleName)
+                                    return res.status(400).json({ errors: [ {msg : "sub-module list is not proper"}] });
+                                }
                             }
                             // check the status value
                             if(subModuleList[k].permView != oldModuleList[j].viewPerm || oldModuleList[j].viewPerm == 0){
+                                console.log(subModuleList[k].subModuleName,"view perm update: ",subModuleList[k].permView, "view perm update: ",oldModuleList[j].subModuleName, oldModuleList[j].viewPerm)
                                 subModuleList[k].permView = oldModuleList[j].viewPerm == 1 ? 1 : 0
                                 update = 1
                             }
                             if(subModuleList[k].permAdd != oldModuleList[j].addPerm || oldModuleList[j].viewPerm == 0){
+                                console.log(subModuleList[k].subModuleName,"add perm update: ",subModuleList[k].permAdd, "add perm update: ",oldModuleList[j].subModuleName,oldModuleList[j].addPerm)
                                 subModuleList[k].permAdd = oldModuleList[j].addPerm == 1 && oldModuleList[j].viewPerm == 1 ? 1 : 0
                                 update = 1
                             }
-                            if(subModuleList[k].permEdit != oldModuleList[j].eidtPerm || oldModuleList[j].viewPerm == 0){
-                                subModuleList[k].permEdit = oldModuleList[j].eidtPerm == 1 && oldModuleList[j].viewPerm == 1 ? 1 : 0
+                            if(subModuleList[k].permEdit != oldModuleList[j].editPerm || oldModuleList[j].viewPerm == 0){
+                                console.log(subModuleList[k].subModuleName,"edit perm update: ",subModuleList[k].permEdit, "edit perm update: ",oldModuleList[j].subModuleName,oldModuleList[j].editPerm)
+                                subModuleList[k].permEdit = oldModuleList[j].editPerm == 1 && oldModuleList[j].viewPerm == 1 ? 1 : 0
                                 update = 1
                             }
                             if(subModuleList[k].permDelete!= oldModuleList[j].deletePerm || oldModuleList[j].viewPerm == 0){
+                                console.log(subModuleList[k].subModuleName,"delete perm update: ",subModuleList[k].permDelete, "delete perm update: ",oldModuleList[j].subModuleName, oldModuleList[j].deletePerm)
                                 subModuleList[k].permDelete = oldModuleList[j].deletePerm == 1 && oldModuleList[j].viewPerm == 1 ? 1 : 0
                                 update = 1
                             }
                             if(update == 1){
                                 // update the value
-                                // console.log("update: ",subModuleList[k])
+                                console.log("update: ",subModuleList[k])
                                 if( subModuleList[k].permView == 1) view = 1
                             }
                         }
                         lisResponce1[i].sub_module_perm = JSON.stringify({sub_module_perm_list : subModuleList})
                         if(update == 1){
-                            // console.log(lisResponce1[i].sub_module_perm)
+                            console.log(lisResponce1[i].sub_module_perm)
                             lisResponce1[i].perm_view = view
                             updateResponce = await sqlQuery.updateQuery(this.tableName2,lisResponce1[i],{user_uuid : req.body.user_uuid,agent_module_name : lisResponce1[i].agent_module_name })
                             update = 0
                             view = 0
-                        }
 
+                            // console.log(`agent permission: AGENT_MODULE_PERMISSION_${lisResponce1[i].agent_module_id}_${req.body.user_uuid}` )
+                            // redisMaster.delete(`AGENT_MODULE_PERMISSION_${lisResponce1[i].agent_module_id}_${req.body.user_uuid}`)
+                       
+                        }
+                        console.log(`agent permission: AGENT_MODULE_PERMISSION_${lisResponce1[i].agent_module_id}_${req.body.user_uuid}` )
                         redisMaster.delete(`AGENT_MODULE_PERMISSION_${lisResponce1[i].agent_module_id}_${req.body.user_uuid}`)
+                        // strModulePermission = await redisMaster.asyncGet(`AGENT_MODULE_PERMISSION_${moduleId[0]}_${req.body.user_detials.user_uuid}`)
                     }
 
-                    res.status(200).send({ message: "data updated successfully"})
+                    res.status(200).send({ message: "agent permission updated successfully"})
 
             }catch (error) {
                 console.log(error);
                 res.status(400).json({ errors: [ {msg : error.message}] });
             }
         }
-
         // //this function is use to remove the old permissions and create new permissions
-        // updateAssignRights = async (req,res) => {
-        //   let transaction;
-        //     try {
-        //         const errors = validationResult(req);
-        //         if (!errors.isEmpty()) {
-        //             return res.status(400).json({ errors: errors.array() });
-        //         }
+        DeleteOldAssignRights = async (req,res) => {
+          let transaction;
+            try {
+                const errors = validationResult(req);
+                if (!errors.isEmpty()) {
+                    return res.status(400).json({ errors: errors.array() });
+                }
 
-        //         console.log('agentModule/updateAssignRights', JSON.stringify(req.body), JSON.stringify(req.query));
+                console.log('agentModule/updateAssignRights', JSON.stringify(req.body), JSON.stringify(req.query));
     
-        //         // Start transaction
-        //         transaction = await sqlQuery.specialCMD('transaction');
+                // Start transaction
+                transaction = await sqlQuery.specialCMD('transaction');
 
-        //         // Force logout agent
-        //         await sqlQuery.updateQuery(this.tableName5, { fource_logout: 1 }, { user_uuid: req.body.user_uuid, Active: 1 });
+                // Force logout agent
+                await sqlQuery.updateQuery(this.tableName5, { fource_logout: 1 }, { user_uuid: req.body.user_uuid, Active: 1 });
 
-        //         // Get user
-        //     var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid","parent_id",'usertype_id', "username","userid"]
-        //     var orderby = "user_uuid"
-        //     var ordertype = "ASC"
-        //         const searchKeyValue = { user_uuid: req.body.user_uuid };
-        //         // fire sql query to get user id
-        //     var theAgent = await sqlQuery.searchQuery(this.tableName5, searchKeyValue, key, orderby, ordertype, 1, 0)
+                // Get user
+            var key = ["CAST(user_uuid AS CHAR(16)) AS user_uuid","parent_id",'usertype_id', "username","userid"]
+            var orderby = "user_uuid"
+            var ordertype = "ASC"
+                const searchKeyValue = { user_uuid: req.body.user_uuid };
+                // fire sql query to get user id
+            var theAgent = await sqlQuery.searchQuery(this.tableName5, searchKeyValue, key, orderby, ordertype, 1, 0)
 
-        //     // check if the result is there and responce accordingly
-        //     if (theAgent.length === 0) {
-        //         // rollback 
-        //        await sqlQuery.specialCMD('rollback')
-        //         return res.status(400).json({ errors: [ {msg : 'User not found'}] });
-        //     }
-        //         if (req.body.user_detials.type !== role.Admin && req.body.user_detials.type !== role.SubAdmin) {
-        //             searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
-        //         }
+            // check if the result is there and responce accordingly
+            if (theAgent.length === 0) {
+                // rollback 
+               await sqlQuery.specialCMD('rollback')
+                return res.status(400).json({ errors: [ {msg : 'User not found'}] });
+            }
+                if (req.body.user_detials.type !== role.Admin && req.body.user_detials.type !== role.SubAdmin) {
+                    searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
+                }
 
-        //         const currentPermissions = await sqlQueryReplica.searchQueryNoLimit(
-        //             this.tableName2, searchKeyValue, 
-        //             ["agent_module_name", "sub_module_perm", "perm_view", "agent_module_id"], 
-        //             "agent_module_id", "ASC"
-        //         );
+                const currentPermissions = await sqlQueryReplica.searchQueryNoLimit(
+                    this.tableName2, searchKeyValue, 
+                    ["agent_module_name", "sub_module_perm", "perm_view", "agent_module_id"], 
+                    "agent_module_id", "ASC"
+                );
 
-        //         // if (currentPermissions.length === 0) {
-        //         //     await sqlQuery.specialCMD('rollback');
-        //         //     return res.status(400).json({ errors: [{ msg: "Agent don't have any permission, create instead" }] });
-        //         // }
+                // Delete old permissions and clear cache
+                await sqlQuery.deleteQuery(this.tableName2, { userid : theAgent[0].userid  });
 
-        //         // Delete old permissions and clear cache
-        //         await sqlQuery.deleteQuery(this.tableName2, { user_uuid: req.body.user_uuid });
+                if(currentPermissions.length >0){
+                for (const perm of currentPermissions) {
+                    const cacheKey = `AGENT_MODULE_PERMISSION_${perm.agent_module_id}_${req.body.user_uuid}`;
+                    await redisMaster.delete(cacheKey);
+                }
+            }
+                 res.status(200).send({ message: " OLD Permissions successfully Deleted"})
 
-        //         if(currentPermissions.length >0){
-        //         for (const perm of currentPermissions) {
-        //             const cacheKey = `AGENT_MODULE_PERMISSION_${perm.agent_module_id}_${req.body.user_uuid}`;
-        //             await redisMaster.delete(cacheKey);
-        //         }
-        //     }
-        //         // get sub module list
-                
-        //         const lisresponce2 = await sqlQuery.searchQueryNoConNolimit(this.tableName3,["agent_sub_module_id","agent_sub_module_name","agent_module_id","agent_module_name"],"agent_sub_module_id",'ASC')
-        //         if (lisresponce2.length == 0) {
-        //             // rollback 
-        //             await sqlQuery.specialCMD('rollback')
-        //             return res.status(400).json({ errors: [ {msg : "Sub-Module List not found to verify data"}] })
-        //         };
-        //             // const oldModuleList = req.body.moduleList
-        //             const oldModuleList = moduleList
-        //                 let i = 0, j = -1
-        //                 let newModuleList = [], newSubModuleList = []
-
-        //                 for (i = 0; i < oldModuleList.length; i++){
-
-        //                     if(lisresponce2[i].agent_sub_module_name != oldModuleList[i].subModuleName ){
-        //                         // rollback 
-        //                         let rollback = await sqlQuery.specialCMD('rollback')
-        //                         return res.status(400).json({ errors: [ {msg : "sub module list error"}] });
-        //                     }
-
-        //                     if(lisresponce2[i].agent_module_name != oldModuleList[i].ModuleName ) {
-        //                         // rollback 
-        //                         let rollback = await sqlQuery.specialCMD('rollback')
-        //                         return res.status(400).json({ errors: [ {msg : "module list error"}] });
-        //                     }
-                            
-        //                     if( j == -1 || newModuleList[j].agent_module_name != oldModuleList[i].ModuleName ){
-        //                         newModuleList.push({ 
-        //                             userid : theAgent[0].userid,
-        //                             user_uuid : req.body.user_uuid,
-        //                             agent_module_id : lisresponce2[i].agent_module_id,
-        //                             agent_module_name : lisresponce2[i].agent_module_name,
-        //                             perm_view : 0, 
-        //                             sub_module_perm : {
-        //                                 sub_module_perm_list:[]
-        //                             }
-        //                         })
-        //                         j += 1
-        //                     }
-        //                     newModuleList[j].sub_module_perm.sub_module_perm_list.push({
-        //                         agent_sub_module_id : lisresponce2[i].agent_sub_module_id,
-        //                         subModuleName : lisresponce2[i].agent_sub_module_name,
-        //                         permView : oldModuleList[i].viewPerm,
-        //                         permAdd : oldModuleList[i].addPerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0,
-        //                         permEdit : oldModuleList[i].eidtPerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0,
-        //                         permDelete : oldModuleList[i].deletePerm == 1 && oldModuleList[i].viewPerm == 1 ? 1 : 0
-        //                     })
-
-        //                     if( oldModuleList[i].viewPerm == 1 ) newModuleList[j].perm_view = 1
-                        
-        //                 }
-        //                // add data in module permission
-        //                let response = await sqlQuery.multiInsert(this.tableName2,newModuleList)
-        //                 res.status(200).send({ 
-        //                     response,
-        //                     message: "data updated successfully"})
-
-        //         }catch (error) {
-        //             console.log(error);
-        //             res.status(400).json({ errors: [ {msg : error.message}] });
-        //         }
-        // }
+                }catch (error) {
+                    console.log(error);
+                    res.status(400).json({ errors: [ {msg : error.message}] });
+                }
+        }
 
     
     
@@ -705,7 +724,9 @@ class moduleController {
     
     
     
-    getParentModuleList = async (req,res) =>{ 
+   
+   
+        getParentModuleList = async (req,res) =>{ 
             try{
                 // verify the req body and query
                     const errors = validationResult(req);

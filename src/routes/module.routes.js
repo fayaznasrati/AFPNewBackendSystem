@@ -45,6 +45,7 @@ router.get('/sub-module/all',getAllModuleList,auth(role.Admin,role.SubAdmin),acc
 router.post('/assign-rights',agentAssignRights, auth(role.Admin,role.SubAdmin), accessManager({subAdmin : { module: [1,1], permission: apiMethod.add }}),  awaitHandlerFactory(agentModuleController.agentAssignRights))
 router.get('/assign-rights',getAssignedModule,auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [1,1], permission: apiMethod.view }}),awaitHandlerFactory(agentModuleController.getAssignedModule))
 router.put('/assign-rights',updateAssignRights, auth(role.Admin,role.SubAdmin),accessManager({subAdmin : { module: [1,1], permission: apiMethod.edit }}), awaitHandlerFactory(agentModuleController.updateAssignRights))
+router.post('/delete-old-assign-rights',updateAssignRights, auth(role.Admin),accessManager({subAdmin : { module: [1,1], permission: apiMethod.edit }}), awaitHandlerFactory(agentModuleController.DeleteOldAssignRights))
 
 // parent module permission 
 router.get('/parent/assign-rights',getParentModuleList, auth(),awaitHandlerFactory(agentModuleController.getParentModuleList))

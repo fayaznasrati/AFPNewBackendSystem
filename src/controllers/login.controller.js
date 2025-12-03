@@ -757,7 +757,7 @@ class loginController {
         return res.status(400).json({ errors: errors.array() });
         }
 
-        console.log('login/getParentName', JSON.stringify(req.body), JSON.stringify(req.query));
+        // console.log('login/getParentName', JSON.stringify(req.body), JSON.stringify(req.query));
 
         // Build query parameters
         const param = { Active: 1 };
@@ -868,7 +868,7 @@ class loginController {
         if (lisResults.length === 0) {
         return res.status(204).json({ message: 'no user found' });
         }
-    console.log('AdminUser fetched successfully with', [...adminUsers,...lisResults], 'records.');
+    // console.log('AdminUser fetched successfully with', [...adminUsers,...lisResults], 'records.');
         return res.status(200).json({
         reportList: [...adminUsers,...lisResults]
         
@@ -997,7 +997,7 @@ class loginController {
             if (lisResults.length === 0) {
             return res.status(204).json({ message: 'no user found' });
             }
-        console.log('AdminUser fetched successfully with', [...adminUsers,...lisResults], 'records.');
+        // console.log('AdminUser fetched successfully with', [...adminUsers,...lisResults], 'records.');
             return res.status(200).json({
             reportList: lisResults
             

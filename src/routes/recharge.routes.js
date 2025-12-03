@@ -35,7 +35,7 @@ router.post('/accept/accept-no-response',acceptRecharge,awaitHandlerFactory(rech
 router.post('/reject',rejectRecharge,awaitHandlerFactory(rechargeController.rejectRecharge));
 router.post('/pending',pendingRechange,awaitHandlerFactory(rechargeController.pendingRechange));
 
-router.post('/fail-pending-recharge',failePendingRecharge,awaitHandlerFactory(rechargeController.rejectRecharge));
+router.post('/fail-pending-recharge',failePendingRecharge,auth(role.Admin,role.SubAdmin),awaitHandlerFactory(rechargeController.rejectRecharge));
 
 router.post('/mno-response',successToFailedRecharge,awaitHandlerFactory(rechargeController.getMnoResponse));
 router.post('/success-to-failed',successToFailedRecharge,awaitHandlerFactory(rechargeController.successToFailedRecharge));
