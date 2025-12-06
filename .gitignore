@@ -10,3 +10,9 @@
 /src/testStatusCompany.js
 /src/load-test-etisalat.js
 the_topup_reports 
+node_modules/
+.env
+
+
+
+

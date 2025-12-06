@@ -1785,6 +1785,7 @@ class stockController {
     }
   };
 
+  
   downlineStockTransferReport = async (req, res, next) => {
     try {
       const errors = validationResult(req);
