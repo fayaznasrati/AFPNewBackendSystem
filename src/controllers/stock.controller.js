@@ -1485,16 +1485,6 @@ class stockController {
         });
       }
 
-      // Paginated response
-      return res.status(200).send({
-        reportList: lisResult,
-        totalTransactionAmount: lisTotalRecords[0].transactionAmount || 0,
-        totalCommissionAmount: lisTotalRecords[0].commissionAmount || 0,
-        totalRepords: intTotlaRecords,
-        pageCount: intPageCount,
-        currentPage: Number(req.query.pageNumber),
-        pageLimit: Number(process.env.PER_PAGE_COUNT),
-      });
     } catch (error) {
       console.error(error);
       return res.status(400).json({ errors: [{ msg: error.message }] });
@@ -1777,6 +1767,170 @@ class stockController {
           totalTransactionAmount: lisTotalRecords[0].transactionAmount || 0,
           totalCommissionAmount: lisTotalRecords[0].commissionAmount || 0,
           pageLimit: Number(process.env.PER_PAGE_COUNT),
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      return res.status(400).json({ errors: [{ msg: error.message }] });
+    }
+  };
+
+    downloadStockRecievedReport = async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+      // console.log('stock/StockRecievedReport',JSON.stringify(req.body), JSON.stringify(req.query))
+      if (!req.query.pageNumber) req.query.pageNumber = 0;
+
+      // console.log(req.query)
+      // search parameter
+      // var offset = req.query.start
+      // var limit = req.query.end - offset
+      var searchKeyValue = {
+        reciever_id: req.body.user_detials.userid,
+        rollback: 0,
+      };
+
+      if (
+        req.body.user_detials.type == userList.Admin ||
+        req.body.user_detials.type == userList.SubAdmin
+      ) {
+        // searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+        if (req.body.user_detials.region_list.length != 7) {
+          searchKeyValue.region_ids =
+            req.body.user_detials.region_list.join(",");
+        }
+      } else {
+        // searchKeyValue.child_ids =  req.body.user_detials.child_list.join(',');
+      }
+
+      // check date for start and end
+      if (
+        (req.query.startDate && !req.query.endDate) ||
+        (req.query.endDate && !req.query.startDate)
+      )
+        return res
+          .status(400)
+          .json({ errors: [{ msg: "Date range is not proper" }] });
+
+      if (req.query.startDate) {
+        searchKeyValue.start_date = req.query.startDate; //dt start date
+      }
+      if (req.query.endDate) {
+        searchKeyValue.end_date = req.query.endDate; //dt end date
+      }
+      //other optional parameter
+      // if(req.query.name) searchKeyValue.full_name = req.query.name //str
+      // if(req.query.user_id) searchKeyValue.username = req.query.user_id
+      // if(req.query.user_type_uuid){
+      //     var responce = await commonQueryCommon.getAgentTypeId(req.query.user_type_uuid)
+      //     if(!responce) return res.status(400).json({ errors: [ {msg : "Agent Type not found"}] });
+      //     searchKeyValue.usertype_id = responce[0].agent_type_id
+      // }
+      // if(req.query.mobile) searchKeyValue.mobile = req.query.mobile
+      if (req.query.amount) searchKeyValue.transfer_amt = req.query.amount;
+      // console.log(searchKeyValue)
+      // console.log(Object.keys(searchKeyValue).length)
+      if (Object.keys(searchKeyValue).length == 0)
+        return res
+          .status(400)
+          .json({ errors: [{ msg: "Search Parameter are not proper" }] });
+
+      const lisTotalRecords = await stockModule.stockRecievedReportCount(
+        searchKeyValue
+      );
+
+      let intTotlaRecords = Number(lisTotalRecords[0].count);
+      let intPageCount =
+        intTotlaRecords % Number(process.env.PER_PAGE_COUNT) == 0
+          ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT)
+          : parseInt(intTotlaRecords / Number(process.env.PER_PAGE_COUNT)) + 1;
+
+      let offset =
+        req.query.pageNumber > 0
+          ? Number(req.query.pageNumber - 1) *
+            Number(process.env.PER_PAGE_COUNT)
+          : 0;
+      let limit =
+        req.query.pageNumber > 0
+          ? Number(process.env.PER_PAGE_COUNT)
+          : intTotlaRecords;
+
+      const lisResult = await stockModule.stockRecievedReport(
+        searchKeyValue,
+        limit,
+        offset
+      );
+
+         if (req.query.pageNumber == 0) {
+        if (lisResult.length === 0)
+          return res.status(204).send({ message: "No data found" });
+
+        const now = new Date();
+        const dateStr = new Date().toISOString().split("T")[0];
+        const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-mm-ss
+        const filename = `agent_stock_recived_report_${dateStr}_${timeStr}.xlsx`;
+        const filepath = path.join(REPORT_DIR, filename);
+
+        // Check for recent file
+        const existingFile = fs
+          .readdirSync(REPORT_DIR)
+          .filter(
+            (f) =>
+              f.startsWith("agent_stock_recived_report_") &&
+              f.endsWith(".xlsx")
+          )
+          .map((f) => ({
+            name: f,
+            time: fs.statSync(path.join(REPORT_DIR, f)).mtime.getTime(),
+          }))
+          .sort((a, b) => b.time - a.time)[0];
+
+        if (existingFile && Date.now() - existingFile.time < 30 * 60 * 1000) {
+          return res.status(200).json({
+            status: true,
+            message: "Download Excel",
+            downloadUrl: `/api/v1/recharge/agent-report/files/${existingFile.name}`,
+          });
+        }
+
+        // Create Excel file
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Stock Received Report");
+
+        const keys = Object.keys(lisResult[0]);
+        worksheet.columns = keys.map((key) => ({
+          header: key,
+          key: key,
+          width: 20,
+        }));
+
+        lisResult.forEach((row) => worksheet.addRow(row));
+        await workbook.xlsx.writeFile(filepath);
+
+        // Auto-delete after 30 mins
+        setTimeout(() => {
+          if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
+        }, 30 * 60 * 1000);
+
+        return res.status(200).json({
+          status: true,
+          message: "Download Excel",
+          downloadUrl: `/api/v1/recharge/agent-report/files/${filename}`,
+        });
+      
+      }
+       else {
+        res.status(200).send({
+          reportList: lisResult,
+          // totalRepords: intTotlaRecords,
+          // pageCount: intPageCount,
+          // currentPage: Number(req.query.pageNumber),
+          // totalTransactionAmount: lisTotalRecords[0].transactionAmount || 0,
+          // totalCommissionAmount: lisTotalRecords[0].commissionAmount || 0,
+          // pageLimit: Number(process.env.PER_PAGE_COUNT),
         });
       }
     } catch (error) {
