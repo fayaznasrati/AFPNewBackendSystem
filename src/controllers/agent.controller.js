@@ -1893,6 +1893,10 @@ class agentController {
                 const strEncryptionKey = lisResponce1[0].encryption_key
     
                 var strDecriptPin = varEncryptionString.decryptString(strEncryptionKey, strTpin);
+                    let decriptSecurityPin = this.getHashPassword(
+                            strEncryptionKey,
+                           strTpin
+                        );
             
             // compair t-pin
                 if(req.body.pin != strDecriptPin) return res.status(400).json({ errors: [ {msg : 'Entered pin is incorrest'}]})
@@ -1925,7 +1929,9 @@ class agentController {
             return res.status(400).json({ errors: [ {msg : error.message}] });
         }
     }
-
+  getHashPassword(strKey1, strText1) {
+    return varEncryptionString.decryptString(strKey1, strText1);
+  }
     updateMpin = async (req, res) =>{
         try {
             // check body and query

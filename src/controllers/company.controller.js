@@ -1044,8 +1044,8 @@ class companyController {
                     totalRecords: intTotlaRecords,
                     pageCount: intPageCount,
                     currentPage: Number(req.query.pageNumber),
-                    totalRechargeAmount: lisTotalRecords[0].amount || 0,
-                    totalDebitedAmount: lisTotalRecords[0].deductAmount || 0,
+                    totalRechargeAmount: sumRechargeAmount,
+                    totalDebitedAmount: sumDebitedAmount,
                     pageLimit: Number(process.env.PER_PAGE_COUNT)
                 })
 
@@ -1160,7 +1160,7 @@ class companyController {
         const listTotalTransaction = await sqlQueryReplica.searchQuery(this._tableName4, { userid: user_detials.userid }, ['COUNT(userid)'], 'userid', 'ASC', 1, 0);
         totalTransactions = listTotalTransaction?.[0]?.["COUNT(userid)"] || 0;
 
-        const listTodayTopup = await sqlQueryReplica.searchQuery(this._tableName4, { status: 2, created_on: todayDate }, ['SUM(amount) AS totalAmount'], 'userid', 'ASC', 1, 0);
+        const listTodayTopup = await sqlQueryReplica.searchQuery(this._tableName4, { status: 2, userid: user_detials.userid ,created_on: todayDate }, ['SUM(amount) AS totalAmount'], 'userid', 'ASC', 1, 0);
         todayTopup = listTodayTopup?.[0]?.totalAmount || 0;
 
         return { avaliableBalance, totalTransactions, todayTopup };

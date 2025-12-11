@@ -2832,10 +2832,12 @@ class AdminController {
           .status(400)
           .json({ errors: [{ msg: "Securty pin matching error" }] });
 
-      let decriptSecurityPin = this.getHashPassword(
-        adminSecurityPin[0].encryption_key,
-        adminSecurityPin[0].tpin
-      );
+      // let decriptSecurityPin = this.getHashPassword(
+      //   adminSecurityPin[0].encryption_key,
+      //   adminSecurityPin[0].tpin
+      // );
+
+     let decriptSecurityPin =  varEncryptionString.decryptString(adminSecurityPin[0].encryption_key, adminSecurityPin[0].tpin);
       if (decriptSecurityPin != req.body.securityPin)
         return res
           .status(400)
@@ -2856,10 +2858,11 @@ class AdminController {
           .status(400)
           .json({ errors: [{ msg: "Sub-Admin account not found" }] });
 
-      decriptSecurityPin = this.getHashPassword(
-        subAminSecurityPin[0].encryption_key,
-        subAminSecurityPin[0].tpin
-      );
+      // decriptSecurityPin = this.getHashPassword(
+      //   subAminSecurityPin[0].encryption_key,
+      //   subAminSecurityPin[0].tpin
+      // );
+       decriptSecurityPin =  varEncryptionString.decryptString(adminSecurityPin[0].encryption_key, adminSecurityPin[0].tpin);
 
       res.status(200).json({ securityPin: decriptSecurityPin });
     } catch (error) {

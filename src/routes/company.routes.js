@@ -23,7 +23,7 @@ router.post('/', createCompanyMiddleware, auth(role.Admin), awaitHandlerFactory(
 router.get('/agents', getAgentsName, auth(role.Admin), awaitHandlerFactory(companyController.getAgentsName))
 router.get('/:id', auth(role.Admin,role.SubAdmin), awaitHandlerFactory(companyController.getCompanyById))
 router.get('/',  auth(role.Admin,role.SubAdmin), awaitHandlerFactory(companyController.getCompanies))
-router.post('/gen-api-key/:id', auth(role.Admin), genAPIKeyCompanyMiddleware, auth(role.Admin), awaitHandlerFactory(companyController.generateCompanyKeys));
+router.post('/gen-api-key/:id', auth(role.Admin), genAPIKeyCompanyMiddleware, awaitHandlerFactory(companyController.generateCompanyKeys));
 router.patch('/:id', createCompanyMiddleware, auth(role.Admin), awaitHandlerFactory(companyController.editCompany))
 
 
