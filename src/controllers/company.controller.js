@@ -643,8 +643,8 @@ class companyController {
         }
 
         const companyName = existingCompany[0].company_name;
-        // const API_key = existingCompany[0].company_api_key;
-        const API_key = process.env.COMPANY_API_SECRET_KEY; // Use env variable or existing key
+        const API_key = existingCompany[0].company_api_key;
+        // const API_key = process.env.COMPANY_API_SECRET_KEY; // Use env variable or existing key
 
 
         // 1. Generate shared secret key
@@ -806,8 +806,12 @@ class companyController {
                 const userUuidStr = userUuidBuffer.toString('utf8');
 
                 // Extract only the useful part (until first null character if any)
-                const the_user_uuid = userUuidStr.split('\0')[0]; // "6e481e53-d5fa-11"
-                // console.log("userAccount", userAccount);
+                const fullUuid = userUuidStr.split('\0')[0];
+
+                // Take only the first 16 characters
+                const the_user_uuid = fullUuid.slice(0, 16);
+
+                // console.log(the_user_uuid); // "6e481e53-d5fa-11"
 
             let operator_uuid = '', operatorName = ''
 
