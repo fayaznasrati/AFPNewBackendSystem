@@ -49,6 +49,7 @@ class agentLoginFunction {
                     return res.status(400).json({ errors: errors.array() });
                 }
                 console.log('agentLoginFun/agentLogin',JSON.stringify(req.body), JSON.stringify(req.query))
+                
             // get login credintial username and password
                 const strUserName = req.body.username
                 const strPassword = req.body.password
@@ -101,8 +102,12 @@ class agentLoginFunction {
                 const token = jwt.sign({ user_id: lisResponce[0].userid, userType: role.Agnet }, secretKey, {
                     expiresIn: process.env.SESSION_TIME
                 });
-
-                redisMaster.post(`agent_login_session_${req.body.username}`,token)
+                  const SESSION_IDLE_TIME = Number(process.env.SESSION_IDLE_TIME || 900);
+            // 🔐 Redis session (idle timeout)
+                // // save key value to redis
+                redisMaster.post(`agent_login_session_${req.body.username}`, token);
+                redisMaster.exp(`agent_login_session_${req.body.username}`, SESSION_IDLE_TIME);
+                // redisMaster.post(`agent_login_session_${req.body.username}`,token)
                 redisMaster.delete(`AGENT_LOGIN_ATTEMPT_${lisResponce[0].user_uuid}`)
                 redisMaster.delete(`AGENT_USSD/SMS_ATTEMPT_${lisResponce[0].user_uuid}`)
 

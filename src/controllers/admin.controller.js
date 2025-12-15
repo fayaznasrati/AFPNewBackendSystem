@@ -111,7 +111,7 @@ class AdminController {
       );
 
       var userid = req.body.username;
-
+      const SESSION_IDLE_TIME = Number(process.env.SESSION_IDLE_TIME || 900);
       const userExist = await UserModel.matchPassword({
         username: req.body.username,
         password: req.body.password,
@@ -154,6 +154,7 @@ class AdminController {
       } else {
         // console.log(process.env.SESSION_TIME)
         const secretKey = process.env.SECRET_JWT || "";
+        // 🔑 JWT (long lived)
         const token = jwt.sign(
           { user_id: req.body.username, userType: userExist.usertype },
           secretKey,
@@ -161,8 +162,10 @@ class AdminController {
             expiresIn: process.env.SESSION_TIME,
           }
         );
+        // 🔐 Redis session (idle timeout)
         // save key value to redis
         redisFunction.post(`admin_login_session_${req.body.username}`, token);
+        redisFunction.exp(`admin_login_session_${req.body.username}`, SESSION_IDLE_TIME);
         redisMaster.delete(`ADMIN_LOGIN_ATTEMPT_${userid}`);
 
         //get the last login date and ip address
@@ -331,6 +334,55 @@ class AdminController {
       return res.status(400).json({ errors: [{ msg: error.message }] });
     }
   };
+
+
+
+  userLogout = async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const bearer = 'Bearer ';
+
+      if (!authHeader || !authHeader.startsWith(bearer)) {
+        return res.status(400).json({
+          errors: [{ msg: 'No token provided' }]
+        });
+      }
+
+      const token = authHeader.replace(bearer, '');
+      const secretKey = process.env.SECRET_JWT || "";
+
+      // verify token (even if expired we try cleanup)
+      let decoded;
+      try {
+        decoded = jwt.verify(token, secretKey);
+      } catch (e) {
+        decoded = jwt.decode(token); // fallback decode
+      }
+
+      if (!decoded || !decoded.user_id) {
+        return res.status(400).json({
+          errors: [{ msg: 'Invalid token' }]
+        });
+      }
+
+      const username = decoded.user_id;
+
+      // 🔥 remove redis session
+      await redisMaster.delete(`admin_login_session_${username}`);
+
+      return res.status(200).json({
+        success: true,
+        msg: 'Logged out successfully'
+      });
+
+    } catch (error) {
+      console.log('[Logout Error]', error);
+      return res.status(500).json({
+        errors: [{ msg: 'Logout failed' }]
+      });
+    }
+  };
+
 
   // get self details
   getUserByuserName = async (req, res, next) => {
