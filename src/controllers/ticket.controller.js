@@ -37,7 +37,7 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('ticket/createTicketCategory',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('ticket/createTicketCategory',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -76,7 +76,7 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('ticket/allTicketCategory',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('ticket/allTicketCategory',JSON.stringify(req.body), JSON.stringify(req.query))
             // get the tickit category for the redis server
             redisMaster.get('ticketCategory', async(err, reply) => {
 
@@ -130,7 +130,7 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('ticket/UpdateTicketCategory',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('ticket/UpdateTicketCategory',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -174,7 +174,7 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('ticket/deleteTicketCategory',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('ticket/deleteTicketCategory',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -221,7 +221,7 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('ticket/createTicket',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('ticket/createTicket',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -284,7 +284,7 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('ticket/allTicket',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('ticket/allTicket',JSON.stringify(req.body), JSON.stringify(req.query))
             //variable for sql query to update tickit
             // var offset = req.query.start
             // var limit = req.query.end - offset
@@ -326,7 +326,7 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('ticket/findTicket',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('ticket/findTicket',JSON.stringify(req.body), JSON.stringify(req.query))
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             //variables for sql query to get ticki details
@@ -400,7 +400,7 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('ticket/updateTicket',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('ticket/updateTicket',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -477,7 +477,7 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('ticket/deleteTicket',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('ticket/deleteTicket',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -518,7 +518,7 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('ticket/createTicketMessage',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('ticket/createTicketMessage',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -586,7 +586,7 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('ticket/allTicketMessage',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('ticket/allTicketMessage',JSON.stringify(req.body), JSON.stringify(req.query))
             //variable for sql query to 
             // var offset = req.query.start
             // var limit = req.query.end - offset
@@ -619,7 +619,7 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('ticket/findOneTicketMessage',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('ticket/findOneTicketMessage',JSON.stringify(req.body), JSON.stringify(req.query))
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             var searchKeyValue = {
@@ -697,7 +697,7 @@ class ticketController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('ticket/createTicketMessage',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('ticket/createTicketMessage',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -783,7 +783,7 @@ class ticketController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('ticket/getDownlineTicket',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('ticket/getDownlineTicket',JSON.stringify(req.body), JSON.stringify(req.query))
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             // find user using full name or by phone number
@@ -852,7 +852,7 @@ class ticketController {
     saveImage = async (req, res) => {
         try{
             // console.log(req.file)
-            console.log('ticket/saveImage',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('ticket/saveImage',JSON.stringify(req.body), JSON.stringify(req.query))
             let imageUrl = req.file.path.includes('src\\uploads\\tickets\\') ? req.file.path.replace("src\\uploads\\tickets\\",'') : req.file.path.replace("src/uploads/tickets/",'')
 
             res.status(200).send({ message :'image upload sucessful', url : imageUrl})
@@ -865,7 +865,7 @@ class ticketController {
 
     getImage = async (req, res) => {
         try{
-            // console.log('ticket/getImage',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('ticket/getImage',JSON.stringify(req.body), JSON.stringify(req.query))
             let filename1 = __dirname + '/../uploads/tickets/' + req.query.imageName
             let filename2 = __dirname + '\\..\\uploads\\tickets\\' + req.query.imageName
             // console.log(filename)

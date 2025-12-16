@@ -29,7 +29,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('agentModule/addModule',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('agentModule/addModule',JSON.stringify(req.body), JSON.stringify(req.query))
                 // add data in the table 
                     var param = {
                         agent_module_name : req.body.moduleName,
@@ -55,7 +55,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    // console.log('agentModule/getAllModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
+                    //  //  console.log('agentModule/getAllModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
                 // search key list 
                     var key = ["agent_module_id","agent_module_name AS moduleName","agent_module_title AS moduleTitle"]
 
@@ -80,7 +80,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('agentModule/updateModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('agentModule/updateModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
                 // update query variabels
                     var searchKeyValue = {
                         agent_module_id : req.body.agent_module_id
@@ -115,7 +115,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    // console.log('agentModule/getAllSubModuleList',JSON.stringify(req.body), JSON.stringify(req.query))
+                    //  //  console.log('agentModule/getAllSubModuleList',JSON.stringify(req.body), JSON.stringify(req.query))
                 // get all sub-module list
                     var key = ["agent_sub_module_id","agent_sub_module_name AS subModuleName","agent_sub_module_title AS subModuleTitle","agent_module_name AS moduleName"]
                     var searchKeyValue = {
@@ -140,7 +140,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('agentModule/addSubModule',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('agentModule/addSubModule',JSON.stringify(req.body), JSON.stringify(req.query))
                 // verify the module name
                     var searchKeyValue = {
                         agent_module_name : req.body.moduleName,
@@ -178,7 +178,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('agentModule/updateSubModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('agentModule/updateSubModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
                 // verify the module name
                     var searchKeyValue = {
                         agent_module_name : req.body.moduleName,
@@ -224,7 +224,7 @@ class moduleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('agentModule/getSubModuleByUserId',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('agentModule/getSubModuleByUserId',JSON.stringify(req.body), JSON.stringify(req.query))
                 var searchKeyValue = {
                     agent_module_name : req.query.moduleName,
                     user_uuid : req.body.user_detials.user_uuid
@@ -250,7 +250,7 @@ class moduleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('agentModule/getSubModulePermission',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('agentModule/getSubModulePermission',JSON.stringify(req.body), JSON.stringify(req.query))
                 var searchKeyValue = {
                     agent_module_name : req.query.moduleName,
                     user_uuid : req.body.user_detials.user_uuid
@@ -292,7 +292,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }   
-                    // console.log('agentModule/getAllModuleList',JSON.stringify(req.body), JSON.stringify(req.query))
+                    //  //  console.log('agentModule/getAllModuleList',JSON.stringify(req.body), JSON.stringify(req.query))
                 // limit and offset
                     // var offset = req.query.start
                     // var limit = req.query.end - offset
@@ -343,7 +343,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('agentModule/agentAssignRights',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('agentModule/agentAssignRights',JSON.stringify(req.body), JSON.stringify(req.query))
                 // check if user name allrady in the data base
                     var boolCheck = await sqlQueryReplica.searchQuery(this.tableName2,{user_uuid : req.body.user_uuid},["COUNT(1)"],'userid',"ASC",1,0)
                     // console.log(boolCheck)
@@ -432,7 +432,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    // console.log('agentModule/getAssignModule',JSON.stringify(req.body), JSON.stringify(req.query))
+                    //  //  console.log('agentModule/getAssignModule',JSON.stringify(req.body), JSON.stringify(req.query))
                 // limit and offset
                     // var offset = req.query.start
                     // var limit = req.query.end - offset
@@ -497,7 +497,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('agentModule/updateAssignRights',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('agentModule/updateAssignRights',JSON.stringify(req.body), JSON.stringify(req.query))
                 // sql quwery variables
                     var searchKeyValue = {
                         user_uuid : req.body.user_uuid
@@ -586,7 +586,7 @@ class moduleController {
                         res.status(200).send({ 
                             response,
                             message: "data updated successfully"})
-                        return console.log('New Module permissions created successfully');
+                        return  //  console.log('New Module permissions created successfully');
                     }
 
                 // go in the listResponce1 one by one and update one by one module
@@ -668,7 +668,7 @@ class moduleController {
                     return res.status(400).json({ errors: errors.array() });
                 }
 
-                console.log('agentModule/updateAssignRights', JSON.stringify(req.body), JSON.stringify(req.query));
+                 //  console.log('agentModule/updateAssignRights', JSON.stringify(req.body), JSON.stringify(req.query));
     
                 // Start transaction
                 transaction = await sqlQuery.specialCMD('transaction');
@@ -733,7 +733,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    // console.log('agentModule/getParentModuleList',JSON.stringify(req.body), JSON.stringify(req.query))
+                    //  //  console.log('agentModule/getParentModuleList',JSON.stringify(req.body), JSON.stringify(req.query))
                 // get parent id
 
                     var searchKeyValue = {
@@ -817,7 +817,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('agentModule/parentAgentAssignRights',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('agentModule/parentAgentAssignRights',JSON.stringify(req.body), JSON.stringify(req.query))
                 // chcek if module permissions are added allready
                     var boolCheck = await sqlQueryReplica.searchQuery(this.tableName2,{user_uuid : req.body.user_uuid},["COUNT(1)"],'userid',"ASC",1,0)
                     // console.log(boolCheck)
@@ -908,7 +908,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    // console.log('agentModule/getParentAgentAssignRights',JSON.stringify(req.body), JSON.stringify(req.query))
+                    //  //  console.log('agentModule/getParentAgentAssignRights',JSON.stringify(req.body), JSON.stringify(req.query))
                 // limit and offset
                     var offset = req.query.start
                     var limit = req.query.end - offset
@@ -974,7 +974,7 @@ class moduleController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('agentModule/updateParentAssignRights',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('agentModule/updateParentAssignRights',JSON.stringify(req.body), JSON.stringify(req.query))
                 // sql quwery variables
                     var searchKeyValue = {
                         user_uuid : req.body.user_uuid

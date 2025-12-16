@@ -27,7 +27,7 @@ class slabController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('slab/createSlabManager',JSON.stringify(req.body), JSON.stringify(req.query))
+            //console.log('slab/createSlabManager',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -347,7 +347,7 @@ class slabController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('slab/updateSlabManager',JSON.stringify(req.body), JSON.stringify(req.query))
+              //  console.log('slab/updateSlabManager',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -569,7 +569,7 @@ class slabController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('slab/createDefaultSlab',JSON.stringify(req.body), JSON.stringify(req.query))
+         //   console.log('slab/createDefaultSlab',JSON.stringify(req.body), JSON.stringify(req.query))
             //check if user is real
             var searchKeyValue = {
                 user_uuid: req.body.user_detials.user_uuid, //str user_uuid
@@ -845,7 +845,7 @@ class slabController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('slab/updateDefaultSlabId',JSON.stringify(req.body), JSON.stringify(req.query))
+           // console.log('slab/updateDefaultSlabId',JSON.stringify(req.body), JSON.stringify(req.query))
             // chek the user commission type for agent only
             if(!(req.body.user_detials.type == role.Admin || req.body.user_detials.type == role.SubAdmin)){
                 const listCommissionType = await sqlQueryReplica.searchQuery(this.tableName3,{user_uuid : req.body.user_detials.user_uuid,Active : 1},["comm_type"],'userid','ASC',1,0)

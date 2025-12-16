@@ -15,7 +15,7 @@ class languageController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('language/createLanguage',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('language/createLanguage',JSON.stringify(req.body), JSON.stringify(req.query))
             // variable for sql query
 
             var param = {
@@ -48,7 +48,7 @@ class languageController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('language/allLanguage',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('language/allLanguage',JSON.stringify(req.body), JSON.stringify(req.query))
 
             // check in the redis if it contain some data related to language or not
             redisMaster.get('language', async(err, reply) => {
@@ -98,7 +98,7 @@ class languageController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('language/updateLanguage',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('language/updateLanguage',JSON.stringify(req.body), JSON.stringify(req.query))
             // variable for sql query
             var param = {}
             if (req.body.symbol) {
@@ -143,7 +143,7 @@ class languageController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('language/deleteLanguage',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('language/deleteLanguage',JSON.stringify(req.body), JSON.stringify(req.query))
             //varibles from sql query
             var searchKeyValue = {
                 lang_uuid: req.query.lang_uuid // str language uuid

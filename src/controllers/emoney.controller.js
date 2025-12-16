@@ -41,7 +41,7 @@ class emoneyController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('emoney/addEmoney',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('emoney/addEmoney',JSON.stringify(req.body), JSON.stringify(req.query))
             if((Number(req.body.amountAdded) + Number(req.body.commAmount)) < 1) return res.status(400).json({ errors: [ {msg : "Sum of Amount and Commission amount should be grater then 1"}] });
 
                 // console.log(req.body)
@@ -268,7 +268,7 @@ class emoneyController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('emoney/getEmoneyDetailsByDate',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('emoney/getEmoneyDetailsByDate',JSON.stringify(req.body), JSON.stringify(req.query))
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             //sql query variables
@@ -437,7 +437,7 @@ class emoneyController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('emoney/getEmoneyReport',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('emoney/getEmoneyReport',JSON.stringify(req.body), JSON.stringify(req.query))
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             //sql query variables
@@ -646,7 +646,7 @@ class emoneyController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('emoney/getOperatorBalance',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('emoney/getOperatorBalance',JSON.stringify(req.body), JSON.stringify(req.query))
             // search param
                 let keyValue = ['CAST(mno_uuid AS CHAR(16)) AS mno_uuid', "mno_name as operatorName","balance_url as url","current_balance AS balance"]
                 let mnoDetails = await sqlQueryReplica.searchQueryNoLimit(this.tableName8, { status : 1 }, keyValue, "id", "DESC")
@@ -677,7 +677,7 @@ class emoneyController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('emoney/addMno',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('emoney/addMno',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
                 date.setHours(date.getHours() + 4, date.getMinutes() + 30);
                 var isodate = date.toISOString();
@@ -714,7 +714,7 @@ class emoneyController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('emoney/getMnoList',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('emoney/getMnoList',JSON.stringify(req.body), JSON.stringify(req.query))
             // call redis to get mno list
             redisMaster.get('mno', async(err, reply) => {
 
@@ -770,7 +770,7 @@ class emoneyController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('emoney/updateMnoDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('emoney/updateMnoDetails',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
                 date.setHours(date.getHours() + 4, date.getMinutes() + 30);
                 var isodate = date.toISOString();
@@ -811,7 +811,7 @@ class emoneyController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('emoney/deleteMno',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('emoney/deleteMno',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
                 date.setHours(date.getHours() + 4, date.getMinutes() + 30);
                 var isodate = date.toISOString();

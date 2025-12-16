@@ -45,7 +45,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('Agent/createType',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('Agent/createType',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -90,7 +90,7 @@ class agentController {
                 return res.status(400).json({ errors: errors.array() });
             }
 
-            // console.log('Agent/allType',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('Agent/allType',JSON.stringify(req.body), JSON.stringify(req.query))
             // 1) get agent from radis
             redisMaster.get('agentType', async(err, reply) => {
 
@@ -151,7 +151,7 @@ class agentController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('Agent/getLowerAgentType',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('Agent/getLowerAgentType',JSON.stringify(req.body), JSON.stringify(req.query))
             // limit offset
                 // var offset = req.query.start
                 // var limit = req.query.end - offset
@@ -180,7 +180,7 @@ class agentController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('Agent/getGreaterAgentType',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('Agent/getGreaterAgentType',JSON.stringify(req.body), JSON.stringify(req.query))
             // limit offset
                 // var offset = req.query.start
                 // var limit = req.query.end - offset
@@ -209,7 +209,7 @@ class agentController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('Agent/getGreaterAgentType',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('Agent/getGreaterAgentType',JSON.stringify(req.body), JSON.stringify(req.query))
             // limit offset
                 // var offset = req.query.start
                 // var limit = req.query.end - offset
@@ -237,7 +237,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('Agent/updateType',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('Agent/updateType',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -286,7 +286,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('Agent/deleteType',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('Agent/deleteType',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -335,7 +335,7 @@ class agentController {
             }
 
             let operator_uuid = '', operatorName = ''
-            console.log('Agent/addNumber',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('Agent/addNumber',JSON.stringify(req.body), JSON.stringify(req.query))
             switch(req.body.mobile.slice(0,3)){
                 case "078":
                 case "073":
@@ -566,7 +566,7 @@ class agentController {
             }
 
             let operator_uuid = '', operatorName = ''
-            console.log('Agent/CheckContactNumber',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('Agent/CheckContactNumber',JSON.stringify(req.body), JSON.stringify(req.query))
             switch(req.body.mobile.slice(0,3)){
                 case "078":
                 case "073":
@@ -629,7 +629,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('Agent/addAutoGenNumber',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('Agent/addAutoGenNumber',JSON.stringify(req.body), JSON.stringify(req.query))
             //get uer id
             var searchKeyValue = {
                 user_uuid: req.body.user_uuid, //str user uuid
@@ -746,7 +746,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('Agent/agentContactDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('Agent/agentContactDetails',JSON.stringify(req.body), JSON.stringify(req.query))
             //variable for sql query to get contact details
             // var offset = req.query.start
             // var limit = req.query.end - offset
@@ -794,7 +794,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('Agent/updateContactDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('Agent/updateContactDetails',JSON.stringify(req.body), JSON.stringify(req.query))
             let operator_uuid = '', operatorName = ''
 
             switch(req.body.mobile.slice(0,3)){
@@ -974,7 +974,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('Agent/deleteAlternateNumber',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('Agent/deleteAlternateNumber',JSON.stringify(req.body), JSON.stringify(req.query))
 
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
@@ -1195,7 +1195,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('Agent/getOperatorById',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('Agent/getOperatorById',JSON.stringify(req.body), JSON.stringify(req.query))
             // get user id
             var searchKeyValue = {
                 user_uuid: req.query.user_uuid,
@@ -1251,7 +1251,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('Agent/updateOperatorStatus',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('Agent/updateOperatorStatus',JSON.stringify(req.body), JSON.stringify(req.query))
             // get operator id by operator uuid
             let operatorId = await commonQueryCommon.getOperatorById(req.body.agent_oa_uuid)
             if(operatorId == 0) return res.status(400).json({ errors: [ {msg : "operator Id incorrect" }] });
@@ -1309,7 +1309,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('Agent/createStockTransfer',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('Agent/createStockTransfer',JSON.stringify(req.body), JSON.stringify(req.query))
             // check if use is admin
             if (req.body.user_detials.type === 'Admin' && req.query.user_uuid === undefined) {
                 req.query.user_uuid = "5ad59565-cd7c-11"
@@ -1449,7 +1449,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('Agent/getStockTransferById',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('Agent/getStockTransferById',JSON.stringify(req.body), JSON.stringify(req.query))
             //get user id
             var searchKeyValue = {
                 user_uuid: req.query.user_uuid,
@@ -1544,7 +1544,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('Agent/updateStockTransferChannel',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('Agent/updateStockTransferChannel',JSON.stringify(req.body), JSON.stringify(req.query))
             var searchKeyValue = {
                 user_uuid : req.body.user_uuid
             }
@@ -1602,7 +1602,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('Agent/getAgentByAgentType',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('Agent/getAgentByAgentType',JSON.stringify(req.body), JSON.stringify(req.query))
             const lisResponce = await commonQueryCommon.getAgentTypeId(req.query.agent_type_uuid)
                 if (!lisResponce) return res.status(400).json({ errors: [ {msg : 'User type not found'}] });
 
@@ -1653,7 +1653,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('Agent/verifySecurityPin',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('Agent/verifySecurityPin',JSON.stringify(req.body), JSON.stringify(req.query))
             if(req.body.user_detials.type == role.SubAdmin || req.body.user_detials.type == role.Admin){
                 // for admin and sub admin user
                 var searchKeyValue = {
@@ -1731,7 +1731,7 @@ class agentController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('Agent/updateAgentPassword',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('Agent/updateAgentPassword',JSON.stringify(req.body), JSON.stringify(req.query))
             if(req.body.user_detials.type == role.SubAdmin || req.body.user_detials.type == role.Admin){
                 // verify tpin of admin 
                 var searchKeyValue = {
@@ -1857,7 +1857,7 @@ class agentController {
                 // make api call
                 const intResult = await httpRequestMakerCommon.httpPost("activity-log",data)
                 var strLog = intResult == 1 ? 'Agent change password log added successfully' : intResult == 2 ? 'Agent change password log error' : 'end point not found'
-                    // console.log('Server Log : '+strLog)
+                    //  //  console.log('Server Log : '+strLog)
             }   
             // send responce to fornt end
                 res.send({ message, info });
@@ -1875,7 +1875,7 @@ class agentController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('Agent/verifyPinGetMpin',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('Agent/verifyPinGetMpin',JSON.stringify(req.body), JSON.stringify(req.query))
             // verify admin or subadmin pin
                 var searchKeyValue = {
                     username : req.body.user_detials.username
@@ -1939,7 +1939,7 @@ class agentController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('Agent/updateMpin',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('Agent/updateMpin',JSON.stringify(req.body), JSON.stringify(req.query))
             // verify tpin of admin 
                 var searchKeyValue = {
                     username : req.body.user_detials.username
@@ -2042,7 +2042,7 @@ class agentController {
                 // make api call
                 const intResult = await httpRequestMakerCommon.httpPost("activity-log",data)
                 var strLog = intResult == 1 ? 'Agent Update M-Pin log added successfully' : intResult == 2 ? 'Agent Update M-Pin log error' : 'end point not found'
-                    // console.log('Server Log : '+strLog)
+                    //  //  console.log('Server Log : '+strLog)
             }   
             // send responce to fornt end
                 res.send({ message, info });
@@ -2062,7 +2062,7 @@ class agentController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('Agent/getParentAgentDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('Agent/getParentAgentDetails',JSON.stringify(req.body), JSON.stringify(req.query))
             // search query paremeters
                 var searchKeyValue = {
                     user_uuid : req.query.user_uuid,
@@ -2159,7 +2159,7 @@ class agentController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('Agent/changeAgentPrePaidParent',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('Agent/changeAgentPrePaidParent',JSON.stringify(req.body), JSON.stringify(req.query))
             // start transaction 
                 let transaction = await sqlQuery.specialCMD('transaction')
 
@@ -2347,7 +2347,7 @@ class agentController {
 
                 const apiResult = await httpRequestMakerCommon.httpPost("agent/switch-acc",data)
                 var strLog = apiResult == 1 ? 'Activity log added successfully' : apiResult == 2 ? 'Activity login log error' : 'end point not found'
-                            // console.log('Server Log : '+strLog)
+                            //  //  console.log('Server Log : '+strLog)
                 if(apiResult != 1){
                     // rollback
                     let rollback = await sqlQuery.specialCMD('rollback')
@@ -2379,7 +2379,7 @@ class agentController {
 
                     const intResult = await httpRequestMakerCommon.httpPost("activity-log/multiple",{mulActivityLog:logData})
                     var strLog = intResult == 1 ? 'Agent login log added successfully' : intResult == 2 ? 'Agent login log error' : 'end point not found'
-                        // console.log('Server Log : '+strLog)
+                        //  //  console.log('Server Log : '+strLog)
                     if(intResult != 1){
                         // rollback
                         let rollback = await sqlQuery.specialCMD('rollback')
@@ -2427,7 +2427,7 @@ class agentController {
                         }
                         const intResult = await httpRequestMakerCommon.httpPost("activity-log/multiple",{mulActivityLog:commissionChange})
                         var strLog = intResult == 1 ? 'Agent login log added successfully' : intResult == 2 ? 'Agent login log error' : 'end point not found'
-                            // console.log('Server Log : '+strLog)
+                            //  //  console.log('Server Log : '+strLog)
                         if(intResult != 1){
                             // rollback
                             let rollback = await sqlQuery.specialCMD('rollback')
@@ -2458,7 +2458,7 @@ class agentController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('Agent/changePostPaidParent',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('Agent/changePostPaidParent',JSON.stringify(req.body), JSON.stringify(req.query))
             // start transaction 
                 let transaction = await sqlQuery.specialCMD('transaction')
 
@@ -2616,7 +2616,7 @@ class agentController {
 
                 const apiResult = await httpRequestMakerCommon.httpPost("agent/switch-acc",data)
                 var strLog = apiResult == 1 ? 'Activity log added successfully' : apiResult == 2 ? 'Activity login log error' : 'end point not found'
-                            // console.log('Server Log : '+strLog)
+                            //  //  console.log('Server Log : '+strLog)
                 if(apiResult != 1){
                     // rollback
                     let rollback = await sqlQuery.specialCMD('rollback')
@@ -2673,7 +2673,7 @@ class agentController {
 
                     const intResult = await httpRequestMakerCommon.httpPost("activity-log/multiple",{mulActivityLog:commissionChange})
                         var strLog = intResult == 1 ? 'Agent login log added successfully' : intResult == 2 ? 'Agent login log error' : 'end point not found'
-                            // console.log('Server Log : '+strLog)
+                            //  //  console.log('Server Log : '+strLog)
                         if(intResult != 1){
                             // rollback
                             let rollback = await sqlQuery.specialCMD('rollback')
@@ -2710,7 +2710,7 @@ class agentController {
                     
                     const intResult = await httpRequestMakerCommon.httpPost("activity-log/multiple",{mulActivityLog:logData})
                     var strLog = intResult == 1 ? 'Agent login log added successfully' : intResult == 2 ? 'Agent login log error' : 'end point not found'
-                        // console.log('Server Log : '+strLog)
+                        //  //  console.log('Server Log : '+strLog)
                     if(intResult != 1){
                         // rollback
                         let rollback = await sqlQuery.specialCMD('rollback')
@@ -2737,7 +2737,7 @@ class agentController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('Agent/getAgentTypeForSwitchAcc',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('Agent/getAgentTypeForSwitchAcc',JSON.stringify(req.body), JSON.stringify(req.query))
             // limit and offset
                 // var offset = req.query.start
                 // var limit = req.query.end - offset
@@ -2782,7 +2782,7 @@ class agentController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('Agent/getParentListFromSwitchAcc',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('Agent/getParentListFromSwitchAcc',JSON.stringify(req.body), JSON.stringify(req.query))
             // limif and off set
                 // var offset = req.query.start
                 // var limit = req.query.end - offset
@@ -3002,7 +3002,7 @@ class agentController {
                 }   
             }
             // if(changes == 0) return 1
-            // console.log('add',agentChildList,newParentChildList,userid)
+            //  //  console.log('add',agentChildList,newParentChildList,userid)
             newParentChildList = newParentChildList.join(',')
             
             // update the child lists
@@ -3060,7 +3060,7 @@ class agentController {
             }
 
             // if(changes == 0) return 1
-            // console.log('remove', agentChildList , oldParentChildList,userid)
+            //  //  console.log('remove', agentChildList , oldParentChildList,userid)
             oldParentChildList = oldParentChildList.join(',')
             
             // update the child lists

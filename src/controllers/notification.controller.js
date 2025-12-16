@@ -24,7 +24,7 @@ class notificationController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('notification/createNotificationType',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('notification/createNotificationType',JSON.stringify(req.body), JSON.stringify(req.query))
             //variables to sqlquery
             var param = {
                 nt_name: req.body.name // str name
@@ -57,7 +57,7 @@ class notificationController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('notification/allNotificationType',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('notification/allNotificationType',JSON.stringify(req.body), JSON.stringify(req.query))
             //call redis and get notification type
             redisMaster.get("notificationType", async(err, reply) => {
                 if (err) {
@@ -108,7 +108,7 @@ class notificationController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('notification/updateNotificationType',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('notification/updateNotificationType',JSON.stringify(req.body), JSON.stringify(req.query))
             //variable for sqlQuery
             var param = {
                 nt_name: req.body.name, //str name
@@ -147,7 +147,7 @@ class notificationController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('notification/deleteNotiType',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('notification/deleteNotiType',JSON.stringify(req.body), JSON.stringify(req.query))
             //variables for sql query
             var searchKeyValue = {
                 nt_id: req.query.nt_id // str nt_id
@@ -185,7 +185,7 @@ class notificationController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('notification/createNotiNumber',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('notification/createNotiNumber',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -302,7 +302,7 @@ class notificationController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('notification/deleteNotiNumber',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('notification/deleteNotiNumber',JSON.stringify(req.body), JSON.stringify(req.query))
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             // variable for sqlQuery
@@ -354,7 +354,7 @@ class notificationController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('notification/getNotiNumberDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('notification/getNotiNumberDetails',JSON.stringify(req.body), JSON.stringify(req.query))
             const objResult = await notificationModule.getNotiNumberDetails(req.query.nn_uuid)
 
             // check if the result is there and responce accordingly
@@ -381,7 +381,7 @@ class notificationController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('notification/updateNotificationNumber',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('notification/updateNotificationNumber',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -512,7 +512,7 @@ class notificationController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('notification/deleteNotiNumber',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('notification/deleteNotiNumber',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();

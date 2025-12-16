@@ -8,7 +8,7 @@ class redisController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('redis/createVar',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('redis/createVar',JSON.stringify(req.body), JSON.stringify(req.query))
         client.set(req.body.name, req.body.value, function(err, reply) {
             if (err) {
                 console.log(err)
@@ -22,7 +22,7 @@ class redisController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('redis/getVar',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('redis/getVar',JSON.stringify(req.body), JSON.stringify(req.query))
         client.get(req.query.name, function(err, reply) {
             if (err) {
                 console.log(err)
@@ -39,7 +39,7 @@ class redisController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('redis/deleteVar',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('redis/deleteVar',JSON.stringify(req.body), JSON.stringify(req.query))
         client.del(req.query.name, function(err, reply) {
             if (err) {
                 console.log(err)
@@ -53,7 +53,7 @@ class redisController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('redis/expireVar',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('redis/expireVar',JSON.stringify(req.body), JSON.stringify(req.query))
         client.expire(req.body.name, req.body.time, function(err, reply) {
             if (err) {
                 console.log(err)

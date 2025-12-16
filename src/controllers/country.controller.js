@@ -15,7 +15,7 @@ class countryController {
     // function to create country 
     createCountry = async(req, res, next) => {
         try {
-            console.log('country/createCountry',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('country/createCountry',JSON.stringify(req.body), JSON.stringify(req.query))
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
@@ -57,7 +57,7 @@ class countryController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('country/allCountry',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('country/allCountry',JSON.stringify(req.body), JSON.stringify(req.query))
             // call radis to get the country names
             redisMaster.get('country', async(err, reply) => {
 
@@ -112,7 +112,7 @@ class countryController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('country/updateCountry',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('country/updateCountry',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -155,7 +155,7 @@ class countryController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('country/deleteCountry',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('country/deleteCountry',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();

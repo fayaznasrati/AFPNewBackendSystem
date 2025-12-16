@@ -25,7 +25,7 @@ class walletMemberController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('walletMember/createWalletMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('walletMember/createWalletMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
                 // crerate wallet group
                     // sql param
                     var param = {
@@ -61,7 +61,7 @@ class walletMemberController {
                 // limit and offset
                     // var offset = req.query.start
                     // var limit = req.query.end - offset
-                    // console.log('walletMember/getWalletMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+                    //  //  console.log('walletMember/getWalletMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
                 // console.log(req.body.user_detials)
 
                 // get all user list
@@ -91,7 +91,7 @@ class walletMemberController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('walletMember/updateWalletMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('walletMember/updateWalletMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
                 // search param
                     var searchKeyValue = {
                         group_uuid : req.body.group_uuid,
@@ -125,7 +125,7 @@ class walletMemberController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('walletMember/deleteWalletMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('walletMember/deleteWalletMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
                 // search the group_uuid in er_wallet_transfer_group_members before delete
                     const lisResult = await sqlQueryReplica.searchQuery(this.tableName2,{group_uuid : req.body.group_uuid,},["COUNT(1)"],'userid','ASC',1,0)
                     if(lisResult[0]['COUNT(1)'] != 0) return res.status(400).json({ errors: [ {msg : 'group is not allowed to delete'}] });
@@ -164,7 +164,7 @@ class walletMemberController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('walletMember/addWalletMemberGroupAgent',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('walletMember/addWalletMemberGroupAgent',JSON.stringify(req.body), JSON.stringify(req.query))
                 // check the member group details
                     const lisResponce1 = await sqlQueryReplica.searchQuery(this.tableName1,{"group_uuid" : req.body.group_uuid },["group_id","group_uuid"],"group_name","ASC",1,0)
                     if(lisResponce1.length == 0) return res.status(400).json({ errors: [ {msg : 'Group not found'}] });
@@ -204,7 +204,7 @@ class walletMemberController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    // console.log('walletMember/getWalletMemberGroupAgent',JSON.stringify(req.body), JSON.stringify(req.query))
+                    //  //  console.log('walletMember/getWalletMemberGroupAgent',JSON.stringify(req.body), JSON.stringify(req.query))
                 // limit and offset
                     // var offset = req.query.start
                     // var limit = req.query.end - offset
@@ -229,7 +229,7 @@ class walletMemberController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    // console.log('walletMember/getWalletMemberGroupAgentById',JSON.stringify(req.body), JSON.stringify(req.query))
+                    //  //  console.log('walletMember/getWalletMemberGroupAgentById',JSON.stringify(req.body), JSON.stringify(req.query))
                 // using member group uuid to search all the user
                     const lisResponce1 = await walletMemberModule.getWalletMemberGroupAgentById(req.query.member_uuid);
                     if(lisResponce1.length == 0) return res.status(204).send({message:"no member found"})
@@ -251,7 +251,7 @@ class walletMemberController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('walletMember/updateWalletMemberGroupAgent',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('walletMember/updateWalletMemberGroupAgent',JSON.stringify(req.body), JSON.stringify(req.query))
                 // check the member group details
                     const lisResponce1 = await sqlQueryReplica.searchQuery(this.tableName1,{"group_uuid" : req.body.group_uuid },["group_id","group_uuid"],"group_name","ASC",1,0)
                     if(lisResponce1.length == 0) return res.status(400).json({ errors: [ {msg : 'Group not found'}] });
@@ -296,7 +296,7 @@ class walletMemberController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('walletMember/deleteWalletMemberGroupAgent',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('walletMember/deleteWalletMemberGroupAgent',JSON.stringify(req.body), JSON.stringify(req.query))
                 // use member uuid and update user name and group uuid
                     var searchKeyValue = {
                         member_uuid : req.query.member_uuid,

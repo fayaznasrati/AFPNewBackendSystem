@@ -41,7 +41,7 @@ class companyController {
                 return res.status(400).json({ errors: errors.array() });
             }
 
-            console.log('Company/createCompany', JSON.stringify(req.body), JSON.stringify(req.query));
+             //  console.log('Company/createCompany', JSON.stringify(req.body), JSON.stringify(req.query));
 
             const date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
@@ -198,7 +198,7 @@ class companyController {
                 return res.status(400).json({ errors: errors.array() });
             }
 
-            console.log('Company/editCompany', JSON.stringify(req.body), JSON.stringify(req.query));
+             //  console.log('Company/editCompany', JSON.stringify(req.body), JSON.stringify(req.query));
 
             const { company_name, allowed_ips,status   } = req.body;
             const modifiedBy = req.query.username;
@@ -349,7 +349,7 @@ class companyController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('company/getCompanyById', JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('company/getCompanyById', JSON.stringify(req.body), JSON.stringify(req.query))
 
             //test 
             var key = ['company_id AS id','company_name AS name','allowed_ips','company_api_key AS API_key','encrypted_secret','active AS status','account_username AS belongs_to','account_userid AS belongs_to_id ','created_at','created_by','last_modified_by','last_modified_on' ]
@@ -416,7 +416,7 @@ class companyController {
           if (!errors.isEmpty()) {
               return res.status(400).json({ errors: errors.array() });
           }
-          console.log('companies',JSON.stringify(req.body), JSON.stringify(req.query))
+           //  console.log('companies',JSON.stringify(req.body), JSON.stringify(req.query))
           if (!req.query.pageNumber) req.query.pageNumber = 0
 
                var orderby = "company_id"
@@ -472,7 +472,7 @@ class companyController {
     downloadCompanies = async (req, res) => {
     try {
 
-        console.log('Company/downloadCompanies', JSON.stringify(req.body), JSON.stringify(req.query));
+         //  console.log('Company/downloadCompanies', JSON.stringify(req.body), JSON.stringify(req.query));
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
@@ -763,7 +763,7 @@ class companyController {
                 }
                
             }
-            console.log('company recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('company recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
 
             //test 
 
@@ -908,7 +908,7 @@ class companyController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('company recharge status/getRechageStatus',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('company recharge status/getRechageStatus',JSON.stringify(req.body), JSON.stringify(req.query))
 
 
             // sql search param
@@ -1105,7 +1105,7 @@ class companyController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
 
             //test 
 
@@ -1178,7 +1178,7 @@ class companyController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('recharge/singleRecharge', JSON.stringify(req.body), JSON.stringify(req.query))
 
     
          const searchUser = {
@@ -1229,7 +1229,7 @@ class companyController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('login/getParentName',JSON.stringify(req.body), JSON.stringify(req.query), JSON.stringify(req.params))
+             //  console.log('login/getParentName',JSON.stringify(req.body), JSON.stringify(req.query), JSON.stringify(req.params))
             var offset = 0
             var limit = 10
 

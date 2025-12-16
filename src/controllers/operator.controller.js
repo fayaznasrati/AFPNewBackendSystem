@@ -19,7 +19,7 @@ class operatorController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('operator/createOperator',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('operator/createOperator',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -59,7 +59,7 @@ class operatorController {
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
-        console.log('operator/createOperator',JSON.stringify(req.body), JSON.stringify(req.query))
+         //  console.log('operator/createOperator',JSON.stringify(req.body), JSON.stringify(req.query))
         var date = new Date();
         date.setHours(date.getHours() + 4, date.getMinutes() + 30);
         var isodate = date.toISOString();
@@ -101,7 +101,7 @@ class operatorController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('operator/allOperator',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('operator/allOperator',JSON.stringify(req.body), JSON.stringify(req.query))
             // call redis to get operator list
             redisMaster.get('operator', async(err, reply) => {
 
@@ -155,7 +155,7 @@ class operatorController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('operator/allOperator',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('operator/allOperator',JSON.stringify(req.body), JSON.stringify(req.query))
             // call redis to get operator list
             // redisMaster.get('operator', async(err, reply) => {
 
@@ -210,7 +210,7 @@ class operatorController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('operator/updateOperator',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('operator/updateOperator',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -254,7 +254,7 @@ class operatorController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('operator/deleteOperator',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('operator/deleteOperator',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -298,7 +298,7 @@ class operatorController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('operator/checkOperator',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('operator/checkOperator',JSON.stringify(req.body), JSON.stringify(req.query))
             let operator_uuid = '', operatorName = ''
 
             switch(req.body.mobile.slice(0,3)){
@@ -367,7 +367,7 @@ class operatorController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('operator/findOperator',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('operator/findOperator',JSON.stringify(req.body), JSON.stringify(req.query))
             let operator_uuid = '', operatorName = ''
 
             switch(req.body.mobile.slice(0,3)){

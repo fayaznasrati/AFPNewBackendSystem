@@ -19,7 +19,7 @@ class loginReasonController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('loginReason/createLoginReason',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('loginReason/createLoginReason',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
                 date.setHours(date.getHours() + 4, date.getMinutes() + 30);
                 var isodate = date.toISOString();
@@ -56,7 +56,7 @@ class loginReasonController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('loginReason/getLoginReason',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('loginReason/getLoginReason',JSON.stringify(req.body), JSON.stringify(req.query))
                 // call radis to get the country names
             redisMaster.get('loginReason', async(err, reply) => {
 
@@ -111,7 +111,7 @@ class loginReasonController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('loginReason/updateLoginReason',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('loginReason/updateLoginReason',JSON.stringify(req.body), JSON.stringify(req.query))
             //variables for sql query
                 var param = {
                     reason: req.body.reason, //str login reason name
@@ -148,7 +148,7 @@ class loginReasonController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('loginReason/deleteLoginReason',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('loginReason/deleteLoginReason',JSON.stringify(req.body), JSON.stringify(req.query))
             //variable for sql query
             const param = {
                 active: 0

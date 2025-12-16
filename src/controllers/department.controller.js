@@ -26,7 +26,7 @@ class departmentController{
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('department/createDepartment',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('department/createDepartment',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -79,7 +79,7 @@ class departmentController{
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('department/getDepartmentById',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('department/getDepartmentById',JSON.stringify(req.body), JSON.stringify(req.query))
         //search dep  details
             var searchKeyValue ={
                 department_uuid : req.query.department_uuid,
@@ -92,7 +92,7 @@ class departmentController{
             var departemnt = await sqlQueryReplica.searchQuery(this.tableName1, searchKeyValue, key, orderby, ordertype, 1, 0)
             if(departemnt.length === 0) return res.status(204).send({ message:'sub admin details not found'})
             var DepDetails = departemnt[0]
-            console.log('DepDetails',DepDetails);
+             //  console.log('DepDetails',DepDetails);
             res.status(200).send(DepDetails);
         }catch (error){
             console.log(error);
@@ -106,7 +106,7 @@ class departmentController{
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('[Admin/getSubAdminList]', JSON.stringify(req.body), JSON.stringify(req.query));
+            //  //  console.log('[Admin/getSubAdminList]', JSON.stringify(req.body), JSON.stringify(req.query));
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
 
@@ -266,7 +266,7 @@ class departmentController{
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('department/updateDepartment',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('department/updateDepartment',JSON.stringify(req.body), JSON.stringify(req.query))
             // console.log("Query", req.query)
             // console.log("body", req.body)
             var date = new Date();
@@ -310,7 +310,7 @@ class departmentController{
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('department/deleteDepartment',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('department/deleteDepartment',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
