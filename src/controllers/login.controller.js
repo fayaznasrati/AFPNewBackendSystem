@@ -1120,8 +1120,8 @@ class loginController {
             }
             //different serach option
             // if (req.query.userId) searchKeyValue.username = req.query.userId //str username
-            if (req.query.userId) {
-                const userId = req.query.userId;
+              if (req.query.userId || req.query.userIdLike ) {
+                const userId = req.query.userId || req.query.userIdLike;
                 searchKeyValue.username = userId.startsWith("AFP-") ? userId : `AFP-${userId}`;
               }
             if (req.query.name) searchKeyValue.full_name = req.query.name //str full name
