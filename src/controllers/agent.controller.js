@@ -1672,7 +1672,7 @@ class agentController {
                 const strEncryptionKey = lisResponce1[0].encryption_key
     
                 var strDecriptPin = varEncryptionString.decryptString(strEncryptionKey, strTpin);
-                console.log("SecurityPin",strDecriptPin)
+                // console.log("SecurityPin",strDecriptPin)
     
                 if(req.body.pin != strDecriptPin) return res.status(400).json({ errors: [ {msg : 'Entered pin is incorrest'}]})
             
@@ -1750,7 +1750,7 @@ class agentController {
                 const strEncryptionKey = lisResponce1[0].encryption_key
 
                 var strDecriptPin = varEncryptionString.decryptString(strEncryptionKey, strTpin);
-                console.log("the PIN ",strDecriptPin)
+                // console.log("the PIN ",strDecriptPin)
                 //tpin dint match
                 if(req.body.pin != strDecriptPin) return res.status(400).json({ errors: [ {msg : 'Entered pin is incorrest'}]})
             }else{

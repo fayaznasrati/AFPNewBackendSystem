@@ -54,9 +54,10 @@ const auth = (...roles) => {
 
                 if( strUser ){
                     user = JSON.parse(strUser)
+                    // await redisMaster.exp(redisKey, SESSION_IDLE_TIME);
                 }else{
                      // 🔁 Sliding expiration
-                    await redisMaster.exp(redisKey, SESSION_IDLE_TIME);
+                    // await redisMaster.exp(redisKey, SESSION_IDLE_TIME);
                     user = await UserModel.findOne({ username: decoded.user_id });
                     if(user){
                         redisMaster.post(`AUTH_SUB_ADMIN_${decoded.user_id}`, JSON.stringify(user))
@@ -66,12 +67,7 @@ const auth = (...roles) => {
                 if (!user) {
                     return res.status(400).json({ errors: [ {msg : 'Authorization failed'}] });
                 }
-
-                 sessionToken = await redisMaster.asyncGet(`admin_login_session_${req.query.username}`)
-
-                if(!sessionToken || sessionToken != token){
-                    return res.status(400).json({ errors: [ {msg : 'jwt expired'}] });
-                }
+                await redisMaster.exp(redisKey, SESSION_IDLE_TIME);
 
                 // console.log(user)
                 // check if the current user is the owner user
@@ -113,14 +109,14 @@ const auth = (...roles) => {
             if(decoded.userType == "Admin-Agent"){
 
                  // 🔐 Redis session check
-            // const redisKey = `agent_login_session_${username}`;
-            // const sessionToken = await redisMaster.asyncGet(redisKey);
+            const redisKey = `agent_login_session_${username}`;
+            const sessionToken = await redisMaster.asyncGet(redisKey);
 
-            // if (!sessionToken || sessionToken !== token) {
-            //   return res.status(401).json({
-            //     errors: [{ msg: 'jwt expired' }]
-            //   });
-            // }
+            if (!sessionToken || sessionToken !== token) {
+              return res.status(401).json({
+                errors: [{ msg: 'jwt expired' }]
+              });
+            }
                 let user = await agentModule.searchAgentid(decoded.agent_id) 
                 // console.log(user)
 
@@ -158,6 +154,17 @@ const auth = (...roles) => {
             // to verify agent
             if(decoded.userType == userRoles.Agnet){
                 // console.log(decoded)
+
+                       // 🔐 Redis session check
+            const redisKey = `agent_login_session_${req.query.username}`;
+            const sessionToken = await redisMaster.asyncGet(redisKey);
+
+            if (!sessionToken || sessionToken !== token) {
+              return res.status(401).json({
+                errors: [{ msg: 'jwt expired' }]
+              });
+            }
+               await redisMaster.exp(redisKey, SESSION_IDLE_TIME);
                 let user = await agentModule.searchAgentid(decoded.user_id) 
                 // console.log(user)
 
@@ -165,11 +172,6 @@ const auth = (...roles) => {
                     return res.status(400).json({ errors: [ {msg : 'Authorization failed'}] });
                 }
 
-                let sessionToken = await redisMaster.asyncGet(`agent_login_session_${req.query.username}`)
-
-                if(!sessionToken || sessionToken != token){
-                    return res.status(400).json({ errors: [ {msg : 'jwt expired'}] });
-                }
 
                 if (user.user_status != 1) {
                     return res.status(400).json({ errors: [ {msg : 'user is In-Active'}] });

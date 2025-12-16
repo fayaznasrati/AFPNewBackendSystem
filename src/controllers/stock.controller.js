@@ -1946,14 +1946,14 @@ class stockController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "stock/downlineStockTransferReport",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "stock/downlineStockTransferReport",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       if (!req.query.pageNumber) req.query.pageNumber = 0;
 
-      console.log(req.query);
+      // console.log(req.query);
       let searchQkeys = Object.keys(req.query);
       searchQkeys.forEach((key) => {
         if (key.includes("user_id"))
@@ -2780,11 +2780,11 @@ class stockController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "stock/acceptStockRequest",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "stock/acceptStockRequest",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       var date = new Date();
       date.setHours(date.getHours() + 4, date.getMinutes() + 30);
       var isodate = date.toISOString();
