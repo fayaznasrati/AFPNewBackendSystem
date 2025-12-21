@@ -22,7 +22,7 @@ class subAdminModuleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('subAdminModule/addModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('subAdminModule/addModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
             // add data in the table 
                 var param = {
                     sub_admin_module_name : req.body.moduleName,
@@ -48,7 +48,7 @@ class subAdminModuleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('subAdminModule/getAllModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('subAdminModule/getAllModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
             // search key list 
                 var key = ["sub_admin_module_id","sub_admin_module_name AS moduleName","sub_admin_module_title AS moduleTitle"]
 
@@ -73,7 +73,7 @@ class subAdminModuleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('subAdminModule/updateModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('subAdminModule/updateModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
             // update query variabels
                 var searchKeyValue = {
                     sub_admin_module_id : req.body.sub_admin_module_id
@@ -108,7 +108,7 @@ class subAdminModuleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('subAdminModule/getAllSubModuleListName',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('subAdminModule/getAllSubModuleListName',JSON.stringify(req.body), JSON.stringify(req.query))
             // get all sub-module list
                 var key = ["sub_admin_sub_module_id","sub_admin_sub_module_name AS subModuleName","sub_admin_sub_module_title AS subModuleTitle","sub_admin_module_name AS moduleName"]
                 var searchKeyValue = {
@@ -133,7 +133,7 @@ class subAdminModuleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('subAdminModule/addSubModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('subAdminModule/addSubModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
             // verify the module name
                 var searchKeyValue = {
                     sub_admin_module_name : req.body.moduleName,
@@ -171,7 +171,7 @@ class subAdminModuleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('subAdminModule/updateSubModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('subAdminModule/updateSubModuleName',JSON.stringify(req.body), JSON.stringify(req.query))
             // verify the module name
                 var searchKeyValue = {
                     sub_admin_module_name : req.body.moduleName,
@@ -218,7 +218,7 @@ class subAdminModuleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('subAdminModule/getAllModuleList',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('subAdminModule/getAllModuleList',JSON.stringify(req.body), JSON.stringify(req.query))
             // limit and offset
                 // var offset = req.query.start
                 // var limit = req.query.end - offset
@@ -268,7 +268,7 @@ class subAdminModuleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('subAdminModule/departmentAssignRights',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('subAdminModule/departmentAssignRights',JSON.stringify(req.body), JSON.stringify(req.query))
             // check if user name allrady in the data base
                 const lisResponce1 = await sqlQueryReplica.searchQueryNoLimit(this.tableName3,{department_uuid : req.body.department_uuid},["sub_admin_module_name","sub_admin_sub_module_perm","perm_view",'sub_admin_module_id','department_id'],'sub_admin_per_id',"ASC")
                 // console.log(boolCheck)
@@ -340,7 +340,7 @@ class subAdminModuleController {
 
                 for (i = 0; i < oldModuleList.length; i++){
                     // console.log("sub Module ",lisresponce2[i].sub_admin_sub_module_name,oldModuleList[i].subModuleName )
-                    // console.log('module ',lisresponce2[i].sub_admin_module_name,oldModuleList[i].moduleName )
+                    //  //  console.log('module ',lisresponce2[i].sub_admin_module_name,oldModuleList[i].moduleName )
                     if(lisresponce2[i].sub_admin_sub_module_name != oldModuleList[i].subModuleName ) return res.status(400).json({ errors: [ {msg : "sub module list error"}] });
                     if(lisresponce2[i].sub_admin_module_name != oldModuleList[i].moduleName ) return res.status(400).json({ errors: [ {msg : "module list error"}] });
                     
@@ -649,7 +649,7 @@ class subAdminModuleController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('subAdminModule/getSubModuleByDepartmanetId',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('subAdminModule/getSubModuleByDepartmanetId',JSON.stringify(req.body), JSON.stringify(req.query))
             var searchKeyValue = {
                 sub_admin_module_name : req.query.moduleName,
                 department_id : req.body.user_detials.department || 0
@@ -691,11 +691,11 @@ class subAdminModuleController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('subAdminModule/getAssignedModule',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('subAdminModule/getAssignedModule',JSON.stringify(req.body), JSON.stringify(req.query))
             // get the module list from module permission
                 // const lisResponse1 = await sqlQuery.searchQueryNoLimit(this.tableName2,{user_uuid : req.query.user_uuid },["agent_module_id","agent_module_name","perm_view","sub_module_perm"],"agent_module_id","ASC")
                     const lisResponce1 = await subAdminModule.subAdminAssignRights(req.query.department_uuid)
-                console.log(lisResponce1)
+                // console.log(lisResponce1)
                 if(lisResponce1.length == 0) {
                     // get the module list
                         // var lisResponce2 = await subAdminModule.getAllModuleList();

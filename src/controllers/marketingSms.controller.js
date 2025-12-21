@@ -43,7 +43,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('marketingSms/createSmsTemplateCategory',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('marketingSms/createSmsTemplateCategory',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -82,7 +82,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('marketingSms/allSmsTemplateCategory',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('marketingSms/allSmsTemplateCategory',JSON.stringify(req.body), JSON.stringify(req.query))
             // check in the redis server if the sms tmeplete category is there or not
             redisMaster.get("templeteCategory", async(err, reply) => {
                 if (err) {
@@ -142,7 +142,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('marketingSms/updateSmsTemplateCategory',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('marketingSms/updateSmsTemplateCategory',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -185,7 +185,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('marketingSms/deleteSmsTemplateCategory',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('marketingSms/deleteSmsTemplateCategory',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -233,7 +233,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('marketingSms/createSmsTemplate',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('marketingSms/createSmsTemplate',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -291,7 +291,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('marketingSms/allSmsTemplate',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('marketingSms/allSmsTemplate',JSON.stringify(req.body), JSON.stringify(req.query))
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             // limit variables for sql query
@@ -433,7 +433,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('marketingSms/findMessageSmsTemplate',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('marketingSms/findMessageSmsTemplate',JSON.stringify(req.body), JSON.stringify(req.query))
             //variable for sqlQuery
             var searchKeyValue = {
                 template_uuid: req.query.template_uuid, // str template uuid
@@ -470,7 +470,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('marketingSms/getTemplateDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('marketingSms/getTemplateDetails',JSON.stringify(req.body), JSON.stringify(req.query))
             // fire sql query to get all sms template
             const lisResult = await marketingSmsModel.getTemplateDetails(req.query.template_uuid)
 
@@ -498,7 +498,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('marketingSms/updateSmsTemplate',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('marketingSms/updateSmsTemplate',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -569,7 +569,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('marketingSms/deleteSmsTemplate',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('marketingSms/deleteSmsTemplate',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -650,7 +650,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('marketingSms/createSmsGroupWithTemplate',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('marketingSms/createSmsGroupWithTemplate',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -718,7 +718,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('marketingSms/createSmsGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('marketingSms/createSmsGroup',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -763,7 +763,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('marketingSms/getAllSendSms',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('marketingSms/getAllSendSms',JSON.stringify(req.body), JSON.stringify(req.query))
             // get agent type list
             let agentList = await sqlQueryReplica.searchQueryNoLimit(this.tableName7,{usertype_id : userTypeId},['userid'],'userid','ASC')
             if(agentList.length == 0) return({error : 'no agent foud'})
@@ -790,7 +790,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('marketingSms/allSmsGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('marketingSms/allSmsGroup',JSON.stringify(req.body), JSON.stringify(req.query))
             // limiting variables 
             // var offset = req.query.start
             // var limit = req.query.end - offset
@@ -835,7 +835,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('marketingSms/allSmsGroupDateRange',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('marketingSms/allSmsGroupDateRange',JSON.stringify(req.body), JSON.stringify(req.query))
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             //limit variables for sql query
@@ -1016,7 +1016,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('marketingSms/findMessageGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('marketingSms/findMessageGroup',JSON.stringify(req.body), JSON.stringify(req.query))
             //variables for sql query
             var searchKeyValue = {
                 send_group_sms_uuid: req.query.send_group_sms_uuid, // str send_group_sms_uuid
@@ -1050,7 +1050,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('marketingSms/updateSmsGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('marketingSms/updateSmsGroup',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -1138,7 +1138,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('marketingSms/deleteSmsGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('marketingSms/deleteSmsGroup',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -1183,7 +1183,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('marketingSms/createSms',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('marketingSms/createSms',JSON.stringify(req.body), JSON.stringify(req.query))
             //check group sms id
             //variable for sql query to check the group sms id
             var searchKeyValue = {
@@ -1234,7 +1234,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('marketingSms/allSmsId',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('marketingSms/allSmsId',JSON.stringify(req.body), JSON.stringify(req.query))
             //variables for sql query
             // var offset = req.query.start
             // var limit = req.query.end - offset
@@ -1268,7 +1268,7 @@ class smsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('marketingSms/updateSms',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('marketingSms/updateSms',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -1346,7 +1346,7 @@ class smsController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('marketingSms/getRoshanPendingSms',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('marketingSms/getRoshanPendingSms',JSON.stringify(req.body), JSON.stringify(req.query))
             // if(req.body.code != process.env.API_PASSWORD){
             //     return res.send([])
             // }
@@ -1375,7 +1375,7 @@ class smsController {
         try{
             // int intID, string strsmpp_respose, int intUseID, string strUserName, string strSMS, string strOperatorID1, string strMobile1, string strOperatorID2, string strMobile2, string strOperatorID3, string strMobile3, string strOperatorID4, string strMobile4, string strOperatorID5, string strMobile5, string strDileveryDatetime, string strPhoneNumber, string strResMessageID, string strResponseFinalStatus
             // console.log(req.body)
-            console.log('marketingSms/updatePendingStatus',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('marketingSms/updatePendingStatus',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();

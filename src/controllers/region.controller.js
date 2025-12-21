@@ -26,7 +26,7 @@ class regionController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('region/createRegion',JSON.stringify(req.body), JSON.stringify(req.query))
+          //  console.log('region/createRegion',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -248,7 +248,7 @@ class regionController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('region/updateRegion',JSON.stringify(req.body), JSON.stringify(req.query))
+          //  console.log('region/updateRegion',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -341,7 +341,7 @@ class regionController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('region/deleteRegion',JSON.stringify(req.body), JSON.stringify(req.query))
+          //  console.log('region/deleteRegion',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();

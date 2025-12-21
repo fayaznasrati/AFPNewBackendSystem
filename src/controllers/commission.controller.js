@@ -33,7 +33,7 @@ class commisionController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('commission/getCommission',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('commission/getCommission',JSON.stringify(req.body), JSON.stringify(req.query))
             // chek the user commission type for agent only
                 if(!(req.body.user_detials.type == role.Admin || req.body.user_detials.type == role.SubAdmin)){
                     const listCommissionType = await sqlQueryReplica.searchQuery(this.tableName2,{user_uuid : req.body.user_detials.user_uuid,Active : 1},["comm_type"],'userid','ASC',1,0)
@@ -91,7 +91,7 @@ class commisionController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-            console.log('commission/updateCommission',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('commission/updateCommission',JSON.stringify(req.body), JSON.stringify(req.query))
             const intId = await commonQueryCommon.getOperatorById(req.body.operator_uuid)
             if(intId.length === 0 ) return res.status(400).json({ errors: [ {msg : "operator not found"}] });
 
@@ -152,7 +152,7 @@ class commisionController {
                 if(updateDetails.length > 0) {
                     const intResult = await httpRequestMakerCommon.httpPost("activity-log/multiple",{mulActivityLog:updateDetails})
                     var strLog = intResult == 1 ? 'Agent login log added successfully' : intResult == 2 ? 'Agent login log error' : 'end point not found'
-                        // console.log('Server Log : '+strLog)
+                        //  //  console.log('Server Log : '+strLog)
                     if(intResult != 1){
                         // rollback
                         let rollback = await sqlQuery.specialCMD('rollback')
@@ -178,7 +178,7 @@ class commisionController {
                     }
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
-                // console.log('commission/directAgentPrePaidCommissionReport',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('commission/directAgentPrePaidCommissionReport',JSON.stringify(req.body), JSON.stringify(req.query))
             // search param limit and offset
                 // var offset = req.query.start
                 // var limit = req.query.end - offset
@@ -340,7 +340,7 @@ class commisionController {
         setTimeout(() => {
         fs.unlink(filePath, err => {
             if (err) console.error('Error deleting file:', filePath, err);
-            else console.log('Deleted file:', fileName);
+            else {} //  console.log('Deleted file:', fileName);
         });
         }, 30 * 60 * 1000);
 
@@ -362,7 +362,7 @@ class commisionController {
                 }
 
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
-                // console.log('commission/directAgentPostPaidCommissionReport',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('commission/directAgentPostPaidCommissionReport',JSON.stringify(req.body), JSON.stringify(req.query))
             // search param limit and offset
                 // var offset = req.query.start
                 // var limit = req.query.end - offset
@@ -446,7 +446,7 @@ class commisionController {
                 }
 
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
-                // console.log('commission/indirectAgentPrePaidCommissionReport',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('commission/indirectAgentPrePaidCommissionReport',JSON.stringify(req.body), JSON.stringify(req.query))
             // search param limit and offset
                 // var offset = req.query.start
                 // var limit = req.query.end - offset
@@ -653,7 +653,7 @@ class commisionController {
             setTimeout(() => {
             fs.unlink(filePath, err => {
                 if (err) console.error('Error deleting file:', filePath, err);
-                else console.log('Deleted file:', fileName);
+                else {} //  console.log('Deleted file:', fileName);
             });
             }, 30 * 60 * 1000);
 
@@ -673,7 +673,7 @@ class commisionController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('commission/inDirectAgnetPostPaidCommissionReport',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('commission/inDirectAgnetPostPaidCommissionReport',JSON.stringify(req.body), JSON.stringify(req.query))
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             // search param limit and offset

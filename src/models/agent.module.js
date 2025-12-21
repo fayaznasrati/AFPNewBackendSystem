@@ -33,7 +33,7 @@ class agentModule {
           parentId = details[0].parent_id;
         }
       }
-      console.log("done --------");
+      // console.log("done --------");
     } catch (e) {
       console.log(e);
     }
@@ -70,7 +70,7 @@ class agentModule {
         }
       }
 
-      console.log("done --------");
+      // console.log("done --------");
     } catch (e) {
       console.log(e);
     }

@@ -27,7 +27,7 @@ class smsUssdController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('smsUssd/createActivity',JSON.stringify(req.body), JSON.stringify(req.query))
+              //  console.log('smsUssd/createActivity',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
                 date.setHours(date.getHours() + 4, date.getMinutes() + 30);
                 var isodate = date.toISOString();
@@ -126,7 +126,7 @@ class smsUssdController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('smsUssd/updateActivity',JSON.stringify(req.body), JSON.stringify(req.query))
+              //  console.log('smsUssd/updateActivity',JSON.stringify(req.body), JSON.stringify(req.query))
             // update param
                 let searchKeyValue = {
                     ussd_uuid : req.body.ussd_uuid,
@@ -349,7 +349,7 @@ class smsUssdController {
         setTimeout(() => {
             fs.unlink(filePath, (err) => {
             if (err) console.error('Error deleting file:', filePath);
-            else console.log('Deleted expired file:', fileName);
+            else {} //console.log('Deleted expired file:', fileName);
             });
         }, 30 * 60 * 1000);
 

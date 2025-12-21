@@ -16,7 +16,7 @@ class newsController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('news/createNews',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('news/createNews',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -46,7 +46,7 @@ class newsController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('news/getAllNews',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('news/getAllNews',JSON.stringify(req.body), JSON.stringify(req.query))
             let searchKeyValue = {
                 active : 1
             }
@@ -78,7 +78,7 @@ class newsController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('news/getTodayNews',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('news/getTodayNews',JSON.stringify(req.body), JSON.stringify(req.query))
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
                 var date = new Date();
@@ -133,7 +133,7 @@ class newsController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('news/updateNews',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('news/updateNews',JSON.stringify(req.body), JSON.stringify(req.query))
             let searchKeyValue = {
                 id : req.body.id,
                 active : 1
@@ -161,7 +161,7 @@ class newsController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('news/deleteNews',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('news/deleteNews',JSON.stringify(req.body), JSON.stringify(req.query))
             let searchKeyValue = {
                 id : req.query.id
             }

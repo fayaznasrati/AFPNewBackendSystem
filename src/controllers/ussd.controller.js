@@ -30,7 +30,7 @@ class ussdController {
         try{
             req.body.userApplicationType = 3
             let ussdMenuresponce = await this.runMenu(req.body)
-            console.log('req.body',req.body)
+             //  console.log('req.body',req.body)
             
             if(ussdMenuresponce.error){
                 return res.send({error : ussdMenuresponce.error})
@@ -47,9 +47,9 @@ class ussdController {
         try{    
             // checkUser.userApplicationType = reqDetails.userApplicationType || 3
 
-            // console.log('req.body',req.body)
+            //  //  console.log('req.body',req.body)
             let checkUser = await this.verifyUser(reqDetails.userNumber, reqDetails.userApplicationType)
-            console.log('user details : ',checkUser)
+             //  console.log('user details : ',checkUser)
             if(checkUser.error) return ({error})
             // console.log(checkUser == 0 , checkUser == 1)
             if( checkUser == 0 || checkUser == 1 ) return ({userState : checkUser})
@@ -64,7 +64,7 @@ class ussdController {
 
                 if( allowedAttempt-attempt <= 0 ){
                     // update agent as in-active
-                    console.log('agentLoginFun/USSD-SMS/failed',checkUser.userName)
+                     //  console.log('agentLoginFun/USSD-SMS/failed',checkUser.userName)
                     const updateResponce = await sqlQuery.updateQuery(this.tableName1,{user_status : 2},{username : checkUser.userName,Active : 1})
                 }
 
@@ -189,7 +189,7 @@ class ussdController {
             // }
             // let keyValue = ['CAST(user_uuid AS CHAR(16)) AS user_uuid','userid','username','usertype_id','full_name','m_pin','mpin_status','encryption_key','user_status','region_id','prefer_lang']
             // let userDetials = await sqlQuery.searchQuery(this.tableName1,serarchKeyValue,keyValue,'userid','ASC',1,0)
-            // console.log('user Detials',userDetials)
+            //  //  console.log('user Detials',userDetials)
             let channel = userApplicationType == 3 ? 'USSD' : 'SMS'
             let userDetials = await ussdModel.verifyAgent(mobileNumber,channel)
             if(userDetials.length == 0) return(0)
@@ -210,7 +210,7 @@ class ussdController {
             }
 
             let decryptMpin = varEncryptionString.decryptString(userDetials.encryption_key,userDetials.m_pin)
-            // console.log('pin : ',decryptMpin)
+            //  //  console.log('pin : ',decryptMpin)
             userDetails.pin = decryptMpin
             userDetails.mpinStatus = userDetials.mpin_status
                         
@@ -342,9 +342,9 @@ class ussdController {
             }
             smsFunction.agentSms(smsDetails, userDetials.mobile).then((smsFunResponce)=>{ 
                 if(smsFunResponce.error){
-                    // console.log('send sms error for agent : ',userDetials.userName)
+                    //  //  console.log('send sms error for agent : ',userDetials.userName)
                 }else{
-                    // console.log('sms added')
+                    //  //  console.log('sms added')
                 }  
             })
 
@@ -393,9 +393,9 @@ class ussdController {
             }
             smsFunction.agentSms(smsDetails, userDetials.mobile).then((smsFunResponce)=>{ 
                 if(smsFunResponce.error){
-                    // console.log('send sms error for agent : ',userDetials.userName)
+                    //  //  console.log('send sms error for agent : ',userDetials.userName)
                 }else{
-                    // console.log('sms added')
+                    //  //  console.log('sms added')
                 }  
             })
 
@@ -459,9 +459,9 @@ class ussdController {
                     }
                     smsFunction.agentSms(smsDetails, userDetials.mobile).then((smsFunResponce)=>{ 
                         if(smsFunResponce.error){
-                            // console.log('send sms error for agent : ',userDetials.userName)
+                            //  //  console.log('send sms error for agent : ',userDetials.userName)
                         }else{
-                            // console.log('sms added')
+                            //  //  console.log('sms added')
                         }  
                     })
                 })
@@ -552,9 +552,9 @@ class ussdController {
                     }
                     smsFunction.agentSms(smsDetails, userDetials.mobile).then((smsFunResponce)=>{ 
                         if(smsFunResponce.error){
-                            // console.log('send sms error for agent : ',userDetials.userName)
+                            //  //  console.log('send sms error for agent : ',userDetials.userName)
                         }else{
-                            // console.log('sms added')
+                            //  //  console.log('sms added')
                         }  
                     })
 
@@ -673,9 +673,9 @@ class ussdController {
             }
             smsFunction.agentSms(smsDetails, userDetials.mobile).then((smsFunResponce)=>{ 
                 if(smsFunResponce.error){
-                    // console.log('send sms error for agent : ',userDetials.userName)
+                    //  //  console.log('send sms error for agent : ',userDetials.userName)
                 }else{
-                    // console.log('sms added')
+                    //  //  console.log('sms added')
                 }  
             })
             
@@ -724,9 +724,9 @@ class ussdController {
             }
             smsFunction.agentSms(smsDetails, userDetials.mobile).then((smsFunResponce)=>{ 
                 if(smsFunResponce.error){
-                    // console.log('send sms error for agent : ',userDetials.userName)
+                    //  //  console.log('send sms error for agent : ',userDetials.userName)
                 }else{
-                    // console.log('sms added')
+                    //  //  console.log('sms added')
                 }  
             })
 
@@ -782,9 +782,9 @@ class ussdController {
             }
             smsFunction.agentSms(smsDetails, userDetials.mobile).then((smsFunResponce)=>{ 
                 if(smsFunResponce.error){
-                    // console.log('send sms error for agent : ',userDetials.userName)
+                    //  //  console.log('send sms error for agent : ',userDetials.userName)
                 }else{
-                    // console.log('sms added')
+                    //  //  console.log('sms added')
                 }  
             })
 
@@ -838,9 +838,9 @@ class ussdController {
             }
             smsFunction.agentSms(smsDetails, userDetials.mobile).then((smsFunResponce)=>{ 
                 if(smsFunResponce.error){
-                    // console.log('send sms error for agent : ',userDetials.userName)
+                    //  //  console.log('send sms error for agent : ',userDetials.userName)
                 }else{
-                    // console.log('sms added')
+                    //  //  console.log('sms added')
                 }  
             })
             

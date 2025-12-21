@@ -17,7 +17,7 @@ class postpaidController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('postPaid/createPostPaidCommission',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('postPaid/createPostPaidCommission',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -56,7 +56,7 @@ class postpaidController {
     getPostPaidData = async(req, res, next) => {
         try {
             this.checkValidation(req);
-            // console.log('postPaid/getPostPaidData',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('postPaid/getPostPaidData',JSON.stringify(req.body), JSON.stringify(req.query))
             // variable for sql query
             var offset = req.query.start
             var limit = req.query.end - offset
@@ -91,7 +91,7 @@ class postpaidController {
         try {
 
             this.checkValidation(req);
-            console.log('postPaid/updatePostPaidCommission',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('postPaid/updatePostPaidCommission',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();

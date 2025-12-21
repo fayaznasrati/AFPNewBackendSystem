@@ -19,7 +19,7 @@ class activityTypeController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('AgentActivityType/getAllActivityType',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('AgentActivityType/getAllActivityType',JSON.stringify(req.body), JSON.stringify(req.query))
             // check if the data is in redis database
                 redisMaster.get('activityType', async(err, reply) => {
 
@@ -66,7 +66,7 @@ class activityTypeController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('AgentActivityType/getAdminActivityType',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('AgentActivityType/getAdminActivityType',JSON.stringify(req.body), JSON.stringify(req.query))
             // check if the data is in redis database
             redisMaster.get('adminActivityType', async(err, reply) => {
 
@@ -113,7 +113,7 @@ class activityTypeController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('AgentActivityType/getSubAdminActivityType',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('AgentActivityType/getSubAdminActivityType',JSON.stringify(req.body), JSON.stringify(req.query))
             // check if the data is in redis database
             redisMaster.get('subAdminActivityType', async(err, reply) => {
 
@@ -160,7 +160,7 @@ class activityTypeController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('AgentActivityType/getAgentActivityType',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('AgentActivityType/getAgentActivityType',JSON.stringify(req.body), JSON.stringify(req.query))
             // check if the data is in redis database
             redisMaster.get('agentActivityType', async(err, reply) => {
 
@@ -207,7 +207,7 @@ class activityTypeController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('AgentActivityType/createActivityType',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('AgentActivityType/createActivityType',JSON.stringify(req.body), JSON.stringify(req.query))
             // variable to create user activity type
                 var param = {
                     activity_name : req.body.name,
@@ -238,7 +238,7 @@ class activityTypeController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('AgentActivityType/updateActivityType',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('AgentActivityType/updateActivityType',JSON.stringify(req.body), JSON.stringify(req.query))
             // update the activity type name
                 var param = {
                     activity_name : req.body.name,

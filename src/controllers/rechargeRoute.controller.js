@@ -25,7 +25,7 @@ class rechargeRouteController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('rechargeRoute/getRechargeRoute',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('rechargeRoute/getRechargeRoute',JSON.stringify(req.body), JSON.stringify(req.query))
             redisMaster.get('rechargeRoute', async(err, reply) => {
                 if (err) {
                     throw new HttpException(500, 'Something went wrong');
@@ -60,7 +60,7 @@ class rechargeRouteController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('rechargeRoute/crateRecahrgeRoute',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('rechargeRoute/crateRecahrgeRoute',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
                 date.setHours(date.getHours() + 4, date.getMinutes() + 30);
                 var isodate = date.toISOString();
@@ -103,7 +103,7 @@ class rechargeRouteController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('rechargeRoute/updateRechargeRoute',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('rechargeRoute/updateRechargeRoute',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -152,7 +152,7 @@ class rechargeRouteController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('rechargeRoute/getMNODetails',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('rechargeRoute/getMNODetails',JSON.stringify(req.body), JSON.stringify(req.query))
             redisMaster.get('mnoDetasils', async(err, reply) => {
                 if (err) {
                     throw new HttpException(500, 'Something went wrong');
@@ -187,7 +187,7 @@ class rechargeRouteController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('rechargeRoute/addMnoDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('rechargeRoute/addMnoDetails',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
                 date.setHours(date.getHours() + 4, date.getMinutes() + 30);
                 var isodate = date.toISOString();
@@ -222,7 +222,7 @@ class rechargeRouteController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('rechargeRoute/updateMnoDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('rechargeRoute/updateMnoDetails',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -263,7 +263,7 @@ class rechargeRouteController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('rechargeRoute/deleteMnoDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('rechargeRoute/deleteMnoDetails',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -302,7 +302,7 @@ class rechargeRouteController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('rechargeRoute/getApiBalance',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('rechargeRoute/getApiBalance',JSON.stringify(req.body), JSON.stringify(req.query))
             // get api details 
                 let mnoDetails = await sqlQueryReplica.searchQueryNoConNolimit(this.tableName3,['mno_name','balance_url'],'id','DESC')
                 if(mnoDetails.length == 0) return res.status(400).json({ errors: [ {msg : 'mon details not found'}] });

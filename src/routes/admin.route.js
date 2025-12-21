@@ -24,7 +24,7 @@ const {requestLoginOtp,getLoginOtp,verifyOtpGetLoginAccess,verifyAgentId,agentLo
 router.post('/', createUserSchema,  auth(role.Admin) , awaitHandlerFactory(adminController.createUser));
 
 router.post('/login', validateLogin, awaitHandlerFactory(adminController.userLogin));
-
+router.post('/logout',  auth(),  adminController.userLogout);
 router.get('/username/:username', getUserByuserName, auth(role.Admin,role.SubAdmin), awaitHandlerFactory(adminController.getUserByuserName));
 
 router.put('/password', changePasswordScheme, auth(role.Admin,role.SubAdmin), awaitHandlerFactory(adminController.changePassword))
