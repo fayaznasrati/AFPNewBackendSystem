@@ -34,11 +34,11 @@ class companyController {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      console.log(
-        "Company/createSubCompany",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "Company/createSubCompany",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
 
       const date = new Date();
       date.setHours(date.getHours() + 4, date.getMinutes() + 30);
@@ -452,7 +452,7 @@ class companyController {
         key
       );
       const company = theCompany[0];
-      console.log("company", company);
+       //  console.log('company", company);
 
       const reqClone = {
         ...req,
@@ -571,7 +571,7 @@ class companyController {
             }
           })
         );
-        // console.log("enrichedCompanyList", enrichedCompanyList);
+        //  //  console.log('enrichedCompanyList", enrichedCompanyList);
         // send response
         res.status(200).send({
           reportList: enrichedCompanyList,
@@ -945,7 +945,7 @@ class companyController {
         0
       );
       const company = companies[0];
-      console.log("company", company);
+       //  console.log('company", company);
 
       const subComUuidBuffer = company.sub_company_uuid; // Assume it's a Buffer
       const subComUuidStr = subComUuidBuffer.toString("utf8");
@@ -1037,7 +1037,7 @@ class companyController {
       };
       // pass the params to the ERS to process the recharge
       let ersResponse = await this.ERS_Recharge(body, username, password);
-      console.log("ERS Response:", ersResponse);
+       //  console.log('ERS Response:", ersResponse);
 
       let statusToUpdate = 3; // default failed
       let afghanPayTxnId = null;
@@ -1079,7 +1079,7 @@ class companyController {
   //=============== Helper ===============
   ERS_Recharge = async (body, username, password) => {
     try {
-      console.log("ERS Recharge called", body, username);
+       //  console.log('ERS Recharge called", body, username);
       return await ERS_Util.ersPost(
         username,
         password,
@@ -1224,7 +1224,7 @@ class companyController {
         0
       );
       const company = companies[0];
-      console.log("company", company, company.ers_account_username);
+       //  console.log('company", company, company.ers_account_username);
 
       if (!req.query.pageNumber) req.query.pageNumber = 0;
 
@@ -1312,7 +1312,7 @@ class companyController {
         0
       );
       const company = companies[0];
-      console.log("company", company);
+       //  console.log('company", company);
       const username = company.ers_account_username;
       const password = company.ers_account_user_password;
       const data = await ERS_Util.ersGet(
@@ -1335,7 +1335,7 @@ class companyController {
         totalCommission,
         todayTopup,
       };
-      console.log("Data:", data);
+       //  console.log('Data:", data);
       res.status(200).send({ filteredData });
     } catch (error) {
       console.log(error);
@@ -1370,7 +1370,7 @@ class companyController {
         `/dashboard/agent/dashboard-status/?username=${username}`
       );
 
-      console.log("Data:", data);
+       //  console.log('Data:", data);
       return { data };
     } catch (error) {
       console.error("Error:", error.message);

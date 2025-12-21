@@ -19,7 +19,7 @@ class districtController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('district/createDistrict',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('district/createDistrict',JSON.stringify(req.body), JSON.stringify(req.query))
             // set id to provience id name
             const id = req.body.province_uuid
 
@@ -81,7 +81,7 @@ class districtController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('district/districtByProvinceUuid',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('district/districtByProvinceUuid',JSON.stringify(req.body), JSON.stringify(req.query))
             const id = req.query.province_uuid // str provience uuid
 
             // check in redis if district+provience_id value is there in redis
@@ -143,7 +143,7 @@ class districtController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('district/updateDistrict',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('district/updateDistrict',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -244,7 +244,7 @@ class districtController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('district/deleteDistrict',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('district/deleteDistrict',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();

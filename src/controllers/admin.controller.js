@@ -52,11 +52,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/createUser]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/createUser]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
 
       var password = req.body.password || process.env.ADMIN_DEFAULT_PASSWORD;
 
@@ -104,14 +104,14 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/userLogin]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/userLogin]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
 
       var userid = req.body.username;
-
+      const SESSION_IDLE_TIME = Number(process.env.SESSION_IDLE_TIME || 900);
       const userExist = await UserModel.matchPassword({
         username: req.body.username,
         password: req.body.password,
@@ -127,7 +127,7 @@ class AdminController {
 
         if (allowedAttempt - attempt <= 0) {
           // update agent as in-active
-          console.log("[Admin/userLogin/failed]", userid);
+          // console.log("[Admin/userLogin/failed]", userid);
           const updateResponce = await sqlQuery.updateQuery(
             this.tableName1,
             { status: 0 },
@@ -154,6 +154,7 @@ class AdminController {
       } else {
         // console.log(process.env.SESSION_TIME)
         const secretKey = process.env.SECRET_JWT || "";
+        // 🔑 JWT (long lived)
         const token = jwt.sign(
           { user_id: req.body.username, userType: userExist.usertype },
           secretKey,
@@ -161,8 +162,10 @@ class AdminController {
             expiresIn: process.env.SESSION_TIME,
           }
         );
+        // 🔐 Redis session (idle timeout)
         // save key value to redis
         redisFunction.post(`admin_login_session_${req.body.username}`, token);
+        redisFunction.exp(`admin_login_session_${req.body.username}`, SESSION_IDLE_TIME);
         redisMaster.delete(`ADMIN_LOGIN_ATTEMPT_${userid}`);
 
         //get the last login date and ip address
@@ -332,6 +335,55 @@ class AdminController {
     }
   };
 
+
+
+  userLogout = async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const bearer = 'Bearer ';
+
+      if (!authHeader || !authHeader.startsWith(bearer)) {
+        return res.status(400).json({
+          errors: [{ msg: 'No token provided' }]
+        });
+      }
+
+      const token = authHeader.replace(bearer, '');
+      const secretKey = process.env.SECRET_JWT || "";
+
+      // verify token (even if expired we try cleanup)
+      let decoded;
+      try {
+        decoded = jwt.verify(token, secretKey);
+      } catch (e) {
+        decoded = jwt.decode(token); // fallback decode
+      }
+
+      if (!decoded || !decoded.user_id) {
+        return res.status(400).json({
+          errors: [{ msg: 'Invalid token' }]
+        });
+      }
+
+      const username = decoded.user_id;
+
+      // 🔥 remove redis session
+      await redisMaster.delete(`admin_login_session_${username}`);
+
+      return res.status(200).json({
+        success: true,
+        msg: 'Logged out successfully'
+      });
+
+    } catch (error) {
+      console.log('[Logout Error]', error);
+      return res.status(500).json({
+        errors: [{ msg: 'Logout failed' }]
+      });
+    }
+  };
+
+
   // get self details
   getUserByuserName = async (req, res, next) => {
     try {
@@ -394,11 +446,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/updateUserDetails]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/updateUserDetails]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       // search user details
       var searchKeyValue = {
         admin_userid: req.body.user_detials.id,
@@ -567,11 +619,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       } else {
-        console.log(
-          "[Admin/changePassword]",
-          JSON.stringify(req.body),
-          JSON.stringify(req.query)
-        );
+        // console.log(
+        //   "[Admin/changePassword]",
+        //   JSON.stringify(req.body),
+        //   JSON.stringify(req.query)
+        // );
         var searchKeyValue = {
           admin_userid: req.body.user_detials.id,
           status: 1,
@@ -751,11 +803,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/requestforotp]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/requestforotp]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       let operator_uuid = "",
         operatorName = "";
 
@@ -912,7 +964,7 @@ class AdminController {
 
       // random 6 digit number
       var intOTP = varRandomString.generateRandomNumber(6);
-      console.log(intOTP, "OTP Sent to ", req.body.mobileNumber);
+      // console.log(intOTP, "OTP Sent to ", req.body.mobileNumber);
       // otp validation time
       var date = new Date();
       date.setHours(date.getHours() + 4, date.getMinutes() + 30);
@@ -993,11 +1045,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/getOtp]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/getOtp]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       var searchKeyValue = {
         username: req.body.username, //str
         status: 1,
@@ -1036,7 +1088,7 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log("[Admin/verifyAndUpdateNumber]",JSON.stringify(req.body),JSON.stringify(req.query));
+      // console.log("[Admin/verifyAndUpdateNumber]",JSON.stringify(req.body),JSON.stringify(req.query));
           let operator_uuid = '', operatorName = ''
 
             switch (req.body.mobileNumber.slice(0, 3)) {
@@ -1227,11 +1279,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/getSecurityPin]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/getSecurityPin]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
 
       var searchKeyValue = {
         username: req.body.user_detials.username,
@@ -1274,11 +1326,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/verifySecurityPin]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/verifySecurityPin]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       var searchKeyValue = {
         username: req.body.user_detials.username,
         status: 1,
@@ -1355,11 +1407,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/updateSecurityPin]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/updateSecurityPin]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       var searchKeyValue = {
         username: req.body.user_detials.username,
         status: 1,
@@ -1430,11 +1482,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/updateAgentPassword]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/updateAgentPassword]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       // verify tpin of admin
       var searchKeyValue = {
         username: req.body.user_detials.username,
@@ -1531,11 +1583,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/addSubAdmin]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/addSubAdmin]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       let operator_uuid = "",
         operatorName = "";
 
@@ -1990,11 +2042,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/updateSubadminDetials]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/updateSubadminDetials]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       let operator_uuid = "",
         operatorName = "";
 
@@ -2291,11 +2343,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/ChangeActiveState]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/ChangeActiveState]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       //search sub admin active state
       var searchKeyValue = {
         username: req.body.subAdminUserid,
@@ -2354,11 +2406,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/deleteSubAdmin]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/deleteSubAdmin]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       var searchKeyValue = {
         username: req.body.subAdminUserid,
         active: 1,
@@ -2398,11 +2450,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/loginAccess]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/loginAccess]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       //login message
       // console.log(req.body.message)
 
@@ -2574,11 +2626,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/forgetSendPassword]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/forgetSendPassword]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       // search admin mobile number, password, encryption key using username
       var searchKeyValue = {
         username: req.body.userid,
@@ -2650,11 +2702,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/getSubAdminPassword]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/getSubAdminPassword]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       // verify admin security pin
       let adminSecurityPin = await sqlQueryReplica.searchQuery(
         this.tableName1,
@@ -2713,11 +2765,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/updateSubAdminPassword]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/updateSubAdminPassword]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       // verify admin security pin
       let adminSecurityPin = await sqlQuery.searchQuery(
         this.tableName1,
@@ -2812,11 +2864,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/getSubAdminPin]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/getSubAdminPin]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       // verify admin security pin
       let adminSecurityPin = await sqlQueryReplica.searchQuery(
         this.tableName1,
@@ -2832,10 +2884,12 @@ class AdminController {
           .status(400)
           .json({ errors: [{ msg: "Securty pin matching error" }] });
 
-      let decriptSecurityPin = this.getHashPassword(
-        adminSecurityPin[0].encryption_key,
-        adminSecurityPin[0].tpin
-      );
+      // let decriptSecurityPin = this.getHashPassword(
+      //   adminSecurityPin[0].encryption_key,
+      //   adminSecurityPin[0].tpin
+      // );
+
+     let decriptSecurityPin =  varEncryptionString.decryptString(adminSecurityPin[0].encryption_key, adminSecurityPin[0].tpin);
       if (decriptSecurityPin != req.body.securityPin)
         return res
           .status(400)
@@ -2856,10 +2910,11 @@ class AdminController {
           .status(400)
           .json({ errors: [{ msg: "Sub-Admin account not found" }] });
 
-      decriptSecurityPin = this.getHashPassword(
-        subAminSecurityPin[0].encryption_key,
-        subAminSecurityPin[0].tpin
-      );
+      // decriptSecurityPin = this.getHashPassword(
+      //   subAminSecurityPin[0].encryption_key,
+      //   subAminSecurityPin[0].tpin
+      // );
+       decriptSecurityPin =  varEncryptionString.decryptString(adminSecurityPin[0].encryption_key, adminSecurityPin[0].tpin);
 
       res.status(200).json({ securityPin: decriptSecurityPin });
     } catch (error) {
@@ -2875,11 +2930,11 @@ class AdminController {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(
-        "[Admin/updateSubAdminPin]",
-        JSON.stringify(req.body),
-        JSON.stringify(req.query)
-      );
+      // console.log(
+      //   "[Admin/updateSubAdminPin]",
+      //   JSON.stringify(req.body),
+      //   JSON.stringify(req.query)
+      // );
       // verify admin security pin
       let adminSecurityPin = await sqlQuery.searchQuery(
         this.tableName1,

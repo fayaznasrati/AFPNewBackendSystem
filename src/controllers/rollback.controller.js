@@ -78,7 +78,7 @@ class rollbackController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('rollback/rollbackTransaction',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('rollback/rollbackTransaction',JSON.stringify(req.body), JSON.stringify(req.query))
                 if ( ! req.query.page ) req.query.page = 0
 
             // limit offset
@@ -301,7 +301,7 @@ class rollbackController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('rollback/acceptRollbackTransaction',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('rollback/acceptRollbackTransaction',JSON.stringify(req.body), JSON.stringify(req.query))
             // check for rollback details
                 let searchKeyValue = {
                     // region_ids : req.body.user_detials.region_list.join(','), //db
@@ -437,7 +437,7 @@ class rollbackController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('rollback/rejectRollbackTransaction',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('rollback/rejectRollbackTransaction',JSON.stringify(req.body), JSON.stringify(req.query))
             // check for rollback details
                 let searchKeyValue = {
                     // region_ids : req.body.user_detials.region_list.join(','), //db
@@ -483,9 +483,9 @@ class rollbackController {
 
                     smsFunction.agentSms(smsDetails).then((smsFunResponce)=>{ 
                         if(smsFunResponce.error){
-                            // console.log('send sms error for agent : ',lisResponce4[0].username)
+                            //  //  console.log('send sms error for agent : ',lisResponce4[0].username)
                         }else{
-                            // console.log('sms added')
+                            //  //  console.log('sms added')
                         }  
                     })
                 }
@@ -506,7 +506,7 @@ class rollbackController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('rollback/pendingRollback',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('rollback/pendingRollback',JSON.stringify(req.body), JSON.stringify(req.query))
                 if ( ! req.query.page ) req.query.page = 0
 
             // search param
@@ -741,7 +741,7 @@ class rollbackController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('rollback/etisaltPen',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('rollback/etisaltPen',JSON.stringify(req.body), JSON.stringify(req.query))
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
                 let searchKeyValue = {
@@ -836,7 +836,7 @@ class rollbackController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('rollback/acceptRollbackTreansactionMno',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('rollback/acceptRollbackTreansactionMno',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -873,7 +873,7 @@ class rollbackController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('rollback/rejectRollbackTransactionMNo',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('rollback/rejectRollbackTransactionMNo',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -909,7 +909,7 @@ class rollbackController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('rollback/transferAmtForRollback',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('rollback/transferAmtForRollback',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -1229,11 +1229,11 @@ class rollbackController {
 
             const intResult = await httpRequestMakerCommon.httpPost("activity-log/multiple",{mulActivityLog:logData})
             var strLog = intResult == 1 ? 'Agent login log added successfully' : intResult == 2 ? 'Agent login log error' : 'end point not found'
-                // console.log('Server Log : '+strLog)
+                //  //  console.log('Server Log : '+strLog)
             if(intResult != 1){
                 await sqlQuery.specialCMD('rollback')
                 // await reset(this.tableName1, data.reciever_uuid)
-                console.log('error: rollback Stock transfer Failed as log adding have issue')
+                 //  console.log('error: rollback Stock transfer Failed as log adding have issue')
                 return {status : 400, message : 'Stock transfer Failed as log adding have issue'}
                 // return res.status(400).json({ errors: [ {msg : 'log error'}] });
             }
@@ -1246,9 +1246,9 @@ class rollbackController {
 
             smsFunction.agentSms(smsDetails).then((smsFunResponce)=>{ 
                 if(smsFunResponce.error){
-                    // console.log('send sms error for agent : ',lisResponce4[0].username)
+                    //  //  console.log('send sms error for agent : ',lisResponce4[0].username)
                 }else{
-                    // console.log('sms added')
+                    //  //  console.log('sms added')
                 }  
             })
 
@@ -1447,7 +1447,7 @@ class rollbackController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('rollback/rejectRollback',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('rollback/rejectRollback',JSON.stringify(req.body), JSON.stringify(req.query))
                 // check for rollback details
                 let searchKeyValue = {
                     // region_ids : req.body.user_detials.region_list.join(','), //db
@@ -1496,9 +1496,9 @@ class rollbackController {
 
                     smsFunction.agentSms(smsDetails).then((smsFunResponce)=>{ 
                         if(smsFunResponce.error){
-                            // console.log('send sms error for agent : ',lisResponce4[0].username)
+                            //  //  console.log('send sms error for agent : ',lisResponce4[0].username)
                         }else{
-                            // console.log('sms added')
+                            //  //  console.log('sms added')
                         }  
                     })
                 }
@@ -1518,7 +1518,7 @@ class rollbackController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('rollback/rollbackComplete',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('rollback/rollbackComplete',JSON.stringify(req.body), JSON.stringify(req.query))
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             // limit offset
@@ -1745,7 +1745,7 @@ class rollbackController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('rollback/agentRollbackReport',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('rollback/agentRollbackReport',JSON.stringify(req.body), JSON.stringify(req.query))
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             // search paremeters
@@ -1829,7 +1829,7 @@ class rollbackController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('rollback/getSystemWalletBal',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('rollback/getSystemWalletBal',JSON.stringify(req.body), JSON.stringify(req.query))
             // search param
                 let searchKeyValue = {
                     status: 1
@@ -1855,7 +1855,7 @@ class rollbackController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('rollback/addMoneyInSystem',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('rollback/addMoneyInSystem',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -2030,7 +2030,7 @@ class rollbackController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('rollback/addRollbackRequest',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('rollback/addRollbackRequest',JSON.stringify(req.body), JSON.stringify(req.query))
                 var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -2075,13 +2075,13 @@ class rollbackController {
     // admin, sub admin and agent add rollback report
     addRollback = async (req, res) =>{
         try{
-            console.log('addRollback',req.body)
+             //  console.log('addRollback',req.body)
             // check body and query
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('rollback/addRollback',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('rollback/addRollback',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();

@@ -214,7 +214,7 @@ class walletController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('wallet/createWallet',JSON.stringify(req.body), JSON.stringify(req.query))
+          //  console.log('wallet/createWallet',JSON.stringify(req.body), JSON.stringify(req.query))
             //1)- check if wallet already exist or not
             var searchKeyValue = {
                 user_uuid: req.body.user_uuid //str user_uuid
@@ -587,7 +587,7 @@ class walletController {
         // }
 
         const lisTotalRecordsBlance = await walletModel.getAgentBalanceReportCount(param);
-        console.log('lisTotalRecordsBlance:', lisTotalRecordsBlance[0].totalBalance );
+       // console.log('lisTotalRecordsBlance:', lisTotalRecordsBlance[0].totalBalance );
         // let intTotlaRecords = Number(lisTotalRecords[0].count);
         // let intPageCount =  intTotlaRecords % Number(process.env.PER_PAGE_COUNT) === 0
         //         ? intTotlaRecords / Number(process.env.PER_PAGE_COUNT)
@@ -778,7 +778,7 @@ class walletController {
         if (!err) {
           fs.unlink(filePath, err => {
             if (err) console.error('Error deleting file:', filePath, err);
-            else console.log('Deleted file:', fileName);
+            else {}//console.log('Deleted file:', fileName);
           });
         } else {
           console.warn('File already deleted or missing:', filePath);

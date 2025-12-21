@@ -37,7 +37,7 @@ class agetnAdminFunction {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('agentAdminFunction/requestLoginOtp',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('agentAdminFunction/requestLoginOtp',JSON.stringify(req.body), JSON.stringify(req.query))
             // check for mobile number in the data base
                 var searchKeyValue = {
                     admin_userid: req.body.user_detials.id,
@@ -114,7 +114,7 @@ class agetnAdminFunction {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('agentAdminFunction/getLoginOtp',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('agentAdminFunction/getLoginOtp',JSON.stringify(req.body), JSON.stringify(req.query))
             // search for admin ang get login otp 
                 var searchKeyValue = {
                     admin_userid: req.body.user_detials.id,
@@ -143,7 +143,7 @@ class agetnAdminFunction {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('agentAdminFunction/verifyOtpGetLoiginAccess',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('agentAdminFunction/verifyOtpGetLoiginAccess',JSON.stringify(req.body), JSON.stringify(req.query))
             // verify otp
                 var param = {
                     agent_login_otp_expire_on : "0000-00-00 00:00:00"
@@ -208,7 +208,7 @@ class agetnAdminFunction {
             }
         // function to add details in log table
             // req.body.message
-            console.log('agentAdminFunction/agentLogin',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('agentAdminFunction/agentLogin',JSON.stringify(req.body), JSON.stringify(req.query))
         // check reason
             const resonCheck = await sqlQueryReplica.searchQuery(this.tableName4,{
                 reason_uuid : req.body.reason_uuid, 
@@ -318,7 +318,7 @@ class agetnAdminFunction {
             // make api call
             const intResult = await httpRequestMakerCommon.httpPost("activity-log",data)
             var strLog = intResult == 1 ? 'Agent login log added successfully' : intResult == 2 ? 'Agent login log error' : 'end point not found'
-            // console.log('Server Log : '+strLog)
+            //  //  console.log('Server Log : '+strLog)
 
         // get parent commission type
             var strCommType = lisResponce[0].comm_type == 1 ? "Pre-Paid" : lisResponce[0].comm_type == 2 ? "Post-Paid" : "Pre-Paid as 1st transaction"
@@ -348,7 +348,7 @@ class agetnAdminFunction {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('agentAdminFunction/forceLogout',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('agentAdminFunction/forceLogout',JSON.stringify(req.body), JSON.stringify(req.query))
             // update the force logout to 1
                 var searchKeyValue = {
                     user_uuid : req.body.agent_uuid,

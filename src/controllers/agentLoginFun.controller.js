@@ -48,7 +48,8 @@ class agentLoginFunction {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('agentLoginFun/agentLogin',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('agentLoginFun/agentLogin',JSON.stringify(req.body), JSON.stringify(req.query))
+                
             // get login credintial username and password
                 const strUserName = req.body.username
                 const strPassword = req.body.password
@@ -90,7 +91,7 @@ class agentLoginFunction {
 
                     if( allowedAttempt-attempt <= 0 ){
                         // update agent as in-active
-                        console.log('agentLoginFun/agentLogin/failed',strUserName)
+                         //  console.log('agentLoginFun/agentLogin/failed',strUserName)
                         const updateResponce = await sqlQuery.updateQuery(this.tableName1,{user_status : 2},{username : strUserName,Active : 1})
                     }
 
@@ -101,8 +102,12 @@ class agentLoginFunction {
                 const token = jwt.sign({ user_id: lisResponce[0].userid, userType: role.Agnet }, secretKey, {
                     expiresIn: process.env.SESSION_TIME
                 });
-
-                redisMaster.post(`agent_login_session_${req.body.username}`,token)
+                  const SESSION_IDLE_TIME = Number(process.env.SESSION_IDLE_TIME || 900);
+            // 🔐 Redis session (idle timeout)
+                // // save key value to redis
+                redisMaster.post(`agent_login_session_${req.body.username}`, token);
+                redisMaster.exp(`agent_login_session_${req.body.username}`, SESSION_IDLE_TIME);
+                // redisMaster.post(`agent_login_session_${req.body.username}`,token)
                 redisMaster.delete(`AGENT_LOGIN_ATTEMPT_${lisResponce[0].user_uuid}`)
                 redisMaster.delete(`AGENT_USSD/SMS_ATTEMPT_${lisResponce[0].user_uuid}`)
 
@@ -145,7 +150,7 @@ class agentLoginFunction {
                 // make api call
                 const intResult = await httpRequestMakerCommon.httpPost("activity-log",data)
                 var strLog = intResult == 1 ? 'Agent login log added successfully' : intResult == 2 ? 'Agent login log error' : 'end point not found'
-                    // console.log('Server Log : '+strLog)
+                    //  //  console.log('Server Log : '+strLog)
 
                 var date = new Date();
                 date.setHours(date.getHours() + 4, date.getMinutes() + 30);
@@ -203,7 +208,7 @@ class agentLoginFunction {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('agentLoginFun/logout',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('agentLoginFun/logout',JSON.stringify(req.body), JSON.stringify(req.query))
             const authHeader = req.headers.authorization;
             const bearer = 'Bearer ';
             const token = authHeader.replace(bearer, '');
@@ -226,7 +231,7 @@ class agentLoginFunction {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('agentLoginFun/getDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('agentLoginFun/getDetails',JSON.stringify(req.body), JSON.stringify(req.query))
             // get the details from sql 
                 var searchKeyValue = {
                     user_uuid : req.body.user_detials.user_uuid,
@@ -270,7 +275,7 @@ class agentLoginFunction {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('agentLoginFun/updateAgentDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('agentLoginFun/updateAgentDetails',JSON.stringify(req.body), JSON.stringify(req.query))
             // // check language uuid
             //     var searchKeyValue = {
             //         lang_uuid : req.body.lang_uuid, //str language uuid
@@ -385,7 +390,7 @@ class agentLoginFunction {
                     // make api call
                     const intResult = await httpRequestMakerCommon.httpPost("activity-log",data)
                     var strLog = intResult == 1 ? 'Agent details update log added successfully' : intResult == 2 ? 'Agent details update log error' : 'end point not found'
-                        // console.log('Server Log : '+strLog)
+                        //  //  console.log('Server Log : '+strLog)
                 }
 
                 // send responce to fornt end
@@ -408,7 +413,7 @@ class agentLoginFunction {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('agentLoginFun/changePassword',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('agentLoginFun/changePassword',JSON.stringify(req.body), JSON.stringify(req.query))
             // get password, encription key and pin
                 var searchKeyValue = {
                     user_uuid : req.body.user_detials.user_uuid,
@@ -489,7 +494,7 @@ class agentLoginFunction {
                     // make api call
                     const intResult = await httpRequestMakerCommon.httpPost("activity-log",data)
                     var strLog = intResult == 1 ? 'Agent change password log added successfully' : intResult == 2 ? 'Agent change password log error' : 'end point not found'
-                        // console.log('Server Log : '+strLog)
+                        //  //  console.log('Server Log : '+strLog)
                 }   
             // send responce to fornt end
                 res.send({ message, info });
@@ -513,7 +518,7 @@ class agentLoginFunction {
             }
 
             let operator_uuid = '', operatorName = ''
-            console.log('agentLoginFun/addContactNumber',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('agentLoginFun/addContactNumber',JSON.stringify(req.body), JSON.stringify(req.query))
             switch(req.body.mobile.slice(0,3)){
                 case "078":
                 case "073":
@@ -659,7 +664,7 @@ class agentLoginFunction {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('agentLoginFun/getContactDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('agentLoginFun/getContactDetails',JSON.stringify(req.body), JSON.stringify(req.query))
             // get contact details from sql query
                 var searchKeyValue = {
                     user_uuid : req.body.user_detials.user_uuid,
@@ -702,7 +707,7 @@ class agentLoginFunction {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('agentLoginFun/updateContactNumber',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('agentLoginFun/updateContactNumber',JSON.stringify(req.body), JSON.stringify(req.query))
                 let operator_uuid = '', operatorName = ''
 
                 switch(req.body.mobile.slice(0,3)){
@@ -905,7 +910,7 @@ class agentLoginFunction {
                     // make api call
                     const intResult = await httpRequestMakerCommon.httpPost("activity-log",data)
                     var strLog = intResult == 1 ? 'Agent change password log added successfully' : intResult == 2 ? 'Agent change password log error' : 'end point not found'
-                        // console.log('Server Log : '+strLog)
+                        //  //  console.log('Server Log : '+strLog)
                 }
 
                 // send responce to front end
@@ -928,7 +933,7 @@ class agentLoginFunction {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('agentLoginFun/getPin',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('agentLoginFun/getPin',JSON.stringify(req.body), JSON.stringify(req.query))
             // get m pin, encryption key, mpin status
                 var searchKeyValue = {
                     user_uuid : req.body.user_detials.user_uuid,
@@ -965,7 +970,7 @@ class agentLoginFunction {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('agentLoginFun/updatePin',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('agentLoginFun/updatePin',JSON.stringify(req.body), JSON.stringify(req.query))
             // get encryption keys
                 var searchKeyValue = {
                     user_uuid : req.body.user_detials.user_uuid,
@@ -1021,7 +1026,7 @@ class agentLoginFunction {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('agentLoginFun/forgetSendPassword',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('agentLoginFun/forgetSendPassword',JSON.stringify(req.body), JSON.stringify(req.query))
             // search admin mobile number, password, encryption key using username
                 var searchKeyValue = {
                     username : req.body.userid,
@@ -1076,7 +1081,7 @@ class agentLoginFunction {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('agentLoginFun/updateImage',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('agentLoginFun/updateImage',JSON.stringify(req.body), JSON.stringify(req.query))
                 if(!req.file) return res.status(400).json({ errors: [ {msg : "Image upload faild"}] });
 
                 let uploadDetails = await awsCommon.upload(req.file)
@@ -1117,7 +1122,7 @@ class agentLoginFunction {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('agentLoginFun/getImage',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('agentLoginFun/getImage',JSON.stringify(req.body), JSON.stringify(req.query))
             // upload image
                 let searchKeyValue = {
                     userid : req.body.user_detials.userid

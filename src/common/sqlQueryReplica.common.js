@@ -15,7 +15,7 @@ class sqlQueryCommon {
         try {
             const { inColumnSet, inQueStr, inValues } = multipleInsertColumnSet(keyValue)
             const sql = `INSERT INTO ${tableName} (${inColumnSet}) VALUES (${inQueStr})`;
-            if (boolConsole) console.log(sql, inColumnSet, inValues)
+            // if (boolConsole) console.log(sql, inColumnSet, inValues)
             const result = await dbConnection.query(sql, [...inValues]);
             const affectedRows = result ? result.affectedRows : 0;
             return result;
@@ -30,7 +30,7 @@ class sqlQueryCommon {
         try{
             const {finalinColumnSet,finalinQueStr,finalinValues} = multiRowInsert(keyValue)
             const sql = `INSERT INTO ${tableName} (${finalinColumnSet}) VALUES ${finalinQueStr}`;
-            if (boolConsole) console.log(sql, finalinColumnSet, finalinValues)
+            // if (boolConsole) console.log(sql, finalinColumnSet, finalinValues)
             const result = await dbConnection.execute(sql, [...finalinValues]);
             return result;
         }catch (error) {
@@ -45,7 +45,7 @@ class sqlQueryCommon {
             const { seColumnSet, sevalues } = multipleAndColumnSet(searchKeyValue)
             // console.log(boolConsole)
             const sql = `SELECT ${key.join(",")} FROM ${tableName} WHERE ${seColumnSet} ORDER BY ${orderby} ${ordertype} LIMIT ${limit} OFFSET ${offset} `;
-            if (boolConsole) console.log(sql, seColumnSet, sevalues)
+            // if (boolConsole) console.log(sql, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [...sevalues]);
             return result
         } catch (error) {
@@ -67,10 +67,10 @@ class sqlQueryCommon {
         ORDER BY m.sub_admin_module_id ASC, sm.sub_admin_sub_module_id ASC
         `;
     
-        console.log(sql);
+        //  console.log(sql);
     
         const result = await dbConnection.query(sql);
-        console.log(result);
+         //  console.log(result);
         return result;
       };
 
@@ -79,7 +79,7 @@ class sqlQueryCommon {
             const { seColumnSet, sevalues } = multipleAndColumnSet(searchKeyValue)
             // console.log(boolConsole)
             const sql = `SELECT /*+ MAX_EXECUTION_TIME(${process.env.SQL_QUERY_TIME_OUT}) */ ${key.join(",")} FROM ${tableName} WHERE ${seColumnSet} ORDER BY ${orderby} ${ordertype} LIMIT ${limit} OFFSET ${offset} `;
-            if (boolConsole) console.log(sql, seColumnSet, sevalues)
+            // if (boolConsole) console.log(sql, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [...sevalues]);
             return result
         } catch (error) {
@@ -94,7 +94,7 @@ class sqlQueryCommon {
         try {
             const { seColumnSet, sevalues } = multipleAndColumnSet(searchKeyValue)
             const sql = `SELECT ${key.join(",")} FROM ${tableName} WHERE ${seColumnSet} ORDER BY ${orderby} ${ordertype} LIMIT ${limit} OFFSET ${offset} `;
-            if (boolConsole) console.log(sql, seColumnSet, sevalues)
+            // if (boolConsole) console.log(sql, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [...sevalues]);
             return result
         } catch (error) {
@@ -109,7 +109,7 @@ class sqlQueryCommon {
         try {
             const { seColumnSet, sevalues } = multipleORColumnSet(searchKeyValue)
             const sql = `SELECT ${key.join(",")} FROM ${tableName} WHERE ${seColumnSet} ORDER BY ${orderby} ${ordertype} LIMIT ${limit} OFFSET ${offset} `;
-            if (boolConsole) console.log(sql, seColumnSet, sevalues)
+            // if (boolConsole) console.log(sql, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [...sevalues]);
             return result
         } catch (error) {
@@ -124,7 +124,7 @@ class sqlQueryCommon {
             const { seColumnSet, sevalues } = multipleAndColumnSet(searchKeyValue)
             // console.log(boolConsole)
             const sql = `SELECT ${key.join(",")} FROM ${tableName} WHERE ${seColumnSet} `;
-            if (boolConsole) console.log(sql, seColumnSet, sevalues)
+            // if (boolConsole) console.log(sql, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [...sevalues]);
             return result
         } catch (error) {
@@ -138,7 +138,7 @@ class sqlQueryCommon {
     searchQueryNoCon = async(tableName, key, orderby, ordertype, limit, offset) => {
         try {
             const sql = `SELECT ${key.join(",")} FROM ${tableName} ORDER BY ${orderby} ${ordertype} LIMIT ${limit} OFFSET ${offset} `;
-            if (boolConsole) console.log(sql)
+            // if (boolConsole) console.log(sql)
             const result = await dbConnection.query(sql);
             return result
         } catch (error) {
@@ -151,7 +151,7 @@ class sqlQueryCommon {
     searchQueryNoConNolimit = async(tableName, key, orderby, ordertype) => {
         try {
             const sql = `SELECT ${key.join(",")} FROM ${tableName} ORDER BY ${orderby} ${ordertype}`;
-            if (boolConsole) console.log(sql)
+            // if (boolConsole) console.log(sql)
             const result = await dbConnection.query(sql);
             return result
         } catch (error) {
@@ -165,7 +165,7 @@ class sqlQueryCommon {
         try {
             const { seColumnSet, sevalues } = multipleAndColumnSet(searchKeyValue)
             const sql = `SELECT ${key.join(",")} FROM ${tableName} WHERE ${seColumnSet} ORDER BY ${orderby} ${ordertype}`;
-            if (boolConsole) console.log(sql, seColumnSet, sevalues)
+            // if (boolConsole) console.log(sql, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [...sevalues]);
             return result
         } catch (error) {
@@ -179,7 +179,7 @@ class sqlQueryCommon {
         try {
             const { seColumnSet, sevalues } = multipleAndColumnSet(searchKeyValue)
             const sql = `SELECT /*+ MAX_EXECUTION_TIME(${process.env.SQL_QUERY_TIME_OUT}) */ ${key.join(",")} FROM ${tableName} WHERE ${seColumnSet} ORDER BY ${orderby} ${ordertype}`;
-            if (boolConsole) console.log(sql, seColumnSet, sevalues)
+            // if (boolConsole) console.log(sql, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [...sevalues]);
             return result
         } catch (error) {
@@ -193,7 +193,7 @@ class sqlQueryCommon {
         try {
             const { seColumnSet, sevalues } = multipleAndColumnSet(searchKeyValue)
             const sql = `SELECT ${key.join(",")} FROM ${tableName} WHERE ${seColumnSet} ORDER BY ${orderby} ${ordertype} `;
-            if (boolConsole) console.log(sql, seColumnSet, sevalues)
+            // if (boolConsole) console.log(sql, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [...sevalues]);
             return result
         } catch (error) {
@@ -206,7 +206,7 @@ class sqlQueryCommon {
     selectStar = async(tableName, key) => {
         try {
             const sql = `SELECT ${key.join(",")} FROM ${tableName}`;
-            if (boolConsole) console.log(sql)
+            // if (boolConsole) console.log(sql)
             const result = await dbConnection.query(sql);
             return result
         } catch (error) {
@@ -220,7 +220,7 @@ class sqlQueryCommon {
         try{
             const { upColumnSet, upValues } = multipleColumnSet(keyValue)
             const sql = `UPDATE ${tableName} SET ${upColumnSet}`;
-            if (boolConsole) console.log(sql, upColumnSet, upValues)
+            // if (boolConsole) console.log(sql, upColumnSet, upValues)
             const result = await dbConnection.query(sql, [...upValues]);
             // console.log(result)
             return result;
@@ -236,7 +236,7 @@ class sqlQueryCommon {
             const { upColumnSet, upValues } = multipleColumnSet(keyValue)
             const { seColumnSet, sevalues } = multipleAndColumnSet(searchKeyValue)
             const sql = `UPDATE ${tableName} SET ${upColumnSet} WHERE ${seColumnSet}`;
-            if (boolConsole) console.log(sql, upColumnSet, upValues, seColumnSet, sevalues)
+            // if (boolConsole) console.log(sql, upColumnSet, upValues, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [...upValues, ...sevalues]);
             // console.log(result)
             return result;
@@ -250,7 +250,7 @@ class sqlQueryCommon {
         try {
             const { seColumnSet, sevalues } = multipleAndColumnSet(searchKeyValue)
             const sql = `UPDATE ${tableName} SET ex_wallet = ex_wallet + ${amt} WHERE ${seColumnSet}`;
-            if (boolConsole) console.log(sql, seColumnSet, sevalues)
+            // if (boolConsole) console.log(sql, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [ ...sevalues]);
             return result;
         } catch (error) {
@@ -264,7 +264,7 @@ class sqlQueryCommon {
         try {
             const { seColumnSet, sevalues } = multipleAndColumnSet(searchKeyValue)
             const sql = `DELETE FROM ${tableName} WHERE ${seColumnSet}`;
-            if (boolConsole) console.log(sql, seColumnSet, sevalues)
+            // if (boolConsole) console.log(sql, seColumnSet, sevalues)
             const result = await dbConnection.query(sql, [...sevalues]);
             return result;
 
@@ -277,7 +277,7 @@ class sqlQueryCommon {
     specialCMD = async(type) => {
         try {
             var sql = ""
-            if (boolConsole) console.log("type :", type)
+            // if (boolConsole) console.log("type :", type)
             let result = 'ok'
             switch (type) {
                 case "transaction":

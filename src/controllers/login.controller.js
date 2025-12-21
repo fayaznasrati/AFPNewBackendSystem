@@ -262,7 +262,7 @@ class loginController {
             // check if use is admin and if parent id is not given then set it to default id
             if (!req.body.parent_uuid ) req.body.parent_uuid = req.body.user_detials.user_uuid
             if (req.body.parent_uuid === undefined) return res.status(400).json({ errors: [ {msg : 'Parent user id not found'}] });
-            console.log('login/createLoginuser',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('login/createLoginuser',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -628,7 +628,7 @@ class loginController {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    console.log('login/getParentName', JSON.stringify(req.body), JSON.stringify(req.query));
+     //  console.log('login/getParentName', JSON.stringify(req.body), JSON.stringify(req.query));
 
     // Build query parameters
     const param = { Active: 1 };
@@ -693,7 +693,7 @@ class loginController {
 
     // If not in Redis, fetch from DB and store
     if (!redisData) {
-      console.log('AdminUser cache empty — fetching from DB...');
+       //  console.log('AdminUser cache empty — fetching from DB...');
       const key = [
         'CAST(user_uuid AS CHAR(16)) AS user_uuid',
         'username AS id',
@@ -739,7 +739,7 @@ class loginController {
     if (lisResults.length === 0) {
       return res.status(204).json({ message: 'no user found' });
     }
-//  console.log('AdminUser fetched successfully with', [...adminUsers,...lisResults], 'records.');
+//   //  console.log('AdminUser fetched successfully with', [...adminUsers,...lisResults], 'records.');
     return res.status(200).json({
       reportList: lisResults
      
@@ -757,7 +757,7 @@ class loginController {
         return res.status(400).json({ errors: errors.array() });
         }
 
-        // console.log('login/getParentName', JSON.stringify(req.body), JSON.stringify(req.query));
+        //  //  console.log('login/getParentName', JSON.stringify(req.body), JSON.stringify(req.query));
 
         // Build query parameters
         const param = { Active: 1 };
@@ -822,7 +822,7 @@ class loginController {
 
         // If not in Redis, fetch from DB and store
         if (!redisData) {
-        console.log('AdminUser cache empty — fetching from DB...');
+         //  console.log('AdminUser cache empty — fetching from DB...');
         const key = [
             'CAST(user_uuid AS CHAR(16)) AS user_uuid',
             'username AS id',
@@ -868,7 +868,7 @@ class loginController {
         if (lisResults.length === 0) {
         return res.status(204).json({ message: 'no user found' });
         }
-    // console.log('AdminUser fetched successfully with', [...adminUsers,...lisResults], 'records.');
+    //  //  console.log('AdminUser fetched successfully with', [...adminUsers,...lisResults], 'records.');
         return res.status(200).json({
         reportList: [...adminUsers,...lisResults]
         
@@ -886,7 +886,7 @@ class loginController {
             return res.status(400).json({ errors: errors.array() });
             }
 
-            console.log('login/getParentName', JSON.stringify(req.body), JSON.stringify(req.query));
+             //  console.log('login/getParentName', JSON.stringify(req.body), JSON.stringify(req.query));
 
             // Build query parameters
             const param = { Active: 1 };
@@ -951,7 +951,7 @@ class loginController {
 
             // If not in Redis, fetch from DB and store
             if (!redisData) {
-            console.log('AdminUser cache empty — fetching from DB...');
+             //  console.log('AdminUser cache empty — fetching from DB...');
             const key = [
                 'CAST(user_uuid AS CHAR(16)) AS user_uuid',
                 'username AS id',
@@ -997,7 +997,7 @@ class loginController {
             if (lisResults.length === 0) {
             return res.status(204).json({ message: 'no user found' });
             }
-        // console.log('AdminUser fetched successfully with', [...adminUsers,...lisResults], 'records.');
+        //  //  console.log('AdminUser fetched successfully with', [...adminUsers,...lisResults], 'records.');
             return res.status(200).json({
             reportList: lisResults
             
@@ -1015,7 +1015,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('login/getAgentDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('login/getAgentDetails',JSON.stringify(req.body), JSON.stringify(req.query))
             // sql query parameter
             var searchKeyValue = {
                 user_uuid: req.query.user_uuid,
@@ -1096,7 +1096,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('login/getAllAgent',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('login/getAllAgent',JSON.stringify(req.body), JSON.stringify(req.query))
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
             console.log("req.Query", req.query);
 
@@ -1190,7 +1190,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('login/getAllAgent',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('login/getAllAgent',JSON.stringify(req.body), JSON.stringify(req.query))
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
             console.log("req.Query", req.query);
 
@@ -1282,7 +1282,7 @@ class loginController {
             setTimeout(() => {
                 fs.unlink(filePath, (err) => {
                     if (err) console.error('Error deleting file:', fileName);
-                    else console.log('Deleted agent report file:', fileName);
+                    else {}  //  console.log('Deleted agent report file:', fileName);
                 });
             }, 30 * 60 * 1000); // 30 min
 
@@ -1435,7 +1435,7 @@ class loginController {
             setTimeout(() => {
                 fs.unlink(filePath, (err) => {
                     if (err) console.error('Error deleting file:', fileName);
-                    else console.log('Deleted agent report file:', fileName);
+                    else {}  //  console.log('Deleted agent report file:', fileName);
                 });
             }, 30 * 60 * 1000); // 30 min
 
@@ -1462,7 +1462,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('login/updateAgentDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('login/updateAgentDetails',JSON.stringify(req.body), JSON.stringify(req.query))
             // get agent details which is gona update
                 // sql query parameter
                 var searchKeyValue = {
@@ -1607,7 +1607,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('login/getCommissionType',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('login/getCommissionType',JSON.stringify(req.body), JSON.stringify(req.query))
             // sql query parameter
             var searchKeyValue = {
                 user_uuid: req.query.user_uuid
@@ -1729,7 +1729,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('login/addPostPaidCommission',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('login/addPostPaidCommission',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -1864,7 +1864,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('login/updatePostPaidCommission',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('login/updatePostPaidCommission',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -1979,7 +1979,7 @@ class loginController {
 
                         const intResult = await httpRequestMakerCommon.httpPost("activity-log/multiple",{mulActivityLog:commissionChange})
                             var strLog = intResult == 1 ? 'Agent login log added successfully' : intResult == 2 ? 'Agent login log error' : 'end point not found'
-                                // console.log('Server Log : '+strLog)
+                                //  //  console.log('Server Log : '+strLog)
                             if(intResult != 1){
                                 // rollback
                                 let rollback = await sqlQuery.specialCMD('rollback')
@@ -1993,7 +1993,7 @@ class loginController {
                         
                         const intResult = await httpRequestMakerCommon.httpPost("activity-log/multiple",{mulActivityLog:logData})
                         var strLog = intResult == 1 ? 'Agent login log added successfully' : intResult == 2 ? 'Agent login log error' : 'end point not found'
-                            // console.log('Server Log : '+strLog)
+                            //  //  console.log('Server Log : '+strLog)
                         
                         if(intResult != 1){
                             // rollback
@@ -2116,7 +2116,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('login/addPrePaidCommission',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('login/addPrePaidCommission',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -2250,7 +2250,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('login/updatePrePaidCommission',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('login/updatePrePaidCommission',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -2381,7 +2381,7 @@ class loginController {
 
                     const intResult = await httpRequestMakerCommon.httpPost("activity-log/multiple",{mulActivityLog:logData})
                     var strLog = intResult == 1 ? 'Agent login log added successfully' : intResult == 2 ? 'Agent login log error' : 'end point not found'
-                        // console.log('Server Log : '+strLog)
+                        //  //  console.log('Server Log : '+strLog)
                     if(intResult != 1){
                         // rollback
                         let rollback = await sqlQuery.specialCMD('rollback')
@@ -2420,7 +2420,7 @@ class loginController {
                         
                         const intResult = await httpRequestMakerCommon.httpPost("activity-log/multiple",{mulActivityLog:commissionChange})
                         var strLog = intResult == 1 ? 'Agent login log added successfully' : intResult == 2 ? 'Agent login log error' : 'end point not found'
-                            // console.log('Server Log : '+strLog)
+                            //  //  console.log('Server Log : '+strLog)
                         if(intResult != 1){
                             // rollback
                             let rollback = await sqlQuery.specialCMD('rollback')
@@ -2518,7 +2518,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('login/addPrePaidas1stTran',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('login/addPrePaidas1stTran',JSON.stringify(req.body), JSON.stringify(req.query))
             //get login user id
             // sql query parameter
             var searchKeyValue = {
@@ -2590,7 +2590,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('login/addMpin',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('login/addMpin',JSON.stringify(req.body), JSON.stringify(req.query))
             //1)-get agent m_pin
                 // sql query parameter
                 var searchKeyValue = {
@@ -2646,7 +2646,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('login/getMpin',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('login/getMpin',JSON.stringify(req.body), JSON.stringify(req.query))
             // sql query parameter
             var searchKeyValue = {
                 user_uuid: req.query.user_uuid, //str
@@ -2689,7 +2689,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('login/changeAgentActiveState',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('login/changeAgentActiveState',JSON.stringify(req.body), JSON.stringify(req.query))
             var date = new Date();
             date.setHours(date.getHours() + 4, date.getMinutes() + 30);
             var isodate = date.toISOString();
@@ -2760,7 +2760,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('login/advanceSearch',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('login/advanceSearch',JSON.stringify(req.body), JSON.stringify(req.query))
             if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             // // variable for sql query
@@ -2891,7 +2891,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('login/getUplineAgentList',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('login/getUplineAgentList',JSON.stringify(req.body), JSON.stringify(req.query))
             let sqarchKeyValue = {
                 user_uuid : req.query.agentUuid,
                 Active : 1, 
@@ -2940,7 +2940,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('login/sendRegistrationMessage',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('login/sendRegistrationMessage',JSON.stringify(req.body), JSON.stringify(req.query))
             // get user phone number
                 var searchKeyValue = {
                     user_uuid : req.body.user_uuid, //str
@@ -3056,7 +3056,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            // console.log('login/getSlbList',JSON.stringify(req.body), JSON.stringify(req.query))
+            //  //  console.log('login/getSlbList',JSON.stringify(req.body), JSON.stringify(req.query))
             // get agent details  
                 let objAgentDetails = await sqlQueryReplica.searchQuery(this.tableName1, {user_uuid : req.query.user_uuid}, ['parent_id','usertype_id'], 'userid','ASC',1,0)
                 if(objAgentDetails.length == 0) return res.status(400).json({ errors: [ {msg : 'Agent not found'}] });
@@ -3132,7 +3132,7 @@ class loginController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('login/agentForceLogout',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('login/agentForceLogout',JSON.stringify(req.body), JSON.stringify(req.query))
             // update the force logout to 1
                 var searchKeyValue = {
                     user_uuid : req.body.agent_uuid,
@@ -3173,7 +3173,7 @@ class loginController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('login/getForceLogoutStatus',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('login/getForceLogoutStatus',JSON.stringify(req.body), JSON.stringify(req.query))
             // get status from er login 
                 const statusResponce = await sqlQuery.searchQuery(this.tableName1,{username : req.query.username,Active : 1},["fource_logout"],'userid','ASC',1,0)
                 if(statusResponce.length == 0) return res.status(400).json({ errors: [ {msg : "iuser not found"}] });

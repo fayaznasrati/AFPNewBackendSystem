@@ -22,7 +22,7 @@ class operatorAccessController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    // console.log('operatorAccess/getAllAccessRights',JSON.stringify(req.body), JSON.stringify(req.query))
+                    //  //  console.log('operatorAccess/getAllAccessRights',JSON.stringify(req.body), JSON.stringify(req.query))
                     var date = new Date();
                     date.setHours(date.getHours() + 4, date.getMinutes() + 30);
                     var isodate = date.toISOString();
@@ -65,7 +65,7 @@ class operatorAccessController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('operatorAccess/updateAccessRights',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('operatorAccess/updateAccessRights',JSON.stringify(req.body), JSON.stringify(req.query))
                     var date = new Date();
                     date.setHours(date.getHours() + 4, date.getMinutes() + 30);
                     var isodate = date.toISOString();
@@ -106,7 +106,7 @@ class operatorAccessController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('[getAllOperatorTopupList]', JSON.stringify(req.body), JSON.stringify(req.query));
+                 //  console.log('[getAllOperatorTopupList]', JSON.stringify(req.body), JSON.stringify(req.query));
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
     
                 var searchKeyValue = {
@@ -151,7 +151,7 @@ class operatorAccessController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('operatorAccess/addOperatorAccess',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('operatorAccess/addOperatorAccess',JSON.stringify(req.body), JSON.stringify(req.query))
                     var date = new Date();
                     date.setHours(date.getHours() + 4, date.getMinutes() + 30);
                     var isodate = date.toISOString();
@@ -201,7 +201,7 @@ class operatorAccessController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('operatorAccess/updateOperatorAccess',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('operatorAccess/updateOperatorAccess',JSON.stringify(req.body), JSON.stringify(req.query))
                     var date = new Date();
                     date.setHours(date.getHours() + 4, date.getMinutes() + 30);
                     var isodate = date.toISOString();
@@ -244,7 +244,7 @@ class operatorAccessController {
                             if (!errors.isEmpty()) {
                                 return res.status(400).json({ errors: errors.array() });
                             }
-                            console.log('operatorAccess/updateOperatorAccess',JSON.stringify(req.body), JSON.stringify(req.query))
+                             //  console.log('operatorAccess/updateOperatorAccess',JSON.stringify(req.body), JSON.stringify(req.query))
                              const { min_amount, max_amount, } = req.body;;
 
                             var date = new Date();
@@ -291,7 +291,7 @@ class operatorAccessController {
                     if (!errors.isEmpty()) {
                         return res.status(400).json({ errors: errors.array() });
                     }
-                    console.log('operatorAccess/deleteOperatorAccess',JSON.stringify(req.body), JSON.stringify(req.query))
+                     //  console.log('operatorAccess/deleteOperatorAccess',JSON.stringify(req.body), JSON.stringify(req.query))
                     var date = new Date();
                     date.setHours(date.getHours() + 4, date.getMinutes() + 30);
                     var isodate = date.toISOString();

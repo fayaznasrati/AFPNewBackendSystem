@@ -656,7 +656,7 @@ class rechargeController {
         amount: req.body.amount,
         mobile: req.body.mobile,
         userid: req.body.user_detials.userid,
-        user_uuid: req.body.user_detials.user_uuid,
+        user_uuid: req.body.user_detials.user_uuid, 
         user_mobile: req.body.user_detials.mobile,
         userType: req.body.user_detials.type,
         channelType: ["Mobile", "SMS", "USSD", "Web", "Company"].includes(
@@ -1582,9 +1582,9 @@ class rechargeController {
       // check if the agent can do the recharge
       // const lisResponce2 = await sqlQuery.searchQuery(this.tableName2,{user_uuid : data.user_uuid},["oper"+lisResponce1[0].operator_id+"_status AS status","comm_type"],"userid","ASC",1,0)
       const lisResponce2 = await this.#getOperatorAccess(
-        data.user_uuid,
+        data.user_uuid, 
         lisResponce1[0].operator_id
-      );
+      );  // cce3f94a-ca0e-11
       if (lisResponce2.length == 0) {
         redisMaster.decr(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`);
         return { status: 403, message: "operator permission not found" };

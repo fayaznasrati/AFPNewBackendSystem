@@ -28,7 +28,7 @@ class membersController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('TopUpMember/createMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('TopUpMember/createMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
             // create group name
                 //variables for sql query
                 var param = { 
@@ -59,7 +59,7 @@ class membersController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('TopUpMember/getMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('TopUpMember/getMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
             // search group name created by the Agent/ Admin
                 var searchKeyValue = {
                     user_uuid : req.body.user_detials.user_uuid,
@@ -106,7 +106,7 @@ class membersController {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('TopUpMember/UpdateMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('TopUpMember/UpdateMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
             // sql query
                 var searchKeyValue = {
                     group_uuid : req.body.group_uuid,
@@ -138,7 +138,7 @@ class membersController {
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('TopUpMember/deleteMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+             //  console.log('TopUpMember/deleteMemberGroup',JSON.stringify(req.body), JSON.stringify(req.query))
         // sql query
             var searchKeyValue = {
                 group_uuid : req.query.group_uuid,
@@ -172,7 +172,7 @@ class membersController {
     //             if (!errors.isEmpty()) {
     //                 return res.status(400).json({ errors: errors.array() });
     //             }
-    //             console.log('TopUpMember/addMember',JSON.stringify(req.body), JSON.stringify(req.query))
+    //              //  console.log('TopUpMember/addMember',JSON.stringify(req.body), JSON.stringify(req.query))
     //         // check group name and uuid
     //             var searchKeyValue = {
     //                 group_uuid : req.body.group_uuid,
@@ -348,7 +348,7 @@ addMember = async (req, res) => {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('TopUpMember/getMemberList',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('TopUpMember/getMemberList',JSON.stringify(req.body), JSON.stringify(req.query))
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             // check group name and uuid
@@ -424,7 +424,7 @@ addMember = async (req, res) => {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('TopUpMember/updateMemberDetails',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('TopUpMember/updateMemberDetails',JSON.stringify(req.body), JSON.stringify(req.query))
                  const { group_uuid, groupName, user_detials, member_uuid, mobile, amount, memberName } = req.body;
             // check group name and uuid
                 var searchKeyValue = {
@@ -560,7 +560,7 @@ addMember = async (req, res) => {
 //             return res.status(400).json({ errors: errors.array() });
 //         }
 
-//         console.log('TopUpMember/updateMemberDetails', JSON.stringify(req.body), JSON.stringify(req.query));
+//          //  console.log('TopUpMember/updateMemberDetails', JSON.stringify(req.body), JSON.stringify(req.query));
 
 //         const { group_uuid, groupName, user_detials, member_uuid, mobile, amount, memberName } = req.body;
 
@@ -650,7 +650,7 @@ addMember = async (req, res) => {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }  
-                console.log('TopUpMember/deleteMember',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('TopUpMember/deleteMember',JSON.stringify(req.body), JSON.stringify(req.query))
             // sql query
                 var searchKeyValue = {
                     member_uuid : req.query.member_uuid,
@@ -685,7 +685,7 @@ addMember = async (req, res) => {
                 } 
 
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
-                // console.log('TopUpMember/getUserGroupList',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('TopUpMember/getUserGroupList',JSON.stringify(req.body), JSON.stringify(req.query))
             // limit and offset
                 // var offset = req.query.start
                 // var limit = req.query.end - offset
@@ -825,7 +825,7 @@ downloadUserGroupList = async (req, res) => {
         if (!err) {
           fs.unlink(filePath, err => {
             if (err) console.error('Failed to delete:', filePath, err);
-            else console.log('Deleted file:', fileName);
+            else {} // //  console.log('Deleted file:', fileName);
           });
         }
       });
@@ -850,7 +850,7 @@ downloadUserGroupList = async (req, res) => {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('TopUpMember/addAgentGroup',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('TopUpMember/addAgentGroup',JSON.stringify(req.body), JSON.stringify(req.query))
             // get agent user id
                 var lisResponce1 = await sqlQueryReplica.searchQuery(this.tablename3,{user_uuid:req.body.user_uuid,Active : 1},["userid"],"userid","ASC",1,0)
                 if(lisResponce1.length == 0) return res.status(400).json({ errors: [ {msg : "Agent not found"}] });
@@ -886,7 +886,7 @@ downloadUserGroupList = async (req, res) => {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('TopUpMember/getAgentGroupList',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('TopUpMember/getAgentGroupList',JSON.stringify(req.body), JSON.stringify(req.query))
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             // limit and offset
@@ -945,7 +945,7 @@ downloadUserGroupList = async (req, res) => {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                // console.log('TopUpMember/getAgentMemberList',JSON.stringify(req.body), JSON.stringify(req.query))
+                //  //  console.log('TopUpMember/getAgentMemberList',JSON.stringify(req.body), JSON.stringify(req.query))
                 if ( ! req.query.pageNumber ) req.query.pageNumber = 0
 
             // limit and offset
@@ -999,7 +999,7 @@ downloadUserGroupList = async (req, res) => {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('TopUpMember/addAgentGroupMember',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('TopUpMember/addAgentGroupMember',JSON.stringify(req.body), JSON.stringify(req.query))
             // search group id
                 const lisResponce1 = await sqlQueryReplica.searchQuery(this.tablename1,{group_uuid : req.body.group_uuid},["group_id"],"group_id","ASc",1,0)
                 if(lisResponce1.length == 0) return res.status(400).json({ errors: [ {msg : "group name not found"}] });
@@ -1036,7 +1036,7 @@ downloadUserGroupList = async (req, res) => {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('TopUpMember/updateAgentMember',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('TopUpMember/updateAgentMember',JSON.stringify(req.body), JSON.stringify(req.query))
             // search group id
                 const lisResponce1 = await sqlQueryReplica.searchQuery(this.tablename1,{group_uuid : req.body.group_uuid},["group_id"],"group_id","ASc",1,0)
                 if(lisResponce1.length == 0) return res.status(400).json({ errors: [ {msg : "group name not found"}] }); 
@@ -1072,7 +1072,7 @@ downloadUserGroupList = async (req, res) => {
                 if (!errors.isEmpty()) {
                     return res.status(400).json({ errors: errors.array() });
                 }
-                console.log('TopUpMember/deleteAgentMember',JSON.stringify(req.body), JSON.stringify(req.query))
+                 //  console.log('TopUpMember/deleteAgentMember',JSON.stringify(req.body), JSON.stringify(req.query))
             // update member details
             var param = {
                 active : 0
