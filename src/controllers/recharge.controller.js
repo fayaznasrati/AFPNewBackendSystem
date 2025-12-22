@@ -103,7 +103,7 @@ class rechargeController {
   }
 
   fun = async (data) => {
-    console.log("data", data);
+    // console.log("data", data);
 
     // // redisMaster.post(`PENDING_RECHARGE_${lisResponce1[0].operator_id}`,0)
     // let response = await redisMaster.asyncGet(`PENDING_RECHARGE_2`)
@@ -385,7 +385,7 @@ class rechargeController {
               ? 2
               : 0,
         };
-        console.log("data", data);
+        // console.log("data", data);
 
         responce = await this.processRecharge(data);
         status.push(responce.status);
@@ -456,7 +456,7 @@ class rechargeController {
           normalized = "0" + normalized; // 731234567 => 0731234567
         }
         // Use switch on first 3 digits
-        console.log("normalized", normalized);
+        // console.log("normalized", normalized);
         switch (normalized.slice(0, 3)) {
           case "078":
           case "073":

@@ -85,7 +85,7 @@ class rechargeController {
     }
 
     fun = async (data) => {
-        console.log('data', data)
+        // console.log('data', data)
 
         // // redisMaster.post(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`,0)
         // let response = await redisMaster.asyncGet(`PENDING_RECHARGE_2`)
@@ -258,13 +258,13 @@ class rechargeController {
 
     bundlesinglerecharge = async (req, res) => {
         try {
-           console.log("Bundle Request", req.body)
+        //    console.log("Bundle Request", req.body)
             // check body and query
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
                 return res.status(400).json({ errors: errors.array() });
             }
-            console.log('recharge/bundlesinglerecharge', JSON.stringify(req.body), JSON.stringify(req.query))
+            // console.log('recharge/bundlesinglerecharge', JSON.stringify(req.body), JSON.stringify(req.query))
             let operator_uuid = '', operatorName = ''
 
             switch (req.body.mobile.slice(0, 3)) {
@@ -331,7 +331,7 @@ class rechargeController {
 
             try {
                 const bundleInfo = await this.checkBundleExist(data);
-                console.log("Bundle Info:", bundleInfo);
+                // console.log("Bundle Info:", bundleInfo);
                 if(bundleInfo.status == 404){
                     return res.status(404).json({ errors: [{ msg: "Selected bundle not found! " }] });
                 }
@@ -588,7 +588,7 @@ class rechargeController {
                     redisMaster.decr(`BUNDLE_PENDING_RECHARGE_${lisResponce1[0].operator_id}`)
                     return ({ status: 400, message: 'Channel limit not found' })
                 }
-                console.log(channelLimit)
+                // console.log(channelLimit)
                 if (channelLimit[0].status != 1) {
                     var lisresponce = await sqlQuery.specialCMD('rollback')
                     var searchKeyValue = {
@@ -702,7 +702,7 @@ class rechargeController {
                 // rabbit mq message list
                 let reqLis = [strUniqueNumber, data.operatorName, data.mobile, data.amount, data.bundle_name, data.techName]
                // fayaz 2
-                console.log(queue_name, reqLis)
+                // console.log(queue_name, reqLis)
                 sendMessage(queue_name, reqLis.join('|'), (err, result) => {
                     if (err) console.error(err)
                     console.log("RabitMQ Result:",result)
@@ -852,11 +852,11 @@ class rechargeController {
                     newValue: Number(lisResponce3[0].ex_wallet) - Number(data.amount),
                     regionId: data.region_id
                 }
-                console.log("activity-log:", logData);
+                // console.log("activity-log:", logData);
                 // make api call
                 let intResult = await httpRequestMakerCommon.httpPost("activity-log", logData)
                 var strLog = intResult == 1 ? 'log added successfully' : intResult == 2 ? 'log error' : 'end point not found'
-                console.log('Server Log : '+strLog)
+                // console.log('Server Log : '+strLog)
 
                 if (intResult != 1) {
                     var lisresponce = await sqlQuery.specialCMD('rollback')

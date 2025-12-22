@@ -601,43 +601,43 @@ class moduleController {
                         subModuleList = JSON.parse(lisResponce1[i].sub_module_perm).sub_module_perm_list
                         for (k = 0; k < subModuleList.length; k++) {
                             if(subModuleList[k].subModuleName != oldModuleList[j].subModuleName){
-                                console.log("sub module name : ",subModuleList[k].subModuleName, oldModuleList[j].subModuleName)
+                                // console.log("sub module name : ",subModuleList[k].subModuleName, oldModuleList[j].subModuleName)
                                 j+=1
                                 if(subModuleList[k].subModuleName != oldModuleList[j].subModuleName){
-                                    console.log("sub module name after j update: ",subModuleList[k].subModuleName, oldModuleList[j].subModuleName)
+                                    // console.log("sub module name after j update: ",subModuleList[k].subModuleName, oldModuleList[j].subModuleName)
                                     return res.status(400).json({ errors: [ {msg : "sub-module list is not proper"}] });
                                 }
                             }
                             // check the status value
                             if(subModuleList[k].permView != oldModuleList[j].viewPerm || oldModuleList[j].viewPerm == 0){
-                                console.log(subModuleList[k].subModuleName,"view perm update: ",subModuleList[k].permView, "view perm update: ",oldModuleList[j].subModuleName, oldModuleList[j].viewPerm)
+                                // console.log(subModuleList[k].subModuleName,"view perm update: ",subModuleList[k].permView, "view perm update: ",oldModuleList[j].subModuleName, oldModuleList[j].viewPerm)
                                 subModuleList[k].permView = oldModuleList[j].viewPerm == 1 ? 1 : 0
                                 update = 1
                             }
                             if(subModuleList[k].permAdd != oldModuleList[j].addPerm || oldModuleList[j].viewPerm == 0){
-                                console.log(subModuleList[k].subModuleName,"add perm update: ",subModuleList[k].permAdd, "add perm update: ",oldModuleList[j].subModuleName,oldModuleList[j].addPerm)
+                                // console.log(subModuleList[k].subModuleName,"add perm update: ",subModuleList[k].permAdd, "add perm update: ",oldModuleList[j].subModuleName,oldModuleList[j].addPerm)
                                 subModuleList[k].permAdd = oldModuleList[j].addPerm == 1 && oldModuleList[j].viewPerm == 1 ? 1 : 0
                                 update = 1
                             }
                             if(subModuleList[k].permEdit != oldModuleList[j].editPerm || oldModuleList[j].viewPerm == 0){
-                                console.log(subModuleList[k].subModuleName,"edit perm update: ",subModuleList[k].permEdit, "edit perm update: ",oldModuleList[j].subModuleName,oldModuleList[j].editPerm)
+                                // console.log(subModuleList[k].subModuleName,"edit perm update: ",subModuleList[k].permEdit, "edit perm update: ",oldModuleList[j].subModuleName,oldModuleList[j].editPerm)
                                 subModuleList[k].permEdit = oldModuleList[j].editPerm == 1 && oldModuleList[j].viewPerm == 1 ? 1 : 0
                                 update = 1
                             }
                             if(subModuleList[k].permDelete!= oldModuleList[j].deletePerm || oldModuleList[j].viewPerm == 0){
-                                console.log(subModuleList[k].subModuleName,"delete perm update: ",subModuleList[k].permDelete, "delete perm update: ",oldModuleList[j].subModuleName, oldModuleList[j].deletePerm)
+                                // console.log(subModuleList[k].subModuleName,"delete perm update: ",subModuleList[k].permDelete, "delete perm update: ",oldModuleList[j].subModuleName, oldModuleList[j].deletePerm)
                                 subModuleList[k].permDelete = oldModuleList[j].deletePerm == 1 && oldModuleList[j].viewPerm == 1 ? 1 : 0
                                 update = 1
                             }
                             if(update == 1){
                                 // update the value
-                                console.log("update: ",subModuleList[k])
+                                // console.log("update: ",subModuleList[k])
                                 if( subModuleList[k].permView == 1) view = 1
                             }
                         }
                         lisResponce1[i].sub_module_perm = JSON.stringify({sub_module_perm_list : subModuleList})
                         if(update == 1){
-                            console.log(lisResponce1[i].sub_module_perm)
+                            // console.log(lisResponce1[i].sub_module_perm)
                             lisResponce1[i].perm_view = view
                             updateResponce = await sqlQuery.updateQuery(this.tableName2,lisResponce1[i],{user_uuid : req.body.user_uuid,agent_module_name : lisResponce1[i].agent_module_name })
                             update = 0
@@ -647,7 +647,7 @@ class moduleController {
                             // redisMaster.delete(`AGENT_MODULE_PERMISSION_${lisResponce1[i].agent_module_id}_${req.body.user_uuid}`)
                        
                         }
-                        console.log(`agent permission: AGENT_MODULE_PERMISSION_${lisResponce1[i].agent_module_id}_${req.body.user_uuid}` )
+                        // console.log(`agent permission: AGENT_MODULE_PERMISSION_${lisResponce1[i].agent_module_id}_${req.body.user_uuid}` )
                         redisMaster.delete(`AGENT_MODULE_PERMISSION_${lisResponce1[i].agent_module_id}_${req.body.user_uuid}`)
                         // strModulePermission = await redisMaster.asyncGet(`AGENT_MODULE_PERMISSION_${moduleId[0]}_${req.body.user_detials.user_uuid}`)
                     }
