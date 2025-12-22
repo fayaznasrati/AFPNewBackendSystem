@@ -302,7 +302,7 @@ class cronCommon {
                                     }
             
                                     let transferStocksResponce = await stockController.processStockTransfer(details)
-                                    console.log(transferStocksResponce)
+                                    // console.log(transferStocksResponce)
                                 }
                             }
                         })
