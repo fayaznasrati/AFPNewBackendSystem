@@ -1328,37 +1328,73 @@ class loginController {
                 searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
             }
 
-        if (req.query.parentAgentUuid) {
-            let searchKeyValue1 = {
-                // user_uuid: req.query.parentAgentUuid,
-                username: req.query.parentAgentUuid,
-                Active: 1
-            };
+        // if (req.query.parentAgentUuid) {
+        //     let searchKeyValue1 = {
+        //         // user_uuid: req.query.parentAgentUuid,
+        //         username: req.query.parentAgentUuid,
+        //         Active: 1
+        //     };
 
-               if (req.body.user_detials.type == userList.Admin || req.body.user_detials.type == userList.SubAdmin) {
-                if (req.body.user_detials.region_list.length !== 7) {
-                    searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+        //        if (req.body.user_detials.type == userList.Admin || req.body.user_detials.type == userList.SubAdmin) {
+        //         if (req.body.user_detials.region_list.length !== 7) {
+        //             searchKeyValue.region_ids = req.body.user_detials.region_list.join(',');
+        //         }
+        //     } else {
+        //         searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
+        //     }
+
+        //     const lisResponce = await sqlQueryReplica.searchQuery(
+        //         this.tableName1,
+        //         searchKeyValue1,
+        //         ["child_id", "userid"],
+        //         "userid",
+        //         "ASC",
+        //         1,
+        //         0
+        //     );
+
+        //     if (lisResponce.length === 0) {
+        //         return res.status(400).json({ errors: [{ msg: 'Selected Parent not found' }] });
+        //     }
+
+        //     searchKeyValue.parent_id = lisResponce[0].userid;
+        // }
+
+             // all optional search parameter
+            if (req.query.parentAgentUuid) {
+            let userid = req.query.parentAgentUuid;
+             userid =     userid.startsWith("AFP-")? userid : `AFP-${userid}`;
+                // check if selected child is in your downline
+                var searchKeyValue1 = {
+                    username: userid,
+                    Active : 1
                 }
-            } else {
-                searchKeyValue.child_ids = req.body.user_detials.child_list.join(',');
+
+                // if admin or sub admin then search by region if agent search by agent ids
+                if(req.body.user_detials.type == userList.Admin || req.body.user_detials.type == userList.SubAdmin ) {
+                    // searchKeyValue1.region_ids = req.body.user_detials.region_list.join(',')
+                    if(req.body.user_detials.region_list.length != 7){
+                        searchKeyValue1.region_ids = req.body.user_detials.region_list.join(',')
+                    }
+                }else{
+                    searchKeyValue1.child_ids = req.body.user_detials.child_list.join(',')
+                }
+
+                var key = ["child_id","userid"]
+                var orderby = "userid"
+                var ordertype = "ASC" 
+
+                // fire sql query to get str user_uuid, str full_name, str email, str gender, int mobile, str address,str shop_name, str parent_id,str region_name,int usertype_id, str country name, str province name, str district name
+                const lisResponce = await sqlQueryReplica.searchQuery(this.tableName1, searchKeyValue1, key, orderby, ordertype, 1, 0)
+
+                // check sql rsponce
+                if (lisResponce.length === 0) {
+                    return res.status(400).json({ errors: [ {msg : 'selected Parent not found'}] });
+                }
+
+                // searchKeyValue.child_ids = lisResponce[0].child_id || '0' //str child slit coma sepreated
+                searchKeyValue.parent_id = lisResponce[0].userid
             }
-
-            const lisResponce = await sqlQueryReplica.searchQuery(
-                this.tableName1,
-                searchKeyValue1,
-                ["child_id", "userid"],
-                "userid",
-                "ASC",
-                1,
-                0
-            );
-
-            if (lisResponce.length === 0) {
-                return res.status(400).json({ errors: [{ msg: 'Selected Parent not found' }] });
-            }
-
-            searchKeyValue.parent_id = lisResponce[0].userid;
-        }
 
         if (req.query.userType_uuid) {
             const resUserType = await this.checkAgentType(req.query.userType_uuid);
