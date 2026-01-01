@@ -1426,7 +1426,8 @@ class stockController {
         limit,
         offset
       );
-
+       let start_date = req.query.startDate || 0;
+       let end_date = req.query.endDate || 0;
       if (req.query.pageNumber == 0) {
         if (lisResult.length === 0)
           return res.status(204).send({ message: "No data found" });
@@ -1434,7 +1435,7 @@ class stockController {
         const now = new Date();
         const dateStr = new Date().toISOString().split("T")[0];
         const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-mm-ss
-        const filename = `admin_stock_transfer_report_${dateStr}_${timeStr}.xlsx`;
+        const filename = `admin_stock_transfer_report_${start_date}-${end_date}_${dateStr}_${timeStr}_.xlsx`;
         const filepath = path.join(REPORT_DIR, filename);
 
         // Check for recent file
@@ -1442,7 +1443,7 @@ class stockController {
           .readdirSync(REPORT_DIR)
           .filter(
             (f) =>
-              f.startsWith("admin_stock_transfer_report_") &&
+              f.startsWith(`admin_stock_transfer_report_${start_date}-${end_date}_`) &&
               f.endsWith(".xlsx")
           )
           .map((f) => ({

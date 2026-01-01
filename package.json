@@ -5,7 +5,7 @@
   "main": "src/server.js",
   "scripts": {
     "local": "set NODE_ENV=local&& nodemon src/server.js",
-    "dev": "NODE_ENV=development pm2 start src/server.js --watch 'src/' --ignore-watch 'src/uploads'",
+    "dev": "NODE_ENV=development pm2 start src/dev-server.js --watch 'src/' --ignore-watch 'src/uploads'",
     "stage": "NODE_ENV=stage pm2 start src/server.js --watch 'src/' --ignore-watch 'src/uploads'",
     "pro": "NODE_ENV=production pm2 start src/server.js",
     "pro-cluster": "NODE_ENV=production node src/server.js",
