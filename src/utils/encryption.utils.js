@@ -23,6 +23,21 @@ function decryptString(strKey, strEncryptedText){
     }      
 }
 
+function generateQueryHash(query) {
+  return crypto
+    .createHash("md5")
+    .update(JSON.stringify(normalizeQuery(query)))
+    .digest("hex");
+}
+
+function normalizeQuery(query) {
+  return Object.keys(query)
+    .sort()
+    .reduce((acc, key) => {
+      acc[key] = query[key];
+      return acc;
+    }, {});
+}
 
 /**
  * Encrypts a secret using AES-256-CBC with the provided master key.
@@ -85,5 +100,6 @@ module.exports = {
     encryptString,
     decryptString,
     encryptSecret,
-    decryptSecret
+    decryptSecret,
+    generateQueryHash,
 }
