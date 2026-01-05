@@ -1397,8 +1397,8 @@ class stockController {
         searchKeyValue.usertype_id = response[0].agent_type_id;
       }
 
-      if (req.query.mobile) searchKeyValue.mobile = req.query.mobile;
-      if (req.query.amount) searchKeyValue.transfer_amt = req.query.amount;
+      // if (req.query.mobile) searchKeyValue.mobile = req.query.mobile;
+      // if (req.query.amount) searchKeyValue.transfer_amt = req.query.amount;
 
       if (Object.keys(searchKeyValue).length === 0) {
         return res
