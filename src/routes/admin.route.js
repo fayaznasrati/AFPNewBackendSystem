@@ -68,7 +68,7 @@ router.post('/sub-admin/login-access',loginAccess,auth(role.Admin),awaitHandlerF
 router.post('/forgot-password',forgetSendPassword,awaitHandlerFactory(adminController.forgetSendPassword))
 
 // cahnge password and security pin for sub admin
-router.post('/sub-admin//verify/password',getSubAdminPassword,auth(role.Admin),awaitHandlerFactory(adminController.getSubAdminPassword))
+router.post('/sub-admin/verify/password',getSubAdminPassword,auth(role.Admin),awaitHandlerFactory(adminController.getSubAdminPassword))
 router.post('/sub-admin/update/password',updateSubAdminPassword,auth(role.Admin),awaitHandlerFactory(adminController.updateSubAdminPassword))
 router.post('/sub-admin/verify/security-pin',getSubAdminPassword,auth(role.Admin),awaitHandlerFactory(adminController.getSubAdminPin))
 router.post('/sub-admin/update/security-pin',updateSubAdminPin,auth(role.Admin),awaitHandlerFactory(adminController.updateSubAdminPin))
