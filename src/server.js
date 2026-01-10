@@ -106,6 +106,11 @@ if (runInCluster) {
   // Your routes
   var apiRouter = require("./routes/index");
   app.use("/api/v1", apiRouter);
+app.post("/api/logout", (req, res) => {
+    res.status(200).json({ 
+        message: "signed out successfully", 
+    });
+});
 
   // Error middleware
   app.use(errorMiddleware);

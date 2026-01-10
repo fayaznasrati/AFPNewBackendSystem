@@ -42,6 +42,7 @@ const ExcelJS = require("exceljs");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
 const { env } = require("process");
+const { generateQueryHash } = require("../utils/encryption.utils");
 
 // configer env
 dotenv.config();
@@ -5975,28 +5976,39 @@ class rechargeController {
         }
         filters.push(`status=${req.query.status}`);
       }
-      // Generate timestamp for filename
-      const now = new Date();
-      const dateStr = new Date().toISOString().split("T")[0];
-      // const filterHash = Buffer.from(filters.sort().join('&')).toString('base64').replace(/[+/=]/g, '');
-      const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-mm-ss
-      const fileName = `topup_report_${dateStr}_${timeStr}.xlsx`;
-      const filePath = path.join(REPORT_DIR, fileName);
 
-      // ✅ Reuse file if created within last 30 minutes
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        const ageMinutes = (Date.now() - stats.mtimeMs) / (60 * 1000);
-        if (ageMinutes < 30) {
-          console.log("Reusing cached report:", fileName);
-          return res.json({
-            success: true,
-            downloadUrl: `/api/v1/recharge/admin-report/files/${fileName}`,
-            reused: true,
-          });
+        const QUERY_HASH = generateQueryHash(req.query);
+        const FILE_PREFIX = `topup_report_${QUERY_HASH}_`;
+        const THIRTY_MIN = 30 * 60 * 1000;
+        const now = Date.now();
+
+        // 📄 Create new file
+        const dateStr = new Date().toISOString().split("T")[0];
+        const timeStr = new Date().toTimeString().split(" ")[0].replace(/:/g, "-");
+        const filename = `${FILE_PREFIX}${dateStr}_${timeStr}.xlsx`;
+        const filepath = path.join(REPORT_DIR, filename);
+        // 🔍 Search for existing cached file
+        const existingFile = fs
+          .readdirSync(REPORT_DIR)
+          .filter(
+            (file) =>
+              file.startsWith(FILE_PREFIX) &&
+              file.endsWith(".xlsx")
+          )
+          .map((file) => {
+            const fullPath = path.join(REPORT_DIR, file);
+            return {
+              name: file,
+              time: fs.statSync(fullPath).mtime.getTime(),
+            };
+          })
+          .sort((a, b) => b.time - a.time)[0];
+
+        if (existingFile && now - existingFile.time <= THIRTY_MIN) {
+        const downloadUrl = `/api/v1/recharge/admin-report/files/${existingFile.name}`;
+        return  res.json({ success: true, downloadUrl, reused: false });
         }
-      }
-
+ 
       // ✅ Otherwise, generate new file
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet("TopUp Report");
@@ -6026,18 +6038,18 @@ class rechargeController {
         page++;
       }
 
-      await workbook.xlsx.writeFile(filePath);
-      fs.chmodSync(filePath, 0o644);
+      await workbook.xlsx.writeFile(filepath);
+      fs.chmodSync(filepath, 0o644);
 
       // ⏱ Delete file after 30 minutes
       setTimeout(() => {
-        fs.unlink(filePath, (err) => {
-          if (err) console.error("Error deleting file:", filePath, err);
-          else console.log("Deleted expired report file:", fileName);
+        fs.unlink(filepath, (err) => {
+          if (err) console.error("Error deleting file:", filepath, err);
+          else console.log("Deleted expired report file:", filename);
         });
       }, 30 * 60 * 1000);
 
-      const downloadUrl = `/api/v1/recharge/admin-report/files/${fileName}`;
+      const downloadUrl = `/api/v1/recharge/admin-report/files/${filename}`;
       res.json({ success: true, downloadUrl, reused: false });
     } catch (err) {
       console.error("Export error:", err);
